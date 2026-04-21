@@ -1,0 +1,106 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(`Erreur de connexion: ${signInError.message}`);
+        return;
+      }
+
+      router.replace('/dashboard');
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur inattendue s\'est produite');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-white px-4 py-12">
+      <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-5xl items-center justify-center">
+        <section className="w-full max-w-md rounded-md border border-gray-200 bg-white p-8">
+          <div className="mb-7">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">Connexion</p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tighter text-primary">Se connecter</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              Accédez à votre espace Woralink pour gérer votre présence en ligne.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+                className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                placeholder="vous@entreprise.com"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                placeholder="Votre mot de passe"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-md bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {loading ? 'Connexion...' : 'Entrer dans mon espace Woralink'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Vous n&apos;avez pas encore de compte ?{' '}
+            <Link href="/register" className="font-semibold text-black hover:opacity-90">
+              Créer un compte
+            </Link>
+          </p>
+        </section>
+      </div>
+    </main>
+  );
+}
