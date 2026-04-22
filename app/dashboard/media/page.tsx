@@ -66,7 +66,7 @@ export default function DashboardMediaPage() {
 
         setGalleryUrls(urls);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Impossible de charger vos médias.');
+        setError(err instanceof Error ? err.message : 'Impossible de charger votre espace visuel.');
       } finally {
         setChecking(false);
       }
@@ -79,10 +79,10 @@ export default function DashboardMediaPage() {
     return (
       <div className="min-h-screen bg-white">
         <DashboardTabs />
-        <div className="mx-auto w-full px-4 py-6 sm:py-8 lg:w-3/4">
-          <div className="rounded-md border border-gray-200 bg-white p-4 sm:p-8">
-            <div className="rounded-md border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-600">
-              Chargement de vos médias...
+        <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
+          <div className="rounded-none border-0 bg-white p-2 sm:rounded-md sm:border sm:border-gray-200 sm:p-8">
+            <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600 sm:p-6">
+              Chargement de votre espace visuel...
             </div>
           </div>
         </div>
@@ -93,8 +93,8 @@ export default function DashboardMediaPage() {
   return (
     <div className="min-h-screen bg-white">
       <DashboardTabs />
-      <div className="mx-auto w-full px-4 py-6 sm:py-8 lg:w-3/4">
-        <div className="w-full rounded-md border border-primary/20 bg-white p-4 sm:p-8 transition-colors hover:border-primary">
+      <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
+        <div className="w-full rounded-none border-0 bg-white p-2 transition-colors sm:rounded-md sm:border sm:border-primary/20 sm:p-8 sm:hover:border-primary">
           {error && (
             <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {error}
@@ -103,12 +103,12 @@ export default function DashboardMediaPage() {
 
           <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-md border border-primary/20 bg-white p-4 sm:p-6 transition-colors hover:border-primary">
-          <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Synthèse média</p>
+          <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Synthèse visuelle</p>
           <h2 className="mt-2 text-xl sm:text-2xl font-bold tracking-tighter text-primary">Votre identité visuelle</h2>
           <p className="mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
             {company
               ? 'Mettez en avant votre logo et vos meilleures photos pour inspirer confiance et améliorer votre page publique.'
-              : 'Créez d\'abord votre fiche entreprise pour commencer à publier vos médias sur Woralink.'}
+              : 'Créez d\'abord votre fiche entreprise pour commencer à publier votre galerie sur Woralink.'}
           </p>
 
           <div className="mt-6 overflow-hidden rounded-md border border-gray-200">
@@ -130,16 +130,16 @@ export default function DashboardMediaPage() {
 
           <div className="mt-6 space-y-3">
             <Link
-              href="/dashboard/profile?focus=gallery&mode=edit"
+              href="/dashboard/gallery"
               className="inline-flex w-full items-center justify-center rounded-md bg-primary px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-primary/90"
             >
-              Ajouter des photos
+              Gérer la galerie
             </Link>
             <Link
               href="/dashboard/profile?mode=edit"
               className="inline-flex w-full items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
             >
-              Modifier le logo et le profil
+              Modifier mon profil
             </Link>
             <Link
               href={company ? `/pme/${company.slug}` : '/dashboard/profile'}

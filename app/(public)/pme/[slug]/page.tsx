@@ -6,7 +6,7 @@ import Navbar from '../../../components/layout/Navbar';
 
 type GalleryPost = {
     url: string;
-    legend: string;
+    caption: string;
     uploadedAt: string | null;
 };
 
@@ -82,12 +82,12 @@ export default async function PmeProfilePage({ params }: PageProps) {
                 return null;
             }
 
-            const legendValue = row.legend ?? row.caption;
+            const captionValue = row.caption;
             const uploadedAtValue = row.uploaded_at ?? row.created_at;
 
             return {
                 url,
-                legend: typeof legendValue === 'string' ? legendValue : '',
+                caption: typeof captionValue === 'string' ? captionValue : '',
                 uploadedAt: typeof uploadedAtValue === 'string' ? uploadedAtValue : null,
             } satisfies GalleryPost;
         })

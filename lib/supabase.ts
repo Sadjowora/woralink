@@ -11,7 +11,7 @@ export const supabase =
 
 export type GalleryPhotoInput = {
     url: string;
-    legend?: string | null;
+    caption?: string | null;
     uploadedAt?: string | null;
 };
 
@@ -27,11 +27,12 @@ export async function saveCompanyGalleryPhotos(companyId: string, photos: Array<
     const normalizedPhotos = photos
         .map((item) => {
             if (typeof item === 'string') {
-                return { url: item.trim() };
+                return { url: item.trim(), caption: null as string | null };
             }
 
             return {
                 url: item.url?.trim() || '',
+                caption: item.caption ?? null,
             };
         })
         .filter((item) => Boolean(item.url));
@@ -53,9 +54,10 @@ export async function saveCompanyGalleryPhotos(companyId: string, photos: Array<
         return true;
     }
 
-    const buildRow = (photo: { url: string }): { company_id: string; url: string } => ({
+    const buildRow = (photo: { url: string; caption?: string | null }): { company_id: string; url: string; caption: string | null } => ({
         company_id: companyId,
         url: photo.url,
+        caption: photo.caption ?? null,
     });
 
     const rows = normalizedPhotos.map(buildRow);

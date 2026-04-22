@@ -30,7 +30,7 @@ type CompanyProfileProps = {
     company: Company;
     photos: Array<{
         url: string;
-        legend: string;
+        caption: string;
         uploadedAt: string | null;
     }>;
 };
@@ -254,7 +254,7 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                                     <div className="space-y-1 sm:space-y-2 px-3 sm:px-4 py-2 sm:py-3">
                                         <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Légende</p>
                                         <p className="text-xs sm:text-sm leading-relaxed text-gray-700">
-                                            {photo.legend?.trim() || 'Aucune légende fournie.'}
+                                            {photo.caption?.trim() || 'Aucune légende fournie.'}
                                         </p>
                                     </div>
                                 </article>

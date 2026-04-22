@@ -147,8 +147,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-white">
       <DashboardTabs />
-      <div className="mx-auto w-full px-4 py-8 lg:w-3/4">
-        <div className="w-full rounded-md border border-primary/20 bg-white p-8 transition-colors hover:border-primary">
+      <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
+        <div className="w-full rounded-none border-0 bg-white p-2 transition-colors sm:rounded-md sm:border sm:border-primary/20 sm:p-8 sm:hover:border-primary">
 
       {error && (
         <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -210,12 +210,12 @@ export default function DashboardPage() {
             </Link>
 
             <Link
-              href="/dashboard/media"
+              href="/dashboard/gallery"
               className="flex items-center justify-between rounded-md border border-primary bg-white px-5 py-4 text-primary transition-colors hover:bg-primary/5"
             >
               <span>
-                <span className="block text-sm text-gray-500">Contenu</span>
-                <span className="block text-base font-semibold">Ajouter des photos</span>
+                <span className="block text-sm text-gray-500">Galerie</span>
+                <span className="block text-base font-semibold">Gérer la galerie</span>
               </span>
               <span className="text-xl">→</span>
             </Link>
@@ -250,6 +250,12 @@ export default function DashboardPage() {
               className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
             >
               Ouvrir mon profil
+            </Link>
+            <Link
+              href="/dashboard/gallery"
+              className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+            >
+              Gérer ma galerie
             </Link>
           </div>
 
