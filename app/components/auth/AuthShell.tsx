@@ -40,7 +40,7 @@ export default function AuthShell({
               </Link>
 
               <p className="mt-8 text-sm font-medium uppercase tracking-[0.22em] text-blue-100">{eyebrow}</p>
-              <h1 className="mt-4 max-w-xl text-4xl font-bold leading-tight tracking-tighter text-primary md:text-5xl">{title}</h1>
+              <h1 className="mt-4 max-w-xl text-4xl font-bold leading-tight tracking-tighter text-gray-900 md:text-5xl">{title}</h1>
               <p className="mt-5 max-w-lg text-base leading-relaxed text-blue-50">{description}</p>
             </div>
 

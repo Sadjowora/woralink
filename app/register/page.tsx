@@ -127,9 +127,8 @@ export default function RegisterPage() {
                             required
                             className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         >
-                            <option value="visitor">Visiteur</option>
+                            <option value="visitor"> Visiteur, Client </option>
                             <option value="company">Startup, PME, Artisan ou Freelance</option>
-                            <option value="admin">Administrateur</option>
                         </select>
                     </div>
                     

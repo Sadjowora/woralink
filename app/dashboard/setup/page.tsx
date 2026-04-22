@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { supabase, saveCompanyGalleryPhotos } from '../../../lib/supabase';
+import { supabase, saveCompanyGalleryPhotos, type GalleryPhotoInput } from '../../../lib/supabase';
 import DashboardTabs from '../../components/dashboard/DashboardTabs';
 import ImageUpload from '../../components/ImageUpload';
 import Image from 'next/image';
@@ -71,6 +71,12 @@ type Company = {
     founder_photo_url?: string | null;
 };
 
+type GallerySlot = {
+    url: string;
+    legend: string;
+    uploadedAt: string | null;
+};
+
 function mapCompanyToFormValues(company: Company): FormData {
     return {
         entityName: company.name,
@@ -97,10 +103,14 @@ function SetupPageContent() {
     const [logoUrl, setLogoUrl] = useState<string>('');
     const [founderPhotoUrl, setFounderPhotoUrl] = useState<string>('');
     const [galleryUrls, setGalleryUrls] = useState<Array<string | null>>(Array(5).fill(null));
+    const [galleryLegends, setGalleryLegends] = useState<string[]>(Array(5).fill(''));
+    const [galleryUploadedAt, setGalleryUploadedAt] = useState<Array<string | null>>(Array(5).fill(null));
     const [galleryUploadingIndex, setGalleryUploadingIndex] = useState<number | null>(null);
+    const [gallerySaving, setGallerySaving] = useState(false);
     const [galleryError, setGalleryError] = useState('');
+    const [gallerySuccess, setGallerySuccess] = useState(false);
     const galleryInputRefs = useRef<Array<HTMLInputElement | null>>([]);
-    const gallerySectionRef = useRef<HTMLDivElement | null>(null);
+    const gallerySectionRef = useRef<HTMLFormElement | null>(null);
     const initialShortcutHandledRef = useRef(false);
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
@@ -152,6 +162,8 @@ function SetupPageContent() {
         const fetchGalleryPhotos = async () => {
             if (!company?.id) {
                 setGalleryUrls(Array(5).fill(null));
+                setGalleryLegends(Array(5).fill(''));
+                setGalleryUploadedAt(Array(5).fill(null));
                 return;
             }
 
@@ -166,19 +178,40 @@ function SetupPageContent() {
                 return;
             }
 
-            const urls = (data || [])
+            const slots = (data || [])
                 .map((row: Record<string, unknown>) => {
                     const value = row.photo_url ?? row.url;
-                    return typeof value === 'string' ? value : null;
+                    const url = typeof value === 'string' ? value : null;
+
+                    if (!url) {
+                        return null;
+                    }
+
+                    const legendValue = row.legend ?? row.caption;
+                    const uploadedAtValue = row.uploaded_at ?? row.created_at;
+
+                    return {
+                        url,
+                        legend: typeof legendValue === 'string' ? legendValue : '',
+                        uploadedAt: typeof uploadedAtValue === 'string' ? uploadedAtValue : null,
+                    } satisfies GallerySlot;
                 })
-                .filter((url): url is string => Boolean(url))
+                .filter((item): item is GallerySlot => Boolean(item?.url))
                 .slice(0, 5);
 
-            const slots: Array<string | null> = Array(5).fill(null);
-            urls.forEach((url, index) => {
-                slots[index] = url;
+            const urlSlots: Array<string | null> = Array(5).fill(null);
+            const legendSlots: string[] = Array(5).fill('');
+            const uploadedAtSlots: Array<string | null> = Array(5).fill(null);
+
+            slots.forEach((slot, index) => {
+                urlSlots[index] = slot.url;
+                legendSlots[index] = slot.legend;
+                uploadedAtSlots[index] = slot.uploadedAt;
             });
-            setGalleryUrls(slots);
+
+            setGalleryUrls(urlSlots);
+            setGalleryLegends(legendSlots);
+            setGalleryUploadedAt(uploadedAtSlots);
         };
 
         fetchGalleryPhotos();
@@ -197,6 +230,7 @@ function SetupPageContent() {
 
         setGalleryUploadingIndex(index);
         setGalleryError('');
+        setGallerySuccess(false);
 
         try {
             const fileExt = file.name.split('.').pop() ?? 'png';
@@ -226,6 +260,11 @@ function SetupPageContent() {
                 next[index] = publicUrlData.publicUrl;
                 return next;
             });
+            setGalleryUploadedAt((prev) => {
+                const next = [...prev];
+                next[index] = new Date().toISOString();
+                return next;
+            });
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Erreur lors de l\'upload de la photo.';
             setGalleryError(message);
@@ -239,11 +278,66 @@ function SetupPageContent() {
     };
 
     const handleRemoveGalleryPhoto = (index: number) => {
+        setGallerySuccess(false);
         setGalleryUrls((prev) => {
             const next = [...prev];
             next[index] = null;
             return next;
         });
+        setGalleryLegends((prev) => {
+            const next = [...prev];
+            next[index] = '';
+            return next;
+        });
+        setGalleryUploadedAt((prev) => {
+            const next = [...prev];
+            next[index] = null;
+            return next;
+        });
+    };
+
+    const handleGalleryLegendChange = (index: number, value: string) => {
+        setGallerySuccess(false);
+        setGalleryLegends((prev) => {
+            const next = [...prev];
+            next[index] = value;
+            return next;
+        });
+    };
+
+    const handleGallerySubmit = async () => {
+        if (!company?.id) {
+            setGalleryError('Créez ou rechargez d\'abord votre profil avant de sauvegarder la galerie.');
+            return;
+        }
+
+        setGallerySaving(true);
+        setGalleryError('');
+        setGallerySuccess(false);
+
+        try {
+            const galleryItems = galleryUrls.reduce<GalleryPhotoInput[]>((items, url, index) => {
+                if (!url) {
+                    return items;
+                }
+
+                items.push({
+                    url,
+                    legend: galleryLegends[index] || null,
+                    uploadedAt: galleryUploadedAt[index],
+                });
+
+                return items;
+            }, []);
+
+            await saveCompanyGalleryPhotos(company.id, galleryItems);
+            setGallerySuccess(true);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde de la galerie.';
+            setGalleryError(message);
+        } finally {
+            setGallerySaving(false);
+        }
     };
 
     const openEditor = useCallback((scrollToGallery = false) => {
@@ -281,7 +375,6 @@ function SetupPageContent() {
         setSuccess(false);
 
         try {
-            const completedGalleryUrls = galleryUrls.filter((url): url is string => Boolean(url));
             const yearsExperience = data.yearsExperience ? Number(data.yearsExperience) : null;
             const completedProjects = data.completedProjects ? Number(data.completedProjects) : null;
             const employeeCount = data.employeeCount ? Number(data.employeeCount) : null;
@@ -304,12 +397,7 @@ function SetupPageContent() {
             const user = userData?.user;
             if (!user) throw new Error('Utilisateur non connecté');
 
-            if (completedGalleryUrls.length !== 5) {
-                throw new Error('Veuillez uploader exactement 5 photos pour la galerie.');
-            }
-
             const slug = generateSlug(data.entityName);
-            let companyIdToSavePhotosFor = '';
 
             if (editing && company) {
                 // Update existing company
@@ -333,7 +421,6 @@ function SetupPageContent() {
                     .eq('id', company.id);
 
                 if (error) throw new Error(error.message);
-                companyIdToSavePhotosFor = company.id;
                 setCompany({
                     ...company,
                     name: data.entityName,
@@ -374,11 +461,8 @@ function SetupPageContent() {
                     .single();
 
                 if (error) throw new Error(error.message);
-                companyIdToSavePhotosFor = newCompany.id;
                 setCompany(newCompany as Company);
             }
-
-            await saveCompanyGalleryPhotos(companyIdToSavePhotosFor, completedGalleryUrls);
 
             setSuccess(true);
             setEditing(false);
@@ -410,49 +494,49 @@ function SetupPageContent() {
     return (
         <div className="min-h-screen bg-white">
             <DashboardTabs />
-            <div className="mx-auto w-full px-4 py-8 lg:w-3/4">
-                <div className="w-full rounded-md border border-gray-200 bg-white p-8">
+            <div className="mx-auto w-full px-4 py-6 sm:py-8 lg:w-3/4">
+                <div className="w-full rounded-md border border-gray-200 bg-white p-4 sm:p-8">
                 {company && !editing ? (
                     <>
-                        <div className="mb-8 flex flex-col gap-4 border-b border-gray-100 pb-6 md:flex-row md:items-end md:justify-between">
+                        <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:gap-4 border-b border-gray-100 pb-4 sm:pb-6 md:flex-row md:items-end md:justify-between">
                             <div>
-                                <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">Votre entreprise</p>
-                                <h2 className="mt-2 text-2xl font-bold tracking-tighter text-primary">Tableau de bord Woralink</h2>
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Votre entreprise</p>
+                                <h2 className="mt-2 text-xl sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">Tableau de bord Woralink</h2>
+                                <p className="mt-2 text-xs sm:text-sm text-gray-600">
                                     Retrouvez les informations essentielles de votre fiche et accedez aux actions rapides.
                                 </p>
                             </div>
 
-                            <div className="flex flex-col gap-3 sm:flex-row">
+                            <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row flex-wrap">
                                 <button
                                     type="button"
                                     onClick={() => openEditor(false)}
-                                    className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+                                    className="inline-flex items-center justify-center rounded-md bg-primary px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-primary/90 whitespace-nowrap"
                                 >
                                     Modifier mon profil
                                 </button>
                                 <Link
                                     href={`/pme/${company.slug}`}
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
                                 >
                                     Voir ma page publique
                                 </Link>
                                 <button
                                     type="button"
                                     onClick={() => openEditor(true)}
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
                                 >
                                     Ajouter des photos
                                 </button>
                                 <Link
                                     href="/dashboard"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
                                 >
                                     Retour au dashboard
                                 </Link>
                                 <Link
                                     href="/dashboard/media"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
                                 >
                                     Ouvrir les médias
                                 </Link>
@@ -461,87 +545,87 @@ function SetupPageContent() {
 
                         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
                         {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">Profil mis à jour avec succès !</div>}
-                        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                            <section className="rounded-md border border-gray-200 bg-white p-6">
-                                <div className="mb-5 flex items-center justify-between">
+                        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]">
+                            <section className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
+                                <div className="mb-4 sm:mb-5 flex items-center justify-between gap-2">
                                     <div>
-                                        <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">Resume</p>
-                                        <h3 className="mt-2 text-xl font-semibold text-black">Votre fiche entreprise</h3>
-                                        <p className="mt-1 text-sm text-gray-600">Les informations visibles par vos visiteurs sur Woralink.</p>
+                                        <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Resume</p>
+                                        <h3 className="mt-2 text-lg sm:text-xl font-semibold text-black">Votre fiche entreprise</h3>
+                                        <p className="mt-1 text-xs sm:text-sm text-gray-600">Les informations visibles par vos visiteurs sur Woralink.</p>
                                     </div>
-                                    <span className="rounded-md border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">En ligne</span>
+                                    <span className="rounded-md border border-gray-200 bg-white px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-gray-700 whitespace-nowrap">En ligne</span>
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-3">
                                     <div className="rounded-md border border-gray-200 bg-white p-4">
-                                        <p className="text-[10px] uppercase tracking-widest text-gray-500">Statut</p>
-                                        <p className="mt-2 text-3xl font-medium tracking-tighter text-black">En ligne</p>
+                                        <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Statut</p>
+                                        <p className="mt-2 text-2xl sm:text-3xl font-medium tracking-tighter text-black">En ligne</p>
                                     </div>
                                     <div className="rounded-md border border-gray-200 bg-white p-4">
-                                        <p className="text-[10px] uppercase tracking-widest text-gray-500">Ville</p>
-                                        <p className="mt-2 text-3xl font-medium tracking-tighter text-black">{company.city}</p>
+                                        <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Ville</p>
+                                        <p className="mt-2 text-2xl sm:text-3xl font-medium tracking-tighter text-black">{company.city}</p>
                                     </div>
                                     <div className="rounded-md border border-gray-200 bg-white p-4">
-                                        <p className="text-[10px] uppercase tracking-widest text-gray-500">Secteur</p>
-                                        <p className="mt-2 text-3xl font-medium tracking-tighter text-black">{company.sector}</p>
+                                        <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Secteur</p>
+                                        <p className="mt-2 text-2xl sm:text-3xl font-medium tracking-tighter text-black">{company.sector}</p>
                                     </div>
                                 </div>
                             </section>
 
-                            <section className="rounded-md border border-gray-200 bg-white p-6">
-                                <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">Details</p>
-                                <h3 className="mt-2 text-xl font-semibold text-black">Fiche detaillee</h3>
+                            <section className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
+                                <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Details</p>
+                                <h3 className="mt-2 text-lg sm:text-xl font-semibold text-black">Fiche detaillee</h3>
                                 <div className="mt-5 overflow-hidden rounded-md border border-gray-200">
                                     <ul className="tabular-nums">
                                         <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Nom de l&apos;entité</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right">{company.name}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Nom de l&apos;entité</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right">{company.name}</span>
                                         </li>
                                         <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Type de profil</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right">{company.profile_type}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Type de profil</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right">{company.profile_type}</span>
                                         </li>
                                         <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Secteur d&apos;activité</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right">{company.sector}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Secteur d&apos;activité</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right">{company.sector}</span>
                                         </li>
                                         <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Ville</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right">{company.city}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Ville</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right">{company.city}</span>
                                         </li>
                                         <li className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Numéro WhatsApp</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right tabular-nums">{company.whatsapp}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Numéro WhatsApp</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right tabular-nums">{company.whatsapp}</span>
                                         </li>
                                         <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Années d&apos;expérience</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right tabular-nums">{company.years_experience ?? 'À renseigner'}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Années d&apos;expérience</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right tabular-nums">{company.years_experience ?? 'À renseigner'}</span>
                                         </li>
                                         <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Projets terminés</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right tabular-nums">{company.completed_projects ?? 'À renseigner'}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Projets terminés</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right tabular-nums">{company.completed_projects ?? 'À renseigner'}</span>
                                         </li>
                                         <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                                            <span className="text-xs uppercase tracking-widest text-gray-500">Nombre d&apos;employés</span>
-                                            <span className="text-sm font-medium text-gray-900 text-right tabular-nums">{company.employee_count ?? 'À renseigner'}</span>
+                                            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Nombre d&apos;employés</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900 text-right tabular-nums">{company.employee_count ?? 'À renseigner'}</span>
                                         </li>
                                     </ul>
                                 </div>
-                                <div className="mt-4 space-y-3 rounded-md border border-gray-200 p-4">
+                                <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3 rounded-md border border-gray-200 p-3 sm:p-4">
                                     <div>
-                                        <p className="text-xs uppercase tracking-widest text-gray-500">Histoire de l&apos;entreprise</p>
-                                        <p className="mt-1 text-sm text-gray-700">{company.company_story || 'À renseigner'}</p>
+                                        <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Histoire de l&apos;entreprise</p>
+                                        <p className="mt-1 text-xs sm:text-sm text-gray-700">{company.company_story || 'À renseigner'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs uppercase tracking-widest text-gray-500">Mot du fondateur</p>
-                                        <p className="mt-1 text-sm text-gray-700">{company.founder_message || 'À renseigner'}</p>
+                                        <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Mot du fondateur</p>
+                                        <p className="mt-1 text-xs sm:text-sm text-gray-700">{company.founder_message || 'À renseigner'}</p>
                                     </div>
                                 </div>
                             </section>
 
                             {company.logo_url && (
-                                <div className="rounded-md border border-gray-200 bg-white p-6">
-                                    <label className="mb-1 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Logo</label>
+                                <div className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
+                                    <label className="mb-1 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Logo</label>
                                     <Image
                                         src={company.logo_url}
                                         alt="Logo de l'entreprise"
@@ -553,8 +637,8 @@ function SetupPageContent() {
                             )}
 
                             {company.founder_photo_url && (
-                                <div className="rounded-md border border-gray-200 bg-white p-6">
-                                    <label className="mb-1 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Photo du fondateur</label>
+                                <div className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
+                                    <label className="mb-1 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Photo du fondateur</label>
                                     <Image
                                         src={company.founder_photo_url}
                                         alt="Photo du fondateur"
@@ -591,32 +675,32 @@ function SetupPageContent() {
                 ) : (
                     <>
                         <div className="mb-6 text-center">
-                            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">Dashboard Woralink</p>
-                            <h1 className="mt-2 text-2xl font-bold tracking-tighter text-primary">
+                            <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Dashboard Woralink</p>
+                            <h1 className="mt-2 text-xl sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">
                             {editing ? 'Modifier votre profil' : 'Créer un profil professionnel'}
                             </h1>
-                            <p className="mt-2 text-sm text-gray-600">
+                            <p className="mt-2 text-xs sm:text-sm text-gray-600">
                                 {editing
                                     ? 'Mettez à jour votre fiche et vos médias pour garder une page publique complète.'
                                     : 'Configurez votre fiche entreprise pour apparaître sur Woralink et commencer à recevoir des demandes.'}
                             </p>
-                            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                                 <Link
                                     href="/dashboard"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
                                 >
                                     Retour au dashboard
                                 </Link>
                                 <Link
                                     href="/dashboard/media"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
                                 >
                                     Gérer mes médias
                                 </Link>
                                 {company && (
                                     <Link
                                         href={`/pme/${company.slug}`}
-                                        className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                                        className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
                                     >
                                         Voir ma page publique
                                     </Link>
@@ -629,61 +713,61 @@ function SetupPageContent() {
                             {editing ? 'Profil mis à jour avec succès !' : 'Profil créé avec succès !'}
                         </div>}
 
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-                    <section className="space-y-5 rounded-md border border-gray-200 bg-white p-6">
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
+                    <section className="space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6">
                         <div>
-                            <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Nom de l&apos;entité</label>
+                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Nom de l&apos;entité</label>
                             <input
                                 type="text"
                                 {...register('entityName', { required: 'Ce champ est requis' })}
-                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
                             />
-                            {errors.entityName && <p className="mt-1 text-sm text-red-600">{String(errors.entityName.message)}</p>}
+                            {errors.entityName && <p className="mt-1 text-xs sm:text-sm text-red-600">{String(errors.entityName.message)}</p>}
                         </div>
 
-                        <div className="grid gap-5 md:grid-cols-2">
+                        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2">
                             <div>
-                                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Type de profil</label>
+                                <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Type de profil</label>
                                 <select
                                     {...register('profileType', { required: 'Ce champ est requis' })}
-                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
                                 >
                                     <option value="">Sélectionnez un type</option>
                                     {profileTypes.map(type => (
                                         <option key={type} value={type}>{type}</option>
                                     ))}
                                 </select>
-                                {errors.profileType && <p className="mt-1 text-sm text-red-600">{String(errors.profileType.message)}</p>}
+                                {errors.profileType && <p className="mt-1 text-xs sm:text-sm text-red-600">{String(errors.profileType.message)}</p>}
                             </div>
 
                             <div>
-                                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Secteur d&apos;activité</label>
+                                <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Secteur d&apos;activité</label>
                                 <select
                                     {...register('sector', { required: 'Ce champ est requis' })}
-                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
                                 >
                                     <option value="">Sélectionnez un secteur</option>
                                     {sectors.map(sector => (
                                         <option key={sector} value={sector}>{sector}</option>
                                     ))}
                                 </select>
-                                {errors.sector && <p className="mt-1 text-sm text-red-600">{String(errors.sector.message)}</p>}
+                                {errors.sector && <p className="mt-1 text-xs sm:text-sm text-red-600">{String(errors.sector.message)}</p>}
                             </div>
                         </div>
 
-                        <div className="grid gap-5 md:grid-cols-2">
+                        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2">
                             <div>
-                                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Ville</label>
+                                <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Ville</label>
                                 <input
                                     type="text"
                                     {...register('city', { required: 'Ce champ est requis' })}
-                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
                                 />
-                                {errors.city && <p className="mt-1 text-sm text-red-600">{String(errors.city.message)}</p>}
+                                {errors.city && <p className="mt-1 text-xs sm:text-sm text-red-600">{String(errors.city.message)}</p>}
                             </div>
 
                             <div>
-                                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Numéro WhatsApp</label>
+                                <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Numéro WhatsApp</label>
                                 <input
                                     type="tel"
                                     {...register('whatsapp', {
@@ -694,76 +778,76 @@ function SetupPageContent() {
                                         }
                                     })}
                                     placeholder="+33123456789"
-                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
                                 />
-                                {errors.whatsapp && <p className="mt-1 text-sm text-red-600">{String(errors.whatsapp.message)}</p>}
+                                {errors.whatsapp && <p className="mt-1 text-xs sm:text-sm text-red-600">{String(errors.whatsapp.message)}</p>}
                             </div>
                         </div>
                     </section>
 
-                    <section className="space-y-5 rounded-md border border-gray-200 bg-white p-6">
+                    <section className="space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6">
                         <div>
-                            <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Histoire de l&apos;entreprise</label>
+                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Histoire de l&apos;entreprise</label>
                             <textarea
                                 rows={6}
                                 {...register('companyStory')}
                                 placeholder="Racontez l'histoire de votre entreprise, votre mission et vos points forts."
-                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white resize-none"
                             />
                         </div>
 
                         <div>
-                            <p className="mb-3 text-[10px] font-medium uppercase tracking-widest text-gray-500">Chiffres clés</p>
-                            <div className="grid gap-4 md:grid-cols-3">
+                            <p className="mb-3 text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Chiffres clés</p>
+                            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
                                 <div>
-                                    <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Années d&apos;expérience</label>
+                                    <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Années d&apos;expérience</label>
                                     <input
                                         type="number"
                                         min={0}
                                         inputMode="numeric"
                                         {...register('yearsExperience')}
-                                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white tabular-nums"
+                                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white tabular-nums"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Projets terminés</label>
+                                    <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Projets terminés</label>
                                     <input
                                         type="number"
                                         min={0}
                                         inputMode="numeric"
                                         {...register('completedProjects')}
-                                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white tabular-nums"
+                                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white tabular-nums"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Nombre d&apos;employés</label>
+                                    <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Nombre d&apos;employés</label>
                                     <input
                                         type="number"
                                         min={1}
                                         inputMode="numeric"
                                         {...register('employeeCount')}
-                                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white tabular-nums"
+                                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white tabular-nums"
                                     />
                                 </div>
                             </div>
                         </div>
                     </section>
 
-                    <section className="space-y-5 rounded-md border border-gray-200 bg-white p-6">
+                    <section className="space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6">
                         <div>
-                            <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Mot du fondateur</label>
+                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Mot du fondateur</label>
                             <textarea
                                 rows={5}
                                 {...register('founderMessage')}
                                 placeholder="Partagez un message personnel du fondateur pour créer un lien de confiance."
-                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white resize-none"
                             />
                         </div>
 
                         <div>
-                            <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Photo du fondateur</label>
+                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Photo du fondateur</label>
                             <small className="mb-2 block text-xs text-gray-500">Formats acceptés : PNG, JPG, GIF. Taille max : 5MB.</small>
                             <ImageUpload
                                 key={founderPhotoUrl || 'empty-founder-photo'}
@@ -771,121 +855,164 @@ function SetupPageContent() {
                                 className="max-w-md"
                             />
                             {founderPhotoUrl && (
-                                <p className="mt-2 text-sm text-green-700">Photo du fondateur sélectionnée et prête à être enregistrée.</p>
+                                <p className="mt-2 text-xs sm:text-sm text-green-700">Photo du fondateur sélectionnée et prête à être enregistrée.</p>
                             )}
                         </div>
                     </section>
 
-                    <section className="space-y-5 rounded-md border border-gray-200 bg-white p-6">
+                    <section className="space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6">
                     <div>
-                        <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Logo de l&apos;entreprise (optionnel)</label>
-                        <small className="mb-2 block text-xs text-gray-500">Formats acceptés : PNG, JPG, GIF. Taille max : 5MB.</small>
+                        <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Logo de l&apos;entreprise (optionnel)</label>
+                        <small className="mb-2 block text-[10px] sm:text-xs text-gray-500">Formats acceptés : PNG, JPG, GIF. Taille max : 5MB.</small>
                         <ImageUpload
                             key={logoUrl || 'empty-logo'}
                             onUploadComplete={(url) => setLogoUrl(url)}
                             className="max-w-md"
                         />
                         {logoUrl && (
-                            <p className="mt-2 text-sm text-green-700">Logo sélectionné et prêt à être uploadé.</p>
+                            <p className="mt-2 text-xs sm:text-sm text-green-700">Logo sélectionné et prêt à être uploadé.</p>
                         )}
                     </div>
 
-                    <div ref={gallerySectionRef}>
-                        <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-widest text-gray-500">Galerie de l&apos;entreprise</label>
-                        <small className="mb-2 block text-xs text-gray-500">Ajoutez exactement 5 photos pour finaliser votre profil.</small>
-                        <div className="mx-auto grid max-w-md grid-cols-2 gap-3 sm:grid-cols-3">
-                            {Array.from({ length: 5 }).map((_, index) => {
-                                const photoUrl = galleryUrls[index];
-                                const isUploading = galleryUploadingIndex === index;
-
-                                if (photoUrl) {
-                                    return (
-                                        <div key={`slot-${index}`} className="relative h-28">
-                                            <Image
-                                                src={photoUrl}
-                                                alt={`Photo galerie ${index + 1}`}
-                                                fill
-                                                sizes="(max-width: 640px) 50vw, 180px"
-                                                className="object-cover rounded-lg border"
-                                            />
-                                            <input
-                                                ref={(el) => {
-                                                    galleryInputRefs.current[index] = el;
-                                                }}
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(event) => {
-                                                    const file = event.target.files?.[0];
-                                                    if (!file) return;
-                                                    void handleGalleryUpload(index, file);
-                                                }}
-                                                disabled={isUploading}
-                                                className="hidden"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => galleryInputRefs.current[index]?.click()}
-                                                className="absolute top-2 right-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:text-black"
-                                                title="Modifier"
-                                            >
-                                                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-                                                    <path d="M15.232 5.232a2.5 2.5 0 0 0-3.536 0l-6.75 6.75a1.5 1.5 0 0 0-.39.72l-.57 2.394a.75.75 0 0 0 .909.91l2.394-.57a1.5 1.5 0 0 0 .72-.39l6.75-6.75a2.5 2.5 0 0 0 0-3.536l-.527-.528Z" />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveGalleryPhoto(index)}
-                                                className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:text-black"
-                                                title="Supprimer"
-                                            >
-                                                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-                                                    <path fillRule="evenodd" d="M8.5 3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V4h3a.75.75 0 0 1 0 1.5h-.538l-.586 9.086A2 2 0 0 1 11.382 16.5H8.618a2 2 0 0 1-1.994-1.914L6.038 5.5H5.5a.75.75 0 0 1 0-1.5h3v-.5Zm-1 2 .586 9.086a.5.5 0 0 0 .499.414h2.83a.5.5 0 0 0 .499-.414L12.5 5.5h-5Z" clipRule="evenodd" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <div key={`slot-${index}`} className="h-28">
-                                        <label className="flex h-full cursor-pointer items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600 hover:bg-white hover:border-black">
-                                            {isUploading ? 'Upload...' : 'Uploader'}
-                                            <input
-                                                ref={(el) => {
-                                                    galleryInputRefs.current[index] = el;
-                                                }}
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(event) => {
-                                                    const file = event.target.files?.[0];
-                                                    if (!file) return;
-                                                    void handleGalleryUpload(index, file);
-                                                }}
-                                                disabled={isUploading}
-                                                className="hidden"
-                                            />
-                                        </label>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500 tabular-nums">{galleryUrls.filter(Boolean).length}/5 photo(s) ajoutée(s)</p>
-                        {galleryError && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 mt-2">
-                                {galleryError}
-                            </div>
-                        )}
+                    <div className="rounded-md border border-gray-200 bg-gray-50 p-3 sm:p-4 text-xs sm:text-sm text-gray-600">
+                        La galerie se met à jour dans un formulaire séparé, juste après ce formulaire profil.
                     </div>
                     </section>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-md bg-black py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                            className="w-full rounded-md bg-black py-2 sm:py-3 text-xs sm:text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                         >
                             {loading ? (editing ? 'Mise à jour...' : 'Création...') : (editing ? 'Mettre à jour' : 'Créer le Profil')}
                         </button>
                     </form>
+
+                    {company && (
+                        <form
+                            ref={gallerySectionRef}
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                void handleGallerySubmit();
+                            }}
+                            className="mt-6 sm:mt-8 space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6"
+                        >
+                            <div>
+                                <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Mise à jour de la galerie</label>
+                                <p className="text-xs sm:text-sm text-gray-600">
+                                    Ce formulaire est indépendant du profil: chaque photo se gère individuellement, avec date d&apos;upload et légende optionnelle.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                                {Array.from({ length: 5 }).map((_, index) => {
+                                    const photoUrl = galleryUrls[index];
+                                    const isUploading = galleryUploadingIndex === index;
+                                    const uploadedAt = galleryUploadedAt[index];
+
+                                    return (
+                                        <div key={`slot-${index}`} className="rounded-md border border-gray-200 bg-gray-50 p-2 sm:p-3">
+                                            <p className="text-[10px] sm:text-xs font-medium uppercase tracking-widest text-gray-500">Photo {index + 1}</p>
+
+                                            <div className="mt-2 relative h-32 sm:h-36 overflow-hidden rounded-md border border-gray-200 bg-white">
+                                                {photoUrl ? (
+                                                    <Image
+                                                        src={photoUrl}
+                                                        alt={`Photo galerie ${index + 1}`}
+                                                        fill
+                                                        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 280px"
+                                                        className="object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs sm:text-sm text-gray-500">
+                                                        Aucune image
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-2 sm:mt-3 flex gap-1 sm:gap-2 flex-col sm:flex-row">
+                                                <input
+                                                    ref={(el) => {
+                                                        galleryInputRefs.current[index] = el;
+                                                    }}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(event) => {
+                                                        const file = event.target.files?.[0];
+                                                        if (!file) return;
+                                                        void handleGalleryUpload(index, file);
+                                                    }}
+                                                    disabled={isUploading}
+                                                    className="hidden"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => galleryInputRefs.current[index]?.click()}
+                                                    disabled={isUploading}
+                                                    className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-2.5 sm:px-3 py-2 text-[10px] sm:text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                                >
+                                                    {photoUrl ? (isUploading ? 'Modification...' : 'Remplacer') : (isUploading ? 'Upload...' : 'Ajouter')}
+                                                </button>
+                                                {photoUrl && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveGalleryPhoto(index)}
+                                                        className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-2.5 sm:px-3 py-2 text-[10px] sm:text-xs font-medium text-gray-700 hover:bg-gray-100"
+                                                    >
+                                                        Supprimer
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-3">
+                                                <label className="mb-1 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Légende (optionnel)</label>
+                                                <input
+                                                    type="text"
+                                                    value={galleryLegends[index]}
+                                                    onChange={(event) => handleGalleryLegendChange(index, event.target.value)}
+                                                    placeholder="Ex: chantier livré à Conakry"
+                                                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                />
+                                            </div>
+
+                                            <p className="mt-2 text-[10px] sm:text-xs text-gray-500">
+                                                Date d&apos;upload:{' '}
+                                                {uploadedAt
+                                                    ? new Date(uploadedAt).toLocaleDateString('fr-FR', {
+                                                          day: '2-digit',
+                                                          month: 'short',
+                                                          year: 'numeric',
+                                                      })
+                                                    : 'Non renseignée'}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <p className="text-xs text-gray-500 tabular-nums">{galleryUrls.filter(Boolean).length}/5 photo(s) ajoutée(s)</p>
+
+                            {galleryError && (
+                                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs sm:text-sm text-red-700">
+                                    {galleryError}
+                                </div>
+                            )}
+
+                            {gallerySuccess && (
+                                <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-xs sm:text-sm text-green-700">
+                                    Galerie mise à jour avec succès.
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={gallerySaving || galleryUploadingIndex !== null}
+                                className="w-full rounded-md bg-black py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                            >
+                                {gallerySaving ? 'Enregistrement de la galerie...' : 'Enregistrer la galerie'}
+                            </button>
+                        </form>
+                    )}
                 </>
                 )}
                 </div>
@@ -900,8 +1027,8 @@ export default function SetupPage() {
             fallback={
                 <div className="min-h-screen bg-white">
                     <DashboardTabs />
-                    <div className="mx-auto w-full px-4 py-8 lg:w-3/4">
-                        <div className="rounded-md border border-gray-200 bg-white p-8">
+                    <div className="mx-auto w-full px-4 py-6 sm:py-8 lg:w-3/4">
+                        <div className="rounded-md border border-gray-200 bg-white p-4 sm:p-8">
                             <div className="rounded-md border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-600">
                                 Chargement des parametres...
                             </div>

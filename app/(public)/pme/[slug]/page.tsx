@@ -2,6 +2,13 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabase } from '../../../../lib/supabase';
 import CompanyProfile from './CompanyProfile';
+import Navbar from '../../../components/layout/Navbar';
+
+type GalleryPost = {
+    url: string;
+    legend: string;
+    uploadedAt: string | null;
+};
 
 type PageProps = {
     params: Promise<{ slug: string }>;
@@ -69,9 +76,27 @@ export default async function PmeProfilePage({ params }: PageProps) {
     const photos = (photosData ?? [])
         .map((row: Record<string, unknown>) => {
             const value = row.photo_url ?? row.url;
-            return typeof value === 'string' ? value : null;
-        })
-        .filter((url): url is string => Boolean(url));
+            const url = typeof value === 'string' ? value : null;
 
-    return <CompanyProfile company={company} photos={photos} />;
+            if (!url) {
+                return null;
+            }
+
+            const legendValue = row.legend ?? row.caption;
+            const uploadedAtValue = row.uploaded_at ?? row.created_at;
+
+            return {
+                url,
+                legend: typeof legendValue === 'string' ? legendValue : '',
+                uploadedAt: typeof uploadedAtValue === 'string' ? uploadedAtValue : null,
+            } satisfies GalleryPost;
+        })
+        .filter((item): item is GalleryPost => Boolean(item));
+
+    return (
+        <>
+            <Navbar />
+            <CompanyProfile company={company} photos={photos} />
+        </>
+    );
 }

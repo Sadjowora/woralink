@@ -34,11 +34,11 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 	};
 
 	return (
-		<div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4 md:sticky md:top-6">
-			<h2 className="font-semibold tracking-tighter text-primary">Filtres</h2>
+		<div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-3 sm:space-y-4 md:sticky md:top-20">
+			<h2 className="text-lg sm:text-base font-semibold tracking-tighter text-primary">Filtres</h2>
 
 			<div className="space-y-1">
-				<label htmlFor="q" className="block text-sm font-medium text-gray-700">
+				<label htmlFor="q" className="block text-xs sm:text-sm font-medium text-gray-700">
 					Nom de l&apos;entreprise
 				</label>
 				<input
@@ -48,12 +48,12 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 					defaultValue={q}
 					placeholder="Ex: Tech Guinée"
 					onChange={(e) => updateParam('q', e.target.value)}
-					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
 				/>
 			</div>
 
 			<div className="space-y-1">
-				<label htmlFor="city" className="block text-sm font-medium text-gray-700">
+				<label htmlFor="city" className="block text-xs sm:text-sm font-medium text-gray-700">
 					Ville
 				</label>
 				<select
@@ -61,7 +61,7 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 					name="city"
 					value={city}
 					onChange={(e) => updateParam('city', e.target.value)}
-					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white"
+					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white"
 				>
 					<option value="">Toutes les villes</option>
 					{GUINEA_CITIES.map((item) => (
@@ -73,7 +73,7 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 			</div>
 
 			<div className="space-y-1">
-				<label htmlFor="sector" className="block text-sm font-medium text-gray-700">
+				<label htmlFor="sector" className="block text-xs sm:text-sm font-medium text-gray-700">
 					Secteur d&apos;activité
 				</label>
 				<select
@@ -81,7 +81,7 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 					name="sector"
 					value={sector}
 					onChange={(e) => updateParam('sector', e.target.value)}
-					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white"
+					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white"
 				>
 					<option value="">Tous les secteurs</option>
 					{SECTORS.map((item) => (
@@ -95,7 +95,7 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 			<button
 				type="button"
 				onClick={clearAll}
-				className="w-full rounded-md border border-primary bg-white py-2 text-center font-medium text-primary transition-colors hover:bg-primary/5"
+				className="w-full rounded-md border border-primary bg-white py-2 text-xs sm:text-sm text-center font-medium text-primary transition-colors hover:bg-primary/5"
 			>
 				Effacer les filtres
 			</button>

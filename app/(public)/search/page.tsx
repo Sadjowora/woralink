@@ -43,16 +43,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 		<div className="min-h-screen bg-gray-50 flex flex-col">
 			<Navbar />
 
-			<div className="max-w-7xl mx-auto w-full px-4 py-8 flex-1">
-				<div className="mb-6">
-					<h1 className="text-2xl font-bold tracking-tighter text-primary">Rechercher un professionnel</h1>
-					<p className="text-sm text-gray-500 mt-1">
+			<div className="max-w-7xl mx-auto w-full px-4 py-6 sm:py-8 flex-1">
+				<div className="mb-4 sm:mb-6">
+					<h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">Rechercher un professionnel</h1>
+					<p className="text-xs sm:text-sm text-gray-500 mt-1">
 						Utilisez les filtres URL pour trouver rapidement un profil.
 					</p>
 				</div>
 
-				<div className="flex flex-col md:flex-row gap-6 items-start">
-					<aside className="w-full md:w-64 shrink-0">
+				<div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-start">
+					<aside className="w-full md:w-64 shrink-0 md:sticky md:top-20">
 						<SearchFilters city={cityFilter} sector={sectorFilter} q={queryFilter} />
 					</aside>
 
@@ -65,10 +65,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
 						{hasResults ? (
 							<>
-								<p className="text-sm text-gray-500 mb-4">
+								<p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
 									{companies.length} résultat{companies.length > 1 ? 's' : ''}
 								</p>
-								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
 									{companies.map((company) => (
 										<Link key={company.id} href={`/pme/${company.slug}`}>
 											<CompanyCard
@@ -84,21 +84,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 								</div>
 							</>
 						) : (
-							<div className="py-16">
-								<div className="max-w-2xl mx-auto rounded-2xl border border-blue-100 bg-white shadow-sm p-8 text-center">
-									<div className="w-16 h-16 mx-auto rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mb-4">
+							<div className="py-12 sm:py-16">
+								<div className="max-w-2xl mx-auto rounded-2xl border border-blue-100 bg-white shadow-sm p-5 sm:p-8 text-center">
+									<div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4">
 										🔍
 									</div>
-									<h2 className="mb-2 text-xl font-semibold tracking-tighter text-primary">
+									<h2 className="mb-2 text-lg sm:text-xl font-semibold tracking-tighter text-primary">
 										Aucun professionnel trouvé dans cette zone
 									</h2>
-									<p className="text-gray-600 mb-6">
+									<p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
 										Vous êtes basé{cityFilter ? ` à ${cityFilter}` : ' en Guinée'} et vous proposez des services ?
 										 Rejoignez Woralink pour être visible auprès de vos futurs clients.
 									</p>
 									<Link
 										href="/register"
-										className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary/90"
+										className="inline-flex items-center justify-center rounded-md bg-primary px-5 sm:px-6 py-2 sm:py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
 									>
 										Inscrivez votre entreprise
 									</Link>
