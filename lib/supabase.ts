@@ -27,13 +27,11 @@ export async function saveCompanyGalleryPhotos(companyId: string, photos: Array<
     const normalizedPhotos = photos
         .map((item) => {
             if (typeof item === 'string') {
-                return { url: item.trim(), legend: null, uploadedAt: null };
+                return { url: item.trim() };
             }
 
             return {
                 url: item.url?.trim() || '',
-                legend: item.legend?.trim() || null,
-                uploadedAt: item.uploadedAt || null,
             };
         })
         .filter((item) => Boolean(item.url));
@@ -55,80 +53,16 @@ export async function saveCompanyGalleryPhotos(companyId: string, photos: Array<
         return true;
     }
 
-    const insertStrategies = [
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            url: photo.url,
-            legend: photo.legend,
-            uploaded_at: photo.uploadedAt,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            url: photo.url,
-            caption: photo.legend,
-            uploaded_at: photo.uploadedAt,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            photo_url: photo.url,
-            legend: photo.legend,
-            uploaded_at: photo.uploadedAt,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            photo_url: photo.url,
-            caption: photo.legend,
-            uploaded_at: photo.uploadedAt,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            url: photo.url,
-            legend: photo.legend,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            url: photo.url,
-            caption: photo.legend,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            photo_url: photo.url,
-            legend: photo.legend,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            photo_url: photo.url,
-            caption: photo.legend,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            url: photo.url,
-        }),
-        (photo: { url: string; legend: string | null; uploadedAt: string | null }) => ({
-            company_id: companyId,
-            photo_url: photo.url,
-        }),
-    ];
+    const buildRow = (photo: { url: string }): { company_id: string; url: string } => ({
+        company_id: companyId,
+        url: photo.url,
+    });
 
-    let lastError: unknown = null;
+    const rows = normalizedPhotos.map(buildRow);
+    const { error } = await supabase.from('company_photos').insert(rows);
 
-    for (const buildRow of insertStrategies) {
-        const rows = normalizedPhotos.map(buildRow);
-        const { error } = await supabase.from('company_photos').insert(rows);
-
-        if (!error) {
-            return true;
-        }
-
-        if (!isColumnCompatibilityError(error)) {
-            throw error;
-        }
-
-        lastError = error;
-    }
-
-    if (lastError) {
-        throw lastError;
+    if (error) {
+        throw error;
     }
 
     return true;
