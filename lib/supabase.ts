@@ -15,14 +15,6 @@ export type GalleryPhotoInput = {
     uploadedAt?: string | null;
 };
 
-function isColumnCompatibilityError(error: unknown): boolean {
-    if (!error || typeof error !== 'object') return false;
-    const maybeError = error as { code?: string; message?: string };
-    const message = (maybeError.message || '').toLowerCase();
-
-    return maybeError.code === '42703' || message.includes('column') || message.includes('schema cache');
-}
-
 export async function saveCompanyGalleryPhotos(companyId: string, photos: Array<string | GalleryPhotoInput>) {
     const normalizedPhotos = photos
         .map((item) => {

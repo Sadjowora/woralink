@@ -27,9 +27,9 @@ export default function AuthShell({
   footerLinkHref,
 }: AuthShellProps) {
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 px-4 py-10">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full overflow-hidden rounded-4xl border border-blue-100 bg-white shadow-xl shadow-blue-100/70 lg:w-2/3 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative overflow-hidden bg-linear-to-br from-blue-700 via-sky-600 to-emerald-500 px-8 py-10 text-white md:px-10 lg:px-12 lg:py-12">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 px-0 py-0 sm:px-4 sm:py-10">
+      <div className="mx-auto grid min-h-screen w-full overflow-hidden rounded-none border-0 bg-white shadow-none sm:min-h-[calc(100vh-5rem)] sm:rounded-4xl sm:border sm:border-blue-100 sm:shadow-xl sm:shadow-blue-100/70 lg:w-2/3 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="relative overflow-hidden bg-linear-to-br from-blue-700 via-sky-600 to-emerald-500 px-4 py-8 text-white sm:px-8 sm:py-10 md:px-10 lg:px-12 lg:py-12">
           <div className="absolute -left-10 top-16 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
           <div className="absolute bottom-0 right-0 h-40 w-40 translate-x-10 translate-y-8 rounded-full bg-emerald-200/20 blur-3xl" />
 
@@ -44,7 +44,7 @@ export default function AuthShell({
               <p className="mt-5 max-w-lg text-base leading-relaxed text-blue-50">{description}</p>
             </div>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 sm:grid-cols-3">
               {highlights.map((item) => (
                 <div key={item.label} className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
                   <p className="text-xs uppercase tracking-[0.18em] text-blue-100">{item.label}</p>
@@ -55,8 +55,8 @@ export default function AuthShell({
           </div>
         </section>
 
-        <section className="flex items-center px-6 py-10 md:px-10 lg:px-12">
-          <div className="mx-auto w-full max-w-md">
+        <section className="flex items-center px-3 py-6 sm:px-6 sm:py-10 md:px-10 lg:px-12">
+          <div className="mx-auto w-full max-w-none sm:max-w-md">
             {children}
             <p className="mt-6 text-center text-sm text-gray-500">
               {footerText}{' '}

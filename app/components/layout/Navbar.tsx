@@ -92,7 +92,7 @@ export default function Navbar() {
             href="/search"
             className="text-sm font-medium text-gray-500 transition-colors hover:text-black"
           >
-            Rechercher
+            Explorer
           </Link>
 
           {user ? (
@@ -169,6 +169,12 @@ export default function Navbar() {
           ) : (
             <div className="flex items-center gap-3">
               <Link
+                href="/comment-ca-marche"
+                className="px-1 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-primary"
+              >
+                Comment ça marche ?
+              </Link>
+              <Link
                 href="/login"
                 className="px-1 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-black"
               >
@@ -214,7 +220,7 @@ export default function Navbar() {
             className="block rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             onClick={() => setMobileMenuOpen(false)}
           >
-            Rechercher
+            Explorer
           </Link>
 
           {user ? (
@@ -253,6 +259,13 @@ export default function Navbar() {
             </>
           ) : (
             <>
+              <Link
+                href="/comment-ca-marche"
+                className="block rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Comment ça marche ?
+              </Link>
               <Link
                 href="/login"
                 className="block rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"

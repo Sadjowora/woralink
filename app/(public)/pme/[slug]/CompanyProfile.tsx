@@ -37,6 +37,8 @@ type CompanyProfileProps = {
 
 export default function CompanyProfile({ company, photos }: CompanyProfileProps) {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const [loadedGalleryImages, setLoadedGalleryImages] = useState<Record<string, boolean>>({});
+    const [lightboxImageLoaded, setLightboxImageLoaded] = useState(false);
     const hasIncrementedViewsRef = useRef(false);
     const photoUrls = photos.map((photo) => photo.url);
 
@@ -47,14 +49,19 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
         void supabase.rpc('increment_views', { company_id: company.id });
     }, [company.id]);
 
-    const openLightbox = (index: number) => setLightboxIndex(index);
+    const openLightbox = (index: number) => {
+        setLightboxImageLoaded(false);
+        setLightboxIndex(index);
+    };
     const closeLightbox = useCallback(() => setLightboxIndex(null), []);
 
     const prevPhoto = useCallback(() => {
+        setLightboxImageLoaded(false);
         setLightboxIndex((i) => (i !== null ? (i - 1 + photoUrls.length) % photoUrls.length : null));
     }, [photoUrls.length]);
 
     const nextPhoto = useCallback(() => {
+        setLightboxImageLoaded(false);
         setLightboxIndex((i) => (i !== null ? (i + 1) % photoUrls.length : null));
     }, [photoUrls.length]);
 
@@ -202,6 +209,8 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                                     year: 'numeric',
                                 })
                                 : 'Date non disponible';
+                            const imageKey = `${index}-${photo.url}`;
+                            const isImageLoaded = Boolean(loadedGalleryImages[imageKey]);
 
                             return (
                                 <article
@@ -232,12 +241,21 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                                         className="relative block w-full aspect-square overflow-hidden bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/30"
                                         aria-label={`Ouvrir la photo ${index + 1}`}
                                     >
+                                        {!isImageLoaded && (
+                                            <div className="absolute inset-0 animate-pulse bg-gray-200" />
+                                        )}
                                         <Image
                                             src={photo.url}
                                             alt={`Photo ${index + 1} de ${company.name}`}
                                             fill
                                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 460px"
-                                            className="object-cover"
+                                            className={`object-cover transition-opacity duration-300 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                            onLoad={() => {
+                                                setLoadedGalleryImages((prev) => ({
+                                                    ...prev,
+                                                    [imageKey]: true,
+                                                }));
+                                            }}
                                         />
 
                                         {photos.length > 1 && (
@@ -301,12 +319,16 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="relative w-full" style={{ aspectRatio: '4/3' }}>
+                            {!lightboxImageLoaded && (
+                                <div className="absolute inset-0 animate-pulse rounded-lg bg-gray-200" />
+                            )}
                             <Image
                                 src={photoUrls[lightboxIndex]}
                                 alt={`Photo ${lightboxIndex + 1} de ${company.name}`}
                                 fill
-                                className="object-contain rounded-lg"
+                                className={`object-contain rounded-lg transition-opacity duration-300 ${lightboxImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                                 sizes="(max-width: 768px) 100vw, 800px"
+                                onLoad={() => setLightboxImageLoaded(true)}
                             />
                         </div>
                         <p className="text-center text-white/70 text-xs sm:text-sm mt-2 sm:mt-3">

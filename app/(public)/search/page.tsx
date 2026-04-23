@@ -4,6 +4,48 @@ import CompanyCard from '../../components/company/CompanyCard';
 import Navbar from '../../components/layout/Navbar';
 import SearchFilters from './SearchFilters';
 
+const SECTORS = [
+	'Commerce & Distribution',
+	'Agriculture & Élevage',
+	'Construction & BTP',
+	'Restauration & Hôtellerie',
+	'Transport & Logistique',
+	'Santé & Pharmacie',
+	'Éducation & Formation',
+	'Finance & Assurance',
+	'Tech & Numérique',
+	'Mode & Textile',
+	'Médias & Communication',
+	'Artisanat & Art',
+	'Énergie & Environnement',
+	'Consultations & Services',
+	'Logement & Immobilier',
+	'Livraison & Domicile',
+	'Autre',
+] as const;
+
+const GUINEA_CITIES = ['Conakry', 'Kindia', 'Labé', 'Kankan', 'Mamou', 'Nzérékoré'] as const;
+
+function escapeLikePattern(value: string): string {
+	return value.replace(/[%_]/g, (char) => `\\${char}`);
+}
+
+function resolveCityFilter(value: string): string {
+	const trimmed = value.trim();
+	if (!trimmed) return '';
+
+	const match = GUINEA_CITIES.find((city) => city.toLowerCase() === trimmed.toLowerCase());
+	return match ?? trimmed;
+}
+
+function resolveSectorFilter(value: string): string {
+	const trimmed = value.trim();
+	if (!trimmed) return '';
+
+	const match = SECTORS.find((sector) => sector.toLowerCase() === trimmed.toLowerCase());
+	return match ?? trimmed;
+}
+
 type Company = {
 	id: string;
 	name: string;
@@ -26,12 +68,12 @@ type SearchPageProps = {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
 	const { city = '', sector = '', q = '' } = await searchParams;
 
-	const cityFilter = city.trim();
-	const sectorFilter = sector.trim();
+	const cityFilter = resolveCityFilter(city);
+	const sectorFilter = resolveSectorFilter(sector);
 	const queryFilter = q.trim();
 
 	let query = supabase.from('companies').select('*, profiles(*)');
-	if (cityFilter) query = query.eq('city', cityFilter);
+	if (cityFilter) query = query.ilike('city', `%${escapeLikePattern(cityFilter)}%`);
 	if (sectorFilter) query = query.eq('sector', sectorFilter);
 	if (queryFilter) query = query.ilike('name', `%${queryFilter}%`);
 
@@ -70,7 +112,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 								</p>
 								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
 									{companies.map((company) => (
-										<Link key={company.id} href={`/pme/${company.slug}`}>
+										<Link key={company.id} href={`/pme/${company.slug}`} className="block w-full">
 											<CompanyCard
 												name={company.name}
 												profileType={company.profile_type}

@@ -3,7 +3,33 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 const GUINEA_CITIES = ['Conakry', 'Kindia', 'Labé', 'Kankan', 'Mamou', 'Nzérékoré'];
-const SECTORS = ['BTP', 'Informatique', 'Artisanat', 'Commerce', 'Santé'];
+const SECTORS = [
+	'Commerce & Distribution',
+	'Agriculture & Élevage',
+	'Construction & BTP',
+	'Restauration & Hôtellerie',
+	'Transport & Logistique',
+	'Santé & Pharmacie',
+	'Éducation & Formation',
+	'Finance & Assurance',
+	'Tech & Numérique',
+	'Mode & Textile',
+	'Médias & Communication',
+	'Artisanat & Art',
+	'Énergie & Environnement',
+	'Consultations & Services',
+	'Logement & Immobilier',
+	'Livraison & Domicile',
+	'Autre',
+];
+const QUICK_LINKS: Array<{ label: string; sector: string }> = [
+	{ label: 'Plomberie', sector: 'Construction & BTP' },
+	{ label: 'Menuiserie', sector: 'Artisanat & Art' },
+	{ label: 'Assurance', sector: 'Finance & Assurance' },
+	{ label: 'Livraison', sector: 'Livraison & Domicile' },
+	{ label: 'Électricité', sector: 'Énergie & Environnement' },
+	{ label: 'Nettoyage', sector: 'Consultations & Services' },
+];
 
 type SearchFiltersProps = {
 	city?: string;
@@ -50,6 +76,22 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 					onChange={(e) => updateParam('q', e.target.value)}
 					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
 				/>
+
+				<div className="pt-2">
+					<p className="mb-2 text-[11px] sm:text-xs font-medium uppercase tracking-wider text-gray-500">Quick Links</p>
+					<div className="flex flex-wrap gap-1.5 sm:gap-2">
+						{QUICK_LINKS.map((item) => (
+							<button
+								key={item.label}
+								type="button"
+								onClick={() => updateParam('sector', item.sector)}
+								className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-gray-600 transition-colors hover:text-emerald-600"
+							>
+								{item.label}
+							</button>
+						))}
+					</div>
+				</div>
 			</div>
 
 			<div className="space-y-1">

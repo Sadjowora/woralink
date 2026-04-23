@@ -71,16 +71,16 @@ export default function RegisterPage() {
             footerLinkLabel="Se connecter"
             footerLinkHref="/login"
         >
-            <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm">
-                <div className="mb-6">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
+                <div className="mb-5 sm:mb-6">
                     <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600">Création de compte</p>
-                    <h2 className="mt-2 text-3xl font-bold tracking-tighter text-primary">Rejoindre Woralink</h2>
-                    <p className="mt-2 text-sm text-gray-500">
+                    <h2 className="mt-2 text-2xl font-bold tracking-tighter text-primary sm:text-3xl">Rejoindre Woralink</h2>
+                    <p className="mt-2 text-xs text-gray-500 sm:text-sm">
                         Créez votre compte puis complétez votre profil pour publier votre fiche entreprise.
                     </p>
                 </div>
                 
-                {error && <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+                {error && <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:p-4">{error}</div>}
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -90,7 +90,7 @@ export default function RegisterPage() {
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             required
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
                             placeholder="Votre nom complet"
                         />
                     </div>
@@ -102,7 +102,7 @@ export default function RegisterPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
                             placeholder="vous@entreprise.com"
                         />
                     </div>
@@ -114,7 +114,7 @@ export default function RegisterPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
                             placeholder="Choisissez un mot de passe"
                         />
                     </div>
@@ -125,23 +125,23 @@ export default function RegisterPage() {
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
                             required
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
                         >
-                            <option value="visitor"> Visiteur, Client </option>
-                            <option value="company">Startup, PME, Artisan ou Freelance</option>
+                            <option value="company"> PME(Entreprise), Startup  </option>
+                            <option value="company"> Freelance(indépendant), Artisant </option>
                         </select>
                     </div>
                     
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full rounded-md bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                        className="w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50 sm:py-3"
                     >
                         {loading ? 'Inscription...' : 'Créer mon espace Woralink'}
                     </button>
                 </form>
 
-                <div className="mt-6 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
+                <div className="mt-5 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600 sm:mt-6 sm:p-4">
                     Une fois inscrit, vous serez redirigé vers votre onglet profil pour finaliser votre fiche entreprise.
                     <div className="mt-2">
                         <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">

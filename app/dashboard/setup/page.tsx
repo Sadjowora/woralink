@@ -23,7 +23,9 @@ const sectors = [
     'Médias & Communication',
     'Artisanat & Art',
     'Énergie & Environnement',
-    'Consulting & Services',
+    'Consultations & Services',
+    'Logement & Immobilier',
+    'Livraison & Domicile',
     'Autre'
 ];
 
@@ -399,6 +401,13 @@ function SetupPageContent() {
 
                         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
                         {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">Profil mis à jour avec succès !</div>}
+                        <div className="mb-4 sm:mb-6 rounded-md border border-primary/15 bg-primary/5 p-4 sm:p-5">
+                            <p className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.18em] text-primary">Image professionnelle</p>
+                            <p className="mt-2 max-w-3xl text-sm sm:text-base leading-relaxed text-gray-700">
+                                Un profil à jour inspire davantage confiance, valorise votre savoir-faire et renforce immédiatement votre image professionnelle.
+                                Prenez quelques minutes pour affiner votre fiche, enrichir vos informations et montrer aux visiteurs une entreprise sérieuse, active et prête à être contactée.
+                            </p>
+                        </div>
                         <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]">
                             <section className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
                                 <div className="mb-4 sm:mb-5 flex items-center justify-between gap-2">
@@ -566,6 +575,22 @@ function SetupPageContent() {
                         {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
                             {editing ? 'Profil mis à jour avec succès !' : 'Profil créé avec succès !'}
                         </div>}
+
+                        {!editing && !company && (
+                            <div className="mb-4 text-center sm:mb-6">
+                                <p className="mb-3 text-xs sm:text-sm text-gray-500">
+                                    Vous pourrez compléter votre profil professionnel à tout moment depuis votre tableau de bord.
+                                </p>
+                                <div className="flex justify-center">
+                                    <Link
+                                        href="/dashboard"
+                                        className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-600 transition-colors hover:border-primary hover:text-primary"
+                                    >
+                                        Passer pour plus tard
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
 
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
                     <section className="space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6">
