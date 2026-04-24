@@ -4,6 +4,9 @@ import { supabase } from '../../../../lib/supabase';
 import CompanyProfile from './CompanyProfile';
 import Navbar from '../../../components/layout/Navbar';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type GalleryPost = {
     url: string;
     caption: string;

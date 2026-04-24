@@ -15,14 +15,9 @@ export type DashboardNavItem = {
 const defaultTabs: DashboardNavItem[] = [
   { label: 'Apercu', href: '/dashboard', match: (pathname: string) => pathname === '/dashboard' },
   {
-    label: 'Profil',
-    href: '/dashboard/profile',
-    match: (pathname: string) => pathname === '/dashboard/profile' || pathname === '/dashboard/setup',
-  },
-  {
-    label: 'Médias',
-    href: '/dashboard/media',
-    match: (pathname: string) => pathname === '/dashboard/media',
+    label: 'Explorer',
+    href: '/search',
+    match: (pathname: string) => pathname === '/search' || pathname === '/search',
   }
 ];
 
@@ -100,7 +95,7 @@ export default function DashboardTabs({ links = defaultTabs }: DashboardTabsProp
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center">
           <Link href="/" className="shrink-0 transition-opacity hover:opacity-80">
-            <Image src="/woralink.png" alt="Woralink" width={114} height={29} className="h-auto w-auto object-contain" />
+            <Image src="/woralink.png" alt="Woralink" width={102} height={26} className="h-auto w-auto object-contain" />
           </Link>
         </div>
 
@@ -162,7 +157,7 @@ export default function DashboardTabs({ links = defaultTabs }: DashboardTabsProp
                   className="block rounded-md px-3 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => setMenuOpen(false)}
                 >
-                  Mon profil
+                  Mon profile
                 </Link>
                 <Link
                   href="/dashboard/media"

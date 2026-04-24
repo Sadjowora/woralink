@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Image from 'next/image';
+import NextLink from 'next/link';
 import { supabase } from '../lib/supabase';
 import CompanyCard from './components/company/CompanyCard';
 import Navbar from './components/layout/Navbar';
@@ -21,6 +22,12 @@ type Company = {
   is_verified?: boolean | null;
 };
 
+type TrendingGalleryItem = {
+  url: string;
+  slug: string;
+  name: string;
+};
+
 const POPULAR_CATEGORIES = [
   { label: 'BTP', icon: '🏗️' },
   { label: 'Informatique', icon: '💻' },
@@ -37,6 +44,16 @@ export default async function Home() {
     .limit(3);
 
   const featuredCompanies: Company[] = error ? [] : ((data as Company[]) ?? []);
+
+  const { data: trendItemsData, error: trendItemsError } = await supabase.rpc('get_trending_items', {
+    sample_size: 12,
+  });
+
+  if (trendItemsError) {
+    console.error('[Home/Tendances] Erreur RPC get_trending_items:', trendItemsError.message);
+  }
+
+  const trendingGalleryItems: TrendingGalleryItem[] = (trendItemsData as TrendingGalleryItem[]) ?? [];
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -67,12 +84,12 @@ export default async function Home() {
           </form>
 
           <div className="mt-6 sm:mt-7 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm">
-            <Link href="/search" className="w-full sm:w-auto rounded-md border border-gray-300 bg-white px-4 py-2.5 sm:py-2 text-gray-700 transition-colors hover:bg-gray-100 font-medium">
+            <NextLink href="/search" className="w-full sm:w-auto rounded-md border border-gray-300 bg-white px-4 py-2.5 sm:py-2 text-gray-700 transition-colors hover:bg-gray-100 font-medium">
               Explorer tous les profils
-            </Link>
-            <Link href="/register" className="w-full sm:w-auto rounded-md bg-primary px-4 py-2.5 sm:py-2 text-white transition-colors hover:bg-primary/90 font-medium">
+            </NextLink>
+            <NextLink href="/register" className="w-full sm:w-auto rounded-md bg-primary px-4 py-2.5 sm:py-2 text-white transition-colors hover:bg-primary/90 font-medium">
               Rejoindre Woralink via WhatsApp
-            </Link>
+            </NextLink>
           </div>
         </div>
       </section>
@@ -80,21 +97,21 @@ export default async function Home() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-16">
         <div className="flex items-end justify-between mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">Secteurs populaires</h2>
-          <Link href="/search" className="text-xs sm:text-sm text-primary hover:text-primary/80 font-medium">
+          <NextLink href="/search" className="text-xs sm:text-sm text-primary hover:text-primary/80 font-medium">
             Voir tout
-          </Link>
+          </NextLink>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
           {POPULAR_CATEGORIES.map((category) => (
-            <Link
+            <NextLink
               key={category.label}
               href={`/search?sector=${encodeURIComponent(category.label)}`}
               className="group rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-3 sm:p-5 text-center hover:border-primary hover:shadow-sm sm:hover:shadow-md transition-all"
             >
               <div className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">{category.icon}</div>
               <p className="font-semibold text-xs sm:text-sm text-gray-800 group-hover:text-primary line-clamp-2">{category.label}</p>
-            </Link>
+            </NextLink>
           ))}
         </div>
       </section>
@@ -102,15 +119,15 @@ export default async function Home() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 sm:pb-16 md:pb-20">
         <div className="flex items-end justify-between mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">Dernières entreprises</h2>
-          <Link href="/search" className="text-xs sm:text-sm text-primary hover:text-primary/80 font-medium">
+          <NextLink href="/search" className="text-xs sm:text-sm text-primary hover:text-primary/80 font-medium">
             Voir les resultats
-          </Link>
+          </NextLink>
         </div>
 
         {featuredCompanies.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredCompanies.map((company) => (
-              <Link key={company.id} href={`/pme/${company.slug}`}>
+              <NextLink key={company.id} href={`/pme/${company.slug}`}>
                 <CompanyCard
                   name={company.name}
                   profileType={company.profile_type}
@@ -119,7 +136,7 @@ export default async function Home() {
                   logoUrl={company.logo_url}
                   isVerified={Boolean(company.is_verified)}
                 />
-              </Link>
+              </NextLink>
             ))}
           </div>
         ) : (
@@ -127,11 +144,45 @@ export default async function Home() {
             <p className="text-gray-600">
               Aucune entreprise affichée pour le moment. Soyez le premier à rejoindre Woralink.
             </p>
-            <Link href="/register" className="mt-4 inline-block rounded-md bg-primary px-5 py-2 sm:py-2.5 font-medium text-sm text-white transition-colors hover:bg-primary/90">
-              Créer mon profil
-            </Link>
+            <NextLink href="/register" className="mt-4 inline-block rounded-md bg-primary px-5 py-2 sm:py-2.5 font-medium text-sm text-white transition-colors hover:bg-primary/90">
+             Créer mon profil
+            </NextLink>
           </div>
         )}
+      </section>
+
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20 md:pb-24">
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">Tendances</h2>
+          <p className="mt-2 text-xs sm:text-sm text-gray-600">
+            Découvrez les dernières réalisations d&apos;artisans et PME proches de vous.
+          </p>
+        </div>
+
+        {trendingGalleryItems.length > 0 ? (
+          <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+            {trendingGalleryItems.map((item, index) => (
+              <div key={`${item.slug}-${item.url}-${index}`} className="break-inside-avoid">
+                <NextLink
+                  href={`/pme/${item.slug}`}
+                  className="group relative block overflow-hidden rounded-xl border border-gray-200"
+                >
+                  <Image
+                    src={item.url}
+                    alt={`Réalisation de ${item.name}`}
+                    width={1000}
+                    height={1200}
+                    sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    className="h-auto w-full object-cover"
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 via-black/20 to-transparent px-3 py-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <p className="line-clamp-1 text-xs font-medium text-white">{item.name}</p>
+                  </div>
+                </NextLink>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <footer className="border-t border-gray-200 py-6 sm:py-8">

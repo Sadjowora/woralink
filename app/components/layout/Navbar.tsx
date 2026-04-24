@@ -69,7 +69,7 @@ export default function Navbar() {
     return (
       <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/70 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6">
-          <Image src="/woralink.png" alt="Woralink" width={114} height={29} className="h-auto w-auto object-contain" />
+          <Image src="/woralink.png" alt="Woralink" width={102} height={26} className="h-auto w-auto object-contain" />
           <div className="h-9 w-32 animate-shimmer rounded-md border border-gray-100 bg-[linear-gradient(110deg,var(--color-accents-2),var(--color-accents-1),var(--color-accents-2))] bg-size-[200%_100%]"></div>
         </div>
       </nav>
@@ -79,20 +79,28 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/70 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6">
-        <Link
-          href="/"
-          className="shrink-0 transition-opacity hover:opacity-80"
-        >
-<Image src="/woralink.png" alt="Woralink" width={114} height={29} className="h-auto w-auto object-contain" />
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link
+            href="/"
+            className="shrink-0 transition-opacity hover:opacity-80"
+          >
+            <Image src="/woralink.png" alt="Woralink" width={102} height={26} className="h-auto w-auto object-contain" />
+          </Link>
+          <Link
+            href="/search"
+            className="hidden sm:inline-flex text-[15px] font-semibold text-gray-500 transition-colors hover:text-black"
+          >
+            Explorer
+          </Link>
+        </div>
 
         {/* Desktop Menu */}
         <div className="hidden sm:flex sm:items-center sm:gap-6">
           <Link
-            href="/search"
-            className="text-sm font-medium text-gray-500 transition-colors hover:text-black"
+            href="/apropos"
+            className="text-[15px] font-semibold text-gray-500 transition-colors hover:text-black"
           >
-            Explorer
+            À propos
           </Link>
 
           {user ? (
@@ -170,19 +178,19 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link
                 href="/comment-ca-marche"
-                className="px-1 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-primary"
+                className="px-1 py-2 text-[15px] font-semibold text-gray-600 transition-colors hover:text-primary"
               >
                 Comment ça marche ?
-              </Link>
+              </Link>             
               <Link
                 href="/login"
-                className="px-1 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-black"
+                className="px-1 py-2 text-[15px] font-semibold text-gray-500 transition-colors hover:text-black"
               >
                 Connexion
               </Link>
               <Link
                 href="/register"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                className="rounded-md bg-primary px-4 py-2 text-[15px] font-semibold text-white transition-colors hover:bg-primary/90"
               >
                 S&apos;inscrire
               </Link>
@@ -217,12 +225,25 @@ export default function Navbar() {
         >
           <Link
             href="/search"
-            className="block rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100"
             onClick={() => setMobileMenuOpen(false)}
           >
             Explorer
           </Link>
-
+          <Link
+            href="/apropos"
+            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            À propos
+          </Link>
+           <Link
+                href="/comment-ca-marche"
+                className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Comment ça marche ?
+           </Link>
           {user ? (
             <>
               <Link
@@ -258,24 +279,17 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <>
-              <Link
-                href="/comment-ca-marche"
-                className="block rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-primary"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Comment ça marche ?
-              </Link>
+            <>             
               <Link
                 href="/login"
-                className="block rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Connexion
               </Link>
               <Link
                 href="/register"
-                className="block rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                className="block rounded-md bg-primary px-4 py-2 text-[15px] font-semibold text-white hover:bg-primary/90"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 S&apos;inscrire

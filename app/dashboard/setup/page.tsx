@@ -54,6 +54,8 @@ type FormData = {
     completedProjects: string;
     employeeCount: string;
     founderMessage: string;
+    address: string;
+    website_url: string;
 };
 
 type Company = {
@@ -71,6 +73,8 @@ type Company = {
     employee_count?: number | null;
     founder_message?: string | null;
     founder_photo_url?: string | null;
+    address?: string | null;
+    website_url?: string | null;
 };
 
 type GallerySlot = {
@@ -91,6 +95,8 @@ function mapCompanyToFormValues(company: Company): FormData {
         completedProjects: company.completed_projects ? String(company.completed_projects) : '',
         employeeCount: company.employee_count ? String(company.employee_count) : '',
         founderMessage: company.founder_message || '',
+        address: company.address || '',
+        website_url: company.website_url || '',
     };
 }
 
@@ -120,6 +126,8 @@ function SetupPageContent() {
             completedProjects: '',
             employeeCount: '',
             founderMessage: '',
+            address: '',
+            website_url: '',
         }
     });
 
@@ -274,6 +282,8 @@ function SetupPageContent() {
                         employee_count: employeeCount,
                         founder_message: data.founderMessage || null,
                         founder_photo_url: founderPhotoUrl || null,
+                        address: data.address || null,
+                        website_url: data.website_url || null,
                     })
                     .eq('id', company.id);
 
@@ -293,6 +303,8 @@ function SetupPageContent() {
                     employee_count: employeeCount,
                     founder_message: data.founderMessage || null,
                     founder_photo_url: founderPhotoUrl || null,
+                    address: data.address || null,
+                    website_url: data.website_url || null,
                 });
             } else {
                 // Create new company
@@ -313,6 +325,8 @@ function SetupPageContent() {
                         employee_count: employeeCount,
                         founder_message: data.founderMessage || null,
                         founder_photo_url: founderPhotoUrl || null,
+                        address: data.address || null,
+                        website_url: data.website_url || null,
                     }])
                     .select()
                     .single();
@@ -736,6 +750,26 @@ function SetupPageContent() {
                             {founderPhotoUrl && (
                                 <p className="mt-2 text-xs sm:text-sm text-green-700">Photo du fondateur sélectionnée et prête à être enregistrée.</p>
                             )}
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Adresse physique</label>
+                            <textarea
+                                rows={3}
+                                {...register('address')}
+                                placeholder="Ex: 123 Avenue Ahmed Sékou Touré, Conakry, Guinée"
+                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white resize-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Site web ou lien social</label>
+                            <input
+                                type="url"
+                                {...register('website_url')}
+                                placeholder="https://votre-site.com ou https://linkedin.com/company/..."
+                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                            />
                         </div>
                     </section>
 

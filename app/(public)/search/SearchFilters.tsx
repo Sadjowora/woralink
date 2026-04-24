@@ -34,10 +34,9 @@ const QUICK_LINKS: Array<{ label: string; sector: string }> = [
 type SearchFiltersProps = {
 	city?: string;
 	sector?: string;
-	q?: string;
 };
 
-export default function SearchFilters({ city = '', sector = '', q = '' }: SearchFiltersProps) {
+export default function SearchFilters({ city = '', sector = '' }: SearchFiltersProps) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -63,34 +62,19 @@ export default function SearchFilters({ city = '', sector = '', q = '' }: Search
 		<div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-3 sm:space-y-4 md:sticky md:top-20">
 			<h2 className="text-lg sm:text-base font-semibold tracking-tighter text-primary">Filtres</h2>
 
-			<div className="space-y-1">
-				<label htmlFor="q" className="block text-xs sm:text-sm font-medium text-gray-700">
-					Nom de l&apos;entreprise
-				</label>
-				<input
-					id="q"
-					name="q"
-					type="text"
-					defaultValue={q}
-					placeholder="Ex: Tech Guinée"
-					onChange={(e) => updateParam('q', e.target.value)}
-					className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-				/>
-
-				<div className="pt-2">
-					<p className="mb-2 text-[11px] sm:text-xs font-medium uppercase tracking-wider text-gray-500">Quick Links</p>
-					<div className="flex flex-wrap gap-1.5 sm:gap-2">
-						{QUICK_LINKS.map((item) => (
-							<button
-								key={item.label}
-								type="button"
-								onClick={() => updateParam('sector', item.sector)}
-								className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-gray-600 transition-colors hover:text-emerald-600"
-							>
-								{item.label}
-							</button>
-						))}
-					</div>
+			<div className="pt-1">
+				<p className="mb-2 text-[11px] sm:text-xs font-medium uppercase tracking-wider text-gray-500">Quick Links</p>
+				<div className="flex flex-wrap gap-1.5 sm:gap-2">
+					{QUICK_LINKS.map((item) => (
+						<button
+							key={item.label}
+							type="button"
+							onClick={() => updateParam('sector', item.sector)}
+							className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-gray-600 transition-colors hover:text-emerald-600"
+						>
+							{item.label}
+						</button>
+					))}
 				</div>
 			</div>
 

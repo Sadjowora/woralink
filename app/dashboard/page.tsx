@@ -16,6 +16,8 @@ type Company = {
   slug: string;
   profile_type: string;
   views_count?: number | null;
+  address?: string | null;
+  website_url?: string | null;
 };
 
 export default function DashboardPage() {
@@ -98,7 +100,7 @@ export default function DashboardPage() {
 
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
-          .select('id, name, sector, city, slug, profile_type, views_count')
+          .select('id, name, sector, city, slug, profile_type, views_count, address, website_url')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -275,6 +277,28 @@ export default function DashboardPage() {
             <div className="rounded-md border border-gray-200 bg-white p-4">
               <p className="text-[10px] uppercase tracking-widest text-gray-500">Secteur</p>
               <p className="mt-2 text-base font-semibold text-black">{company?.sector || 'À renseigner'}</p>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-4">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">Adresse</p>
+              <p className="mt-2 text-base font-semibold text-black line-clamp-2">{company?.address || 'À renseigner'}</p>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-4">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">Site web</p>
+              {company?.website_url ? (
+                <a
+                  href={company.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-base font-semibold text-primary hover:underline"
+                >
+                  Visiter
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              ) : (
+                <p className="mt-2 text-base font-semibold text-black">À renseigner</p>
+              )}
             </div>
           </div>
         </section>

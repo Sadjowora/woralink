@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import { Eye } from 'lucide-react';
 import ReviewSystem from '../../../components/ReviewSystem';
 import ShareProfile from '../../../components/ShareProfile';
 import { supabase } from '../../../../lib/supabase';
 
 type Company = {
     id: string;
+    user_id?: string | null;
     name: string;
     profile_type: string;
     sector: string;
@@ -24,6 +26,10 @@ type Company = {
     founder_name?: string | null;
     founder_message?: string | null;
     founder_photo_url?: string | null;
+    address?: string | null;
+    website_url?: string | null;
+    views?: number | null;
+    views_count?: number | null;
 };
 
 type CompanyProfileProps = {
@@ -34,6 +40,17 @@ type CompanyProfileProps = {
         uploadedAt: string | null;
     }>;
 };
+
+function formatCompactViews(value: number): string {
+    if (value < 1000) return String(value);
+    if (value < 1_000_000) {
+        const formatted = (value / 1000).toFixed(1).replace(/\.0$/, '');
+        return `${formatted}k`;
+    }
+
+    const formatted = (value / 1_000_000).toFixed(1).replace(/\.0$/, '');
+    return `${formatted}M`;
+}
 
 export default function CompanyProfile({ company, photos }: CompanyProfileProps) {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -46,8 +63,30 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
         if (hasIncrementedViewsRef.current) return;
         hasIncrementedViewsRef.current = true;
 
-        void supabase.rpc('increment_views', { company_id: company.id });
-    }, [company.id]);
+        const incrementViews = async () => {
+            const viewedKey = `viewed_${company.slug}`;
+            const alreadyViewed = window.sessionStorage.getItem(viewedKey);
+
+            if (alreadyViewed) {
+                return;
+            }
+
+            const { data: userData } = await supabase.auth.getUser();
+            const currentUserId = userData?.user?.id;
+
+            // Do not count a view when the company owner is viewing their own profile.
+            if (currentUserId && company.user_id && currentUserId === company.user_id) {
+                return;
+            }
+
+            const { error } = await supabase.rpc('increment_views', { company_id: company.id });
+            if (!error) {
+                window.sessionStorage.setItem(viewedKey, '1');
+            }
+        };
+
+        void incrementViews();
+    }, [company.id, company.slug, company.user_id]);
 
     const openLightbox = (index: number) => {
         setLightboxImageLoaded(false);
@@ -81,6 +120,8 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
     const founderDisplayName = company.founder_name?.trim() || `Fondateur de ${company.name}`;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || '';
     const profileUrl = `${siteUrl}/pme/${company.slug}`;
+    const rawViews = company.views ?? company.views_count ?? 0;
+    const formattedViews = formatCompactViews(Math.max(0, Number(rawViews) || 0));
 
     return (
         <div className="min-h-screen bg-gray-50 pb-28">
@@ -120,6 +161,11 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                             {company.name}
                         </h1>
 
+                        <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-gray-500">
+                            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>{formattedViews} vues</span>
+                        </div>
+
                         <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
                             <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
                                 {company.profile_type}
@@ -140,6 +186,40 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                     </div>
                 </div>
             </div>
+
+            {/* Contact & Informations */}
+            {(company.address || company.website_url) && (
+                <section className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10">
+                    <div className="rounded-md border border-gray-200 bg-white p-5 sm:p-7 md:p-9">
+                        <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Informations</p>
+                        <h2 className="mt-2 text-xl sm:text-2xl font-semibold tracking-tighter text-primary">Contact & Adresse</h2>
+                        <div className="mt-4 sm:mt-5 space-y-4">
+                            {company.address && (
+                                <div>
+                                    <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Adresse physique</p>
+                                    <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{company.address}</p>
+                                </div>
+                            )}
+                            {company.website_url && (
+                                <div>
+                                    <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Site web ou lien social</p>
+                                    <a
+                                        href={company.website_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-sm sm:text-base text-primary hover:underline"
+                                    >
+                                        {company.website_url}
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* Storytelling */}
             {(company.company_story || company.description) && (
