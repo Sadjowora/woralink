@@ -154,7 +154,6 @@ export default function RegisterPage() {
                             <option value="freelance"> Freelance(indépendant), Artisant </option>
                         </select>
                     </div>
-                    s
                     <button
                         type="submit"
                         disabled={loading}
