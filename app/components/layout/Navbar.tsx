@@ -7,8 +7,14 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 
 type UserData = {
+  id: string;
   email?: string;
-  user_metadata?: Record<string, unknown> & { avatar_url?: string; full_name?: string };
+  user_metadata?: Record<string, unknown>;
+};
+
+type CompanyIdentity = {
+  name: string;
+  logo_url: string | null;
 };
 
 export default function Navbar() {
@@ -17,14 +23,40 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [companyIdentity, setCompanyIdentity] = useState<CompanyIdentity | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    const loadCompanyIdentity = async (userId: string) => {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('name, logo_url')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (company) {
+        setCompanyIdentity({
+          name: typeof company.name === 'string' && company.name.trim() ? company.name.trim() : 'Entreprise',
+          logo_url: typeof company.logo_url === 'string' && company.logo_url.trim() ? company.logo_url.trim() : null,
+        });
+      } else {
+        setCompanyIdentity(null);
+      }
+    };
+
     // Vérifier la session actuelle
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser((session?.user as UserData) ?? null);
+      const currentUser = (session?.user as UserData) ?? null;
+      setUser(currentUser);
+
+      if (currentUser?.id) {
+        await loadCompanyIdentity(currentUser.id);
+      } else {
+        setCompanyIdentity(null);
+      }
+
       setLoading(false);
     };
 
@@ -32,8 +64,16 @@ export default function Navbar() {
 
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser((session?.user as UserData) ?? null);
+      async (_event, session) => {
+        const currentUser = (session?.user as UserData) ?? null;
+        setUser(currentUser);
+
+        if (currentUser?.id) {
+          await loadCompanyIdentity(currentUser.id);
+        } else {
+          setCompanyIdentity(null);
+        }
+
         setLoading(false);
       }
     );
@@ -59,11 +99,15 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    setCompanyIdentity(null);
     setMenuOpen(false);
     setMobileMenuOpen(false);
     router.push('/');
     router.refresh();
   };
+
+  const companyDisplayName = companyIdentity?.name || 'Entreprise';
+  const companyInitial = (companyDisplayName.charAt(0) || user?.email?.charAt(0) || 'E').toUpperCase();
 
   if (loading) {
     return (
@@ -111,17 +155,17 @@ export default function Navbar() {
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
-                {user.user_metadata?.avatar_url ? (
+                {companyIdentity?.logo_url ? (
                   <Image
-                    src={user.user_metadata.avatar_url}
-                    alt="Avatar"
+                    src={companyIdentity.logo_url}
+                    alt={`Logo de ${companyDisplayName}`}
                     fill
                     className="rounded-full object-cover"
                     sizes="40px"
                   />
                 ) : (
                   <span className="text-sm font-semibold text-gray-700">
-                    {(user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
+                    {companyInitial}
                   </span>
                 )}
                 <svg

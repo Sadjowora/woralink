@@ -8,7 +8,8 @@ create table if not exists public.contact_messages (
   created_at timestamptz not null default now()
 );
 
--- Recommended indexes for admin listing and filtering
+-- Recommended indexes for admin 
+listing and filtering
 create index if not exists contact_messages_created_at_idx
   on public.contact_messages (created_at desc);
 

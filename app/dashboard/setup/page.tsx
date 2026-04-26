@@ -72,7 +72,6 @@ type Company = {
     completed_projects?: number | null;
     employee_count?: number | null;
     founder_message?: string | null;
-    founder_photo_url?: string | null;
     address?: string | null;
     website_url?: string | null;
 };
@@ -109,7 +108,6 @@ function SetupPageContent() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string>('');
-    const [founderPhotoUrl, setFounderPhotoUrl] = useState<string>('');
     const [galleryUrls, setGalleryUrls] = useState<Array<string | null>>(Array(5).fill(null));
     const [galleryError, setGalleryError] = useState('');
     const initialShortcutHandledRef = useRef(false);
@@ -148,7 +146,6 @@ function SetupPageContent() {
             if (data) {
                 reset(mapCompanyToFormValues(data as Company));
                 setLogoUrl(data.logo_url || '');
-                setFounderPhotoUrl((data as Company).founder_photo_url || '');
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erreur lors de la vérification');
@@ -218,7 +215,6 @@ function SetupPageContent() {
         setEditing(true);
         reset(mapCompanyToFormValues(company));
         setLogoUrl(company.logo_url || '');
-        setFounderPhotoUrl(company.founder_photo_url || '');
     }, [company, reset]);
 
     useEffect(() => {
@@ -281,7 +277,6 @@ function SetupPageContent() {
                         completed_projects: completedProjects,
                         employee_count: employeeCount,
                         founder_message: data.founderMessage || null,
-                        founder_photo_url: founderPhotoUrl || null,
                         address: data.address || null,
                         website_url: data.website_url || null,
                     })
@@ -302,7 +297,6 @@ function SetupPageContent() {
                     completed_projects: completedProjects,
                     employee_count: employeeCount,
                     founder_message: data.founderMessage || null,
-                    founder_photo_url: founderPhotoUrl || null,
                     address: data.address || null,
                     website_url: data.website_url || null,
                 });
@@ -324,7 +318,6 @@ function SetupPageContent() {
                         completed_projects: completedProjects,
                         employee_count: employeeCount,
                         founder_message: data.founderMessage || null,
-                        founder_photo_url: founderPhotoUrl || null,
                         address: data.address || null,
                         website_url: data.website_url || null,
                     }])
@@ -494,7 +487,7 @@ function SetupPageContent() {
                                         <p className="mt-1 text-xs sm:text-sm text-gray-700">{company.company_story || 'À renseigner'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Mot du fondateur</p>
+                                        <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">Message de l&apos;entreprise</p>
                                         <p className="mt-1 text-xs sm:text-sm text-gray-700">{company.founder_message || 'À renseigner'}</p>
                                     </div>
                                 </div>
@@ -506,19 +499,6 @@ function SetupPageContent() {
                                     <Image
                                         src={company.logo_url}
                                         alt="Logo de l'entreprise"
-                                        width={80}
-                                        height={80}
-                                        className="object-cover rounded-lg border"
-                                    />
-                                </div>
-                            )}
-
-                            {company.founder_photo_url && (
-                                <div className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
-                                    <label className="mb-1 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Photo du fondateur</label>
-                                    <Image
-                                        src={company.founder_photo_url}
-                                        alt="Photo du fondateur"
                                         width={80}
                                         height={80}
                                         className="object-cover rounded-lg border"
@@ -583,12 +563,7 @@ function SetupPageContent() {
                                     </Link>
                                 )}
                             </div>
-                        </div>
-
-                        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
-                        {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-                            {editing ? 'Profil mis à jour avec succès !' : 'Profil créé avec succès !'}
-                        </div>}
+                        </div>                      
 
                         {!editing && !company && (
                             <div className="mb-4 text-center sm:mb-6">
@@ -730,26 +705,13 @@ function SetupPageContent() {
 
                     <section className="space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6">
                         <div>
-                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Mot du fondateur</label>
+                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Message de l&apos;entreprise</label>
                             <textarea
                                 rows={5}
                                 {...register('founderMessage')}
-                                placeholder="Partagez un message personnel du fondateur pour créer un lien de confiance."
+                                placeholder="Partagez un message de votre entreprise pour créer un lien de confiance."
                                 className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white resize-none"
                             />
-                        </div>
-
-                        <div>
-                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Photo du fondateur</label>
-                            <small className="mb-2 block text-xs text-gray-500">Formats acceptés : PNG, JPG, GIF. Taille max : 5MB.</small>
-                            <ImageUpload
-                                key={founderPhotoUrl || 'empty-founder-photo'}
-                                onUploadComplete={(url) => setFounderPhotoUrl(url)}
-                                className="max-w-md"
-                            />
-                            {founderPhotoUrl && (
-                                <p className="mt-2 text-xs sm:text-sm text-green-700">Photo du fondateur sélectionnée et prête à être enregistrée.</p>
-                            )}
                         </div>
 
                         <div>
@@ -796,7 +758,11 @@ function SetupPageContent() {
                         .
                     </div>
                     </section>
-
+                          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
+                        {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
+                            {editing ? 'Profil mis à jour avec succès !' : 'Profil créé avec succès !'}
+                        </div>}
+                        
                         <button
                             type="submit"
                             disabled={loading}

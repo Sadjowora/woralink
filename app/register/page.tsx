@@ -53,7 +53,7 @@ export default function RegisterPage() {
                             id: data.user.id, // Très important : utiliser l'ID généré par Auth
                             full_name: fullName, 
                             email: email,
-                            role: role // 'company' ou 'visitor'
+                            role: role === 'freelance' ? 'company' : role // 'freelance' ou 'company'
                         }
                     ]);
                 
@@ -151,10 +151,10 @@ export default function RegisterPage() {
                             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
                         >
                             <option value="company"> PME(Entreprise), Startup  </option>
-                            <option value="company"> Freelance(indépendant), Artisant </option>
+                            <option value="freelance"> Freelance(indépendant), Artisant </option>
                         </select>
                     </div>
-                    
+                    s
                     <button
                         type="submit"
                         disabled={loading}

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import NextLink from 'next/link';
 import { supabase } from '../lib/supabase';
 import CompanyCard from './components/company/CompanyCard';
+import CoupDeCoeur from './components/CoupDeCoeur';
 import Navbar from './components/layout/Navbar';
 
 export const metadata: Metadata = {
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
   description:
     'Trouvez rapidement des PME, startups, artisans et freelances en Guinée. Explorez des profils locaux par ville et secteur pour contacter les meilleurs professionnels près de chez vous.',
 };
+
+export const revalidate = 60;
 
 type Company = {
   id: string;
@@ -28,6 +31,18 @@ type TrendingGalleryItem = {
   name: string;
 };
 
+type CoupDeCoeurCompany = {
+  id: string;
+  name: string;
+  sector: string;
+  city: string;
+  slug: string;
+  logo_url?: string | null;
+  views_count?: number | null;
+  company_story?: string | null;
+  founder_message?: string | null;
+};
+
 const POPULAR_CATEGORIES = [
   { label: 'BTP', icon: '🏗️' },
   { label: 'Informatique', icon: '💻' },
@@ -44,6 +59,49 @@ export default async function Home() {
     .limit(3);
 
   const featuredCompanies: Company[] = error ? [] : ((data as Company[]) ?? []);
+
+  // Coup de Cœur: top views, fallback to most recent with photo
+  let coupDeCoeur: (CoupDeCoeurCompany & { photo_url?: string | null }) | null = null;
+  {
+    const { data: topViewed } = await supabase
+      .from('companies')
+      .select('id, name, sector, city, slug, logo_url, views_count, company_story, founder_message')
+      .not('logo_url', 'is', null)
+      .order('views_count', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (topViewed && (topViewed.views_count ?? 0) > 0) {
+      const { data: photo } = await supabase
+        .from('company_photos')
+        .select('url')
+        .eq('company_id', topViewed.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      coupDeCoeur = { ...topViewed, photo_url: photo?.url ?? null };
+    } else {
+      // fallback: most recently registered company with a logo
+      const { data: recent } = await supabase
+        .from('companies')
+        .select('id, name, sector, city, slug, logo_url, views_count, company_story, founder_message')
+        .not('logo_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (recent) {
+        const { data: photo } = await supabase
+          .from('company_photos')
+          .select('url')
+          .eq('company_id', recent.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        coupDeCoeur = { ...recent, photo_url: photo?.url ?? null };
+      }
+    }
+  }
 
   const { data: trendItemsData, error: trendItemsError } = await supabase.rpc('get_trending_items', {
     sample_size: 12,
@@ -184,6 +242,29 @@ export default async function Home() {
           </div>
         ) : null}
       </section>
+      
+      {coupDeCoeur && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-4 sm:pb-6">
+          <div className="flex items-end justify-between mb-4 sm:mb-6">
+            <div>
+              <h2 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">Coup de Cœur</h2>
+              <p className="mt-1 text-xs sm:text-sm text-gray-500">L&apos;entreprise qui fait parler d&apos;elle cette semaine.</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {coupDeCoeur && (
+        <CoupDeCoeur
+          name={coupDeCoeur.name}
+          sector={coupDeCoeur.sector}
+          city={coupDeCoeur.city}
+          slug={coupDeCoeur.slug}
+          logoUrl={coupDeCoeur.logo_url}
+          photoUrl={coupDeCoeur.photo_url}
+          viewsCount={coupDeCoeur.views_count ?? 0}
+          description={coupDeCoeur.company_story ?? coupDeCoeur.founder_message ?? null}
+        />
+      )}
 
       <footer className="border-t border-gray-200 py-6 sm:py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center text-xs sm:text-sm text-gray-500">

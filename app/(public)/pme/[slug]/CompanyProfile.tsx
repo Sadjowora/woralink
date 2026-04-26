@@ -23,9 +23,7 @@ type Company = {
     years_experience?: number | null;
     completed_projects?: number | null;
     employee_count?: number | null;
-    founder_name?: string | null;
     founder_message?: string | null;
-    founder_photo_url?: string | null;
     address?: string | null;
     website_url?: string | null;
     views?: number | null;
@@ -52,10 +50,26 @@ function formatCompactViews(value: number): string {
     return `${formatted}M`;
 }
 
+function extractViewsCount(payload: unknown): number | null {
+    if (typeof payload === 'number' && Number.isFinite(payload)) {
+        return payload;
+    }
+
+    if (payload && typeof payload === 'object' && 'views_count' in payload) {
+        const value = (payload as { views_count?: unknown }).views_count;
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+        }
+    }
+
+    return null;
+}
+
 export default function CompanyProfile({ company, photos }: CompanyProfileProps) {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const [loadedGalleryImages, setLoadedGalleryImages] = useState<Record<string, boolean>>({});
     const [lightboxImageLoaded, setLightboxImageLoaded] = useState(false);
+    const [currentViews, setCurrentViews] = useState<number>(Math.max(0, Number(company.views ?? company.views_count ?? 0) || 0));
     const hasIncrementedViewsRef = useRef(false);
     const photoUrls = photos.map((photo) => photo.url);
 
@@ -67,7 +81,14 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
             const viewedKey = `viewed_${company.slug}`;
             const alreadyViewed = window.sessionStorage.getItem(viewedKey);
 
+            console.log('[Views] increment check', {
+                slug: company.slug,
+                companyId: company.id,
+                alreadyViewed: Boolean(alreadyViewed),
+            });
+
             if (alreadyViewed) {
+                console.log('[Views] skipped: session already counted for this profile');
                 return;
             }
 
@@ -76,17 +97,57 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
 
             // Do not count a view when the company owner is viewing their own profile.
             if (currentUserId && company.user_id && currentUserId === company.user_id) {
+                console.log('[Views] skipped: owner is viewing own profile', {
+                    currentUserId,
+                    ownerId: company.user_id,
+                });
                 return;
             }
 
-            const { error } = await supabase.rpc('increment_views', { company_id: company.id });
-            if (!error) {
-                window.sessionStorage.setItem(viewedKey, '1');
+            console.log('[Views] calling RPC increment_view', { company_slug: company.slug });
+            let rpcData: unknown = null;
+            let finalError: { message?: string; details?: string; hint?: string; code?: string } | null = null;
+
+            const step1 = await supabase.rpc('increment_view', { company_slug: company.slug });
+            rpcData = step1.data;
+            finalError = step1.error;
+
+            if (finalError) {
+                console.warn('[Views] increment_view(company_slug) failed, fallback to increment_views(company_id)', {
+                    message: finalError.message,
+                    details: finalError.details,
+                    hint: finalError.hint,
+                    code: finalError.code,
+                });
+
+                const step2 = await supabase.rpc('increment_views', { company_id: company.id });
+                rpcData = step2.data;
+                finalError = step2.error;
             }
+
+            if (finalError) {
+                console.error('[Views] increment_views(company_id) failed', {
+                    message: finalError.message,
+                    details: finalError.details,
+                    hint: finalError.hint,
+                    code: finalError.code,
+                });
+                return;
+            }
+
+            console.log('[Views] increment success', { rpcData });
+            window.sessionStorage.setItem(viewedKey, '1');
+            const nextViews = extractViewsCount(rpcData);
+            if (nextViews !== null) {
+                setCurrentViews(nextViews);
+                return;
+            }
+
+            setCurrentViews((prev) => prev + 1);
         };
 
         void incrementViews();
-    }, [company.id, company.slug, company.user_id]);
+    }, [company.id, company.slug, company.user_id, company.views, company.views_count]);
 
     const openLightbox = (index: number) => {
         setLightboxImageLoaded(false);
@@ -117,11 +178,9 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
     }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto]);
 
     const whatsappUrl = `https://wa.me/${company.whatsapp.replace(/[^0-9]/g, '')}`;
-    const founderDisplayName = company.founder_name?.trim() || `Fondateur de ${company.name}`;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || '';
     const profileUrl = `${siteUrl}/pme/${company.slug}`;
-    const rawViews = company.views ?? company.views_count ?? 0;
-    const formattedViews = formatCompactViews(Math.max(0, Number(rawViews) || 0));
+    const formattedViews = formatCompactViews(currentViews);
 
     return (
         <div className="min-h-screen bg-gray-50 pb-28">
@@ -299,9 +358,21 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                                 >
                                     <div className="flex items-center justify-between border-b border-gray-100 px-3 sm:px-4 py-2 sm:py-3">
                                         <div className="flex items-center gap-2 sm:gap-3">
-                                            <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gray-900 text-[10px] sm:text-xs font-semibold text-white">
-                                                {company.name.charAt(0).toUpperCase()}
-                                            </div>
+                                            {company.logo_url ? (
+                                                <div className="relative h-8 w-8 sm:h-9 sm:w-9 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+                                                    <Image
+                                                        src={company.logo_url}
+                                                        alt={`Logo de ${company.name}`}
+                                                        fill
+                                                        sizes="(max-width: 640px) 32px, 36px"
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gray-900 text-[10px] sm:text-xs font-semibold text-white">
+                                                    {company.name.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="text-xs sm:text-sm font-semibold tracking-tight text-black">{company.name}</p>
                                                 <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">{company.city}</p>
@@ -440,34 +511,6 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                 <h2 className="mb-3 sm:mb-4 text-lg sm:text-xl font-semibold tracking-tighter text-primary">Avis &amp; Notes</h2>
                 <ReviewSystem companyId={company.id} />
             </div>
-
-            {/* Founder message */}
-            {company.founder_message && (
-                <div className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10">
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
-                        {company.founder_photo_url && (
-                            <div className="flex shrink-0 justify-center sm:justify-start">
-                                <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-lg border border-gray-100">
-                                    <Image
-                                        src={company.founder_photo_url}
-                                        alt={`Photo de ${founderDisplayName}`}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        <div className="flex flex-col justify-center flex-1 text-center sm:text-left">
-                            <h3 className="mb-2 text-lg sm:text-xl font-semibold tracking-tighter text-primary">
-                                {founderDisplayName}
-                            </h3>
-                            <p className="whitespace-pre-wrap text-sm sm:text-base text-gray-700 leading-relaxed">
-                                {company.founder_message}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Floating WhatsApp button */}
             {company.whatsapp && (

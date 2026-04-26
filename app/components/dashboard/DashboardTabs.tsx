@@ -32,25 +32,40 @@ export default function DashboardTabs({ links = defaultTabs }: DashboardTabsProp
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [userLabel, setUserLabel] = useState('Utilisateur');
+  const [loadingCompany, setLoadingCompany] = useState(true);
+  const [companyName, setCompanyName] = useState('Entreprise');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadUser = async () => {
+    const loadCompany = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (user) {
-        setUserLabel(
-          user.user_metadata?.full_name?.trim() || user.email?.trim() || 'Utilisateur'
-        );
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name, logo_url')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (company) {
+          setCompanyName(
+            typeof company.name === 'string' && company.name.trim() ? company.name.trim() : 'Entreprise'
+          );
+          setCompanyLogoUrl(
+            typeof company.logo_url === 'string' && company.logo_url.trim() ? company.logo_url.trim() : null
+          );
+        } else {
+          setCompanyName('Entreprise');
+          setCompanyLogoUrl(null);
+        }
       }
 
-      setLoadingUser(false);
+      setLoadingCompany(false);
     };
 
-    void loadUser();
+    void loadCompany();
   }, []);
 
   useEffect(() => {
@@ -80,7 +95,7 @@ export default function DashboardTabs({ links = defaultTabs }: DashboardTabsProp
     };
   }, []);
 
-  const initial = useMemo(() => userLabel.charAt(0).toUpperCase() || 'U', [userLabel]);
+  const initial = useMemo(() => companyName.charAt(0).toUpperCase() || 'E', [companyName]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -127,14 +142,26 @@ export default function DashboardTabs({ links = defaultTabs }: DashboardTabsProp
               className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-200 bg-white px-2 sm:px-3 text-xs sm:text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="Ouvrir le menu utilisateur"
+              aria-label="Ouvrir le menu entreprise"
               onClick={() => setMenuOpen((prev) => !prev)}
             >
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-900 text-xs font-semibold text-white" aria-hidden="true">
-                {initial}
-              </span>
+              {companyLogoUrl ? (
+                <span className="relative inline-flex h-7 w-7 overflow-hidden rounded-full border border-gray-200 bg-gray-100" aria-hidden="true">
+                  <Image
+                    src={companyLogoUrl}
+                    alt={`Logo de ${companyName}`}
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                  />
+                </span>
+              ) : (
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-900 text-xs font-semibold text-white" aria-hidden="true">
+                  {initial}
+                </span>
+              )}
               <span className="hidden max-w-28 truncate text-xs sm:text-sm sm:block">
-                {loadingUser ? '...' : userLabel}
+                {loadingCompany ? '...' : companyName}
               </span>
               <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path
@@ -148,7 +175,7 @@ export default function DashboardTabs({ links = defaultTabs }: DashboardTabsProp
             {menuOpen && (
               <div
                 role="menu"
-                aria-label="Menu utilisateur"
+                aria-label="Menu entreprise"
                 className="absolute right-0 z-20 mt-2 w-48 sm:w-56 rounded-md border border-gray-200 bg-white p-1 shadow-sm"
               >
                 <Link
