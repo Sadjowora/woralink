@@ -113,7 +113,7 @@ export default function Navbar() {
     return (
       <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/70 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6">
-          <Image src="/woralink.png" alt="Woralink" width={102} height={26} className="h-auto w-auto object-contain" />
+          <Image src="/woralink.png" alt="Woralink" width={102} height={26} style={{ width: 'auto', height: 'auto' }} className="object-contain" />
           <div className="h-9 w-32 animate-shimmer rounded-md border border-gray-100 bg-[linear-gradient(110deg,var(--color-accents-2),var(--color-accents-1),var(--color-accents-2))] bg-size-[200%_100%]"></div>
         </div>
       </nav>
@@ -128,7 +128,7 @@ export default function Navbar() {
             href="/"
             className="shrink-0 transition-opacity hover:opacity-80"
           >
-            <Image src="/woralink.png" alt="Woralink" width={102} height={26} className="h-auto w-auto object-contain" />
+            <Image src="/woralink.png" alt="Woralink" width={102} height={26} style={{ width: 'auto', height: 'auto' }} className="object-contain" />
           </Link>
           <Link
             href="/search"

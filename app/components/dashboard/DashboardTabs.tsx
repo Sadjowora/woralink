@@ -110,7 +110,7 @@ export default function DashboardTabs({ links = defaultTabs }: DashboardTabsProp
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center">
           <Link href="/" className="shrink-0 transition-opacity hover:opacity-80">
-            <Image src="/woralink.png" alt="Woralink" width={102} height={26} className="h-auto w-auto object-contain" />
+            <Image src="/woralink.png" alt="Woralink" width={102} height={26} style={{ width: 'auto', height: 'auto' }} className="object-contain" />
           </Link>
         </div>
 
