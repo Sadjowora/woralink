@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 
 type Review = {
@@ -8,6 +8,9 @@ type Review = {
     rating: number;
     comment: string | null;
     created_at: string;
+    reviewer_name: string | null;
+    reviewer_email: string | null;
+    reviewer_phone: string | null;
     profiles: { full_name: string | null } | null;
 };
 
@@ -60,6 +63,9 @@ export default function ReviewSystem({ companyId }: ReviewSystemProps) {
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState<string | null>(null);
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -74,33 +80,56 @@ export default function ReviewSystem({ companyId }: ReviewSystemProps) {
         }));
     };
 
+    const loadReviews = useCallback(async () => {
+        const { data } = await supabase
+            .from('reviews')
+            .select('id, rating, comment, created_at, reviewer_name, reviewer_email, reviewer_phone, profiles(full_name)')
+            .eq('company_id', companyId)
+            .order('created_at', { ascending: false });
+
+        if (data) {
+            setReviews(normalizeReviews(data as ReviewRow[]));
+        }
+    }, [companyId]);
+
     useEffect(() => {
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
             setUserId(user?.id ?? null);
 
-            const { data } = await supabase
-                .from('reviews')
-                .select('id, rating, comment, created_at, profiles(full_name)')
-                .eq('company_id', companyId)
-                .order('created_at', { ascending: false });
+            if (user) {
+                const profileResult = await supabase
+                    .from('profiles')
+                    .select('full_name, email')
+                    .eq('id', user.id)
+                    .maybeSingle();
 
-            if (data) {
-                setReviews(normalizeReviews(data as ReviewRow[]));
-                if (user) {
-                    const has = await supabase
-                        .from('reviews')
-                        .select('id')
-                        .eq('company_id', companyId)
-                        .eq('user_id', user.id)
-                        .maybeSingle();
-                    setAlreadyReviewed(!!has.data);
-                }
+                const profileName = profileResult.data?.full_name?.trim() ?? '';
+                const profileEmail = profileResult.data?.email?.trim() ?? user.email?.trim() ?? '';
+                const metadataPhone = typeof user.user_metadata?.phone === 'string'
+                    ? user.user_metadata.phone.trim()
+                    : '';
+
+                setFullName(profileName);
+                setEmail(profileEmail);
+                setPhone(metadataPhone);
+
+                const has = await supabase
+                    .from('reviews')
+                    .select('id')
+                    .eq('company_id', companyId)
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                setAlreadyReviewed(!!has.data);
+            } else {
+                setAlreadyReviewed(false);
             }
+
+            await loadReviews();
             setLoading(false);
         }
         load();
-    }, [companyId]);
+    }, [companyId, loadReviews]);
 
     const average =
         reviews.length > 0
@@ -110,6 +139,33 @@ export default function ReviewSystem({ companyId }: ReviewSystemProps) {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (rating === 0) { setError('Veuillez sélectionner une note.'); return; }
+        const trimmedComment = comment.trim();
+        const trimmedFullName = fullName.trim();
+        const trimmedEmail = email.trim().toLowerCase();
+        const trimmedPhone = phone.trim();
+
+        if (!trimmedComment) {
+            setError('Veuillez saisir votre message.');
+            return;
+        }
+
+        if (!userId) {
+            if (!trimmedFullName) {
+                setError('Veuillez renseigner votre nom complet.');
+                return;
+            }
+
+            if (!trimmedEmail && !trimmedPhone) {
+                setError('Veuillez renseigner un email ou un numero de telephone.');
+                return;
+            }
+
+            if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+                setError('Veuillez renseigner un email valide.');
+                return;
+            }
+        }
+
         setSubmitting(true);
         setError(null);
 
@@ -117,21 +173,24 @@ export default function ReviewSystem({ companyId }: ReviewSystemProps) {
             company_id: companyId,
             user_id: userId,
             rating,
-            comment: comment.trim() || null,
+            comment: trimmedComment,
+            reviewer_name: userId ? (trimmedFullName || 'Utilisateur Woralink') : trimmedFullName,
+            reviewer_email: trimmedEmail || null,
+            reviewer_phone: trimmedPhone || null,
         });
 
         if (insertError) {
             setError('Une erreur est survenue. Veuillez réessayer.');
         } else {
             setSuccess(true);
-            setAlreadyReviewed(true);
-            // Reload reviews
-            const { data } = await supabase
-                .from('reviews')
-                .select('id, rating, comment, created_at, profiles(full_name)')
-                .eq('company_id', companyId)
-                .order('created_at', { ascending: false });
-            if (data) setReviews(normalizeReviews(data as ReviewRow[]));
+            if (userId) {
+                setAlreadyReviewed(true);
+            } else {
+                setFullName('');
+                setEmail('');
+                setPhone('');
+            }
+            await loadReviews();
         }
         setSubmitting(false);
     }
@@ -181,22 +240,68 @@ export default function ReviewSystem({ companyId }: ReviewSystemProps) {
             </div>
 
             {/* Form */}
-            {userId && !alreadyReviewed && !success && (
+            {!alreadyReviewed && !success && (
                 <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4">
                     <h3 className="text-sm sm:text-base font-semibold text-gray-800">Laisser un avis</h3>
+                    {userId ? (
+                        <p className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs sm:text-sm text-blue-700">
+                            Connecte en tant que <strong>{fullName || email || 'Utilisateur Woralink'}</strong>. Vos informations seront ajoutees automatiquement.
+                        </p>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="block text-xs sm:text-sm text-gray-600 mb-1">Nom complet *</label>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    maxLength={120}
+                                    placeholder="Votre nom complet"
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    required
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs sm:text-sm text-gray-600 mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        maxLength={160}
+                                        placeholder="vous@email.com"
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs sm:text-sm text-gray-600 mb-1">Numero de telephone</label>
+                                    <input
+                                        type="tel"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        maxLength={30}
+                                        placeholder="Ex: 622 00 00 00"
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-gray-500">Au moins un contact est requis: email ou numero de telephone.</p>
+                        </>
+                    )}
                     <div>
                         <label className="block text-xs sm:text-sm text-gray-600 mb-1">Note *</label>
                         <StarRating value={rating} onChange={setRating} size="lg" />
                     </div>
                     <div>
-                        <label className="block text-xs sm:text-sm text-gray-600 mb-1">Commentaire (optionnel)</label>
+                        <label className="block text-xs sm:text-sm text-gray-600 mb-1">Message *</label>
                         <textarea
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             rows={3}
                             maxLength={500}
-                            placeholder="Partagez votre expérience…"
+                            placeholder="Partagez votre experience..."
                             className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+                            required
                         />
                         <p className="text-right text-[10px] sm:text-xs text-gray-400">{comment.length}/500</p>
                     </div>
@@ -217,12 +322,6 @@ export default function ReviewSystem({ companyId }: ReviewSystemProps) {
                 </p>
             )}
 
-            {!userId && (
-                <p className="text-xs sm:text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-2">
-                    <a href="/login" className="text-blue-600 underline underline-offset-2">Connectez-vous</a> pour laisser un avis.
-                </p>
-            )}
-
             {/* Reviews list */}
             {reviews.length === 0 ? (
                 <p className="text-xs sm:text-sm text-gray-400 text-center py-4">
@@ -234,7 +333,7 @@ export default function ReviewSystem({ companyId }: ReviewSystemProps) {
                         <li key={r.id} className="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 space-y-1">
                             <div className="flex items-center justify-between flex-wrap gap-2">
                                 <span className="font-medium text-xs sm:text-sm text-gray-800">
-                                    {r.profiles?.full_name ?? 'Utilisateur anonyme'}
+                                    {r.reviewer_name?.trim() || r.profiles?.full_name || 'Utilisateur anonyme'}
                                 </span>
                                 <span className="text-[10px] sm:text-xs text-gray-400">
                                     {new Date(r.created_at).toLocaleDateString('fr-GN', {

@@ -12,10 +12,11 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://woralink.com',
   },
   images: {
+    dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'yhlclgkbahtlbamnlrwz.supabase.co', // Remplace par TON hostname Supabase
+        hostname: 'yhlclgkbahtlbamnlrwz.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
