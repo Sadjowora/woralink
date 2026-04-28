@@ -4,14 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthShell from '../components/auth/AuthShell';
-import { supabase } from '@/lib/supabase'; 
+import { supabase } from '@/lib/supabase';
+import { registerUser } from './actions';
 
 export default function RegisterPage() {
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [role, setRole] = useState('user');
+    const [role, setRole] = useState<'company' | 'visitor'>('company');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
@@ -28,46 +29,27 @@ export default function RegisterPage() {
         setError('');
 
         try {
-            // 1. Création du compte dans Auth
-            const emailRedirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://woralink.com'}/dashboard/profile`;
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    emailRedirectTo,
-                },
-            });
+            // Inscription atomique via server action :
+            // si le profil échoue, le compte Auth est supprimé automatiquement.
+            const result = await registerUser(fullName, email, password);
 
-            if (error) {
-                console.error("Erreur Auth:", error.message);
-                setError(`Erreur d'inscription: ${error.message}`);
+            if (result.status === 'error') {
+                setError(result.message);
                 return;
             }
 
-            // 2. Si l'auth a réussi, on insère manuellement dans la table 'profiles'
-            if (data.user) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert([
-                        { 
-                            id: data.user.id, // Très important : utiliser l'ID généré par Auth
-                            full_name: fullName, 
-                            email: email,
-                            role: role === 'freelance' ? 'company' : role // 'freelance' ou 'company'
-                        }
-                    ]);
-                
-                if (profileError) {
-                    console.error("Erreur Table Profiles:", profileError.message);
-                    setError(`Erreur lors de la création du profil: ${profileError.message}`);
-                    return;
-                }
-
-                router.push('/dashboard/profile');
+            // Ouvrir la session côté client après inscription réussie
+            const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+            if (signInError) {
+                console.log('Erreur de connexion après inscription:', signInError);
+                setError('Votre compte a été créé. La connexion automatique a échoué, veuillez vous connecter manuellement.');
+                return;
             }
+
+            router.push('/dashboard/profile');
         } catch (err) {
-            console.error("Erreur générale:", err);
-            setError(err instanceof Error ? err.message : 'Une erreur inattendue s\'est produite');
+            console.error('Erreur générale:', err);
+            setError('Une erreur inattendue s\'est produite. Veuillez réessayer.');
         } finally {
             setLoading(false);
         }
@@ -146,18 +128,31 @@ export default function RegisterPage() {
                         <label className="mb-1 block text-sm font-medium text-gray-700">Rôle</label>
                         <select
                             value={role}
-                            onChange={(e) => setRole(e.target.value)}
+                            onChange={(e) => setRole(e.target.value as 'company' | 'visitor')}
                             required
                             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
                         >
-                            <option value="company"> PME(Entreprise), Startup  </option>
-                            <option value="freelance"> Freelance(indépendant), Artisant </option>
+                            <option value="visitor">Visiteur</option>
+                            <option value="company">PME, Entreprise, Artisan, Freelance, Startup</option>
                         </select>
                     </div>
+
+                    {role === 'visitor' && (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 sm:p-4">
+                            <p className="font-semibold">Inscription non requise pour les visiteurs</p>
+                            <p className="mt-1">
+                                Notre plateforme vous permet de consulter librement les professionnels sans créer de compte.{' '}
+                                <Link href="/search" className="font-semibold text-amber-900 underline hover:text-amber-700">
+                                    Parcourir les professionnels
+                                </Link>
+                            </p>
+                        </div>
+                    )}
+
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50 sm:py-3"
+                        disabled={loading || role === 'visitor'}
+                        className="w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 sm:py-3"
                     >
                         {loading ? 'Inscription...' : 'Créer mon espace Woralink'}
                     </button>
