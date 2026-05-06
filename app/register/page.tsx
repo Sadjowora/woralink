@@ -3,9 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import AuthShell from '../components/auth/AuthShell';
-import { supabase } from '@/lib/supabase';
+import { buildAuthRedirectTo, supabase } from '@/lib/supabase';
 import { registerUser } from './actions';
+
+function mapSignUpError(message: string) {
+    if (/already registered|already exists|email.*exist/i.test(message)) {
+        return "Un compte avec cette adresse e-mail existe deja. Connectez-vous ou utilisez une autre adresse.";
+    }
+    return "Une erreur est survenue lors de l'inscription. Veuillez reessayer.";
+}
 
 export default function RegisterPage() {
     const [fullName, setFullName] = useState('');
@@ -17,7 +25,24 @@ export default function RegisterPage() {
     const [error, setError] = useState('');
     const router = useRouter();
 
-   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSocialLogin = async (provider: string) => {
+        setLoading(true);
+        setError('');
+
+        const { error: oauthError } = await supabase.auth.signInWithOAuth({
+            provider: provider as 'google' | 'facebook' | 'linkedin_oidc',
+            options: {
+                redirectTo: buildAuthRedirectTo('/dashboard'),
+            },
+        });
+
+        if (oauthError) {
+            setError("Connexion sociale indisponible pour le moment. Veuillez reessayer.");
+            setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (password !== confirmPassword) {
@@ -30,7 +55,7 @@ export default function RegisterPage() {
 
         try {
             // Inscription atomique via server action :
-            // si le profil échoue, le compte Auth est supprimé automatiquement.
+            // si le profil echoue, le compte Auth est supprime automatiquement.
             const result = await registerUser(fullName, email, password);
 
             if (result.status === 'error') {
@@ -38,18 +63,18 @@ export default function RegisterPage() {
                 return;
             }
 
-            // Ouvrir la session côté client après inscription réussie
+            // Ouvrir la session cote client apres inscription reussie
             const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
             if (signInError) {
-                console.log('Erreur de connexion après inscription:', signInError);
-                setError('Votre compte a été créé. La connexion automatique a échoué, veuillez vous connecter manuellement.');
+                console.log('Erreur de connexion apres inscription:', signInError);
+                setError('Votre compte a ete cree. La connexion automatique a echoue, veuillez vous connecter manuellement.');
                 return;
             }
 
             router.push('/dashboard/profile');
         } catch (err) {
             console.error('Erreur générale:', err);
-            setError('Une erreur inattendue s\'est produite. Veuillez réessayer.');
+            setError(mapSignUpError(err instanceof Error ? err.message : ''));
         } finally {
             setLoading(false);
         }
@@ -87,7 +112,7 @@ export default function RegisterPage() {
                             placeholder="Votre nom complet"
                         />
                     </div>
-                    
+
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
                         <input
@@ -99,7 +124,7 @@ export default function RegisterPage() {
                             placeholder="vous@entreprise.com"
                         />
                     </div>
-                    
+
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700">Mot de passe</label>
                         <input
@@ -156,7 +181,71 @@ export default function RegisterPage() {
                     >
                         {loading ? 'Inscription...' : 'Créer mon espace Woralink'}
                     </button>
+
+                    <p className="text-xs leading-relaxed text-gray-500">
+                        En créant un compte, vous acceptez notre{' '}
+                        <Link href="/politique-confidentialite" className="font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline">
+                            Politique de confidentialité
+                        </Link>
+                        {' '}et nos{' '}
+                        <Link href="/conditions-utilisation" className="font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline">
+                            Conditions d&apos;utilisation
+                        </Link>
+                        .
+                    </p>
                 </form>
+
+                {role !== 'visitor' && (
+                    <div className="mt-5 sm:mt-6">
+                        <div className="relative my-4 sm:my-5">
+                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="w-full border-t border-gray-200" />
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">OU</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p className="mb-3 text-sm font-medium text-gray-700">Connexion sociale</p>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSocialLogin('google')}
+                                    disabled={loading}
+                                    className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                                        <FaGoogle className="h-4 w-4"/>
+                                    </span>
+                                    Google
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSocialLogin('facebook')}
+                                    disabled={loading}
+                                    className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                                        <FaFacebookF className="h-4 w-4" />
+                                    </span>
+                                    Facebook
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSocialLogin('linkedin_oidc')}
+                                    disabled={loading}
+                                    className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                                        <FaLinkedinIn className="h-4 w-4" />
+                                    </span>
+                                    LinkedIn
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-5 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600 sm:mt-6 sm:p-4">
                     Une fois inscrit, vous serez redirigé vers votre onglet profil pour finaliser votre fiche entreprise.

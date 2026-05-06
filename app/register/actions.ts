@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 function traduireErreur(message: string): string {
     if (/already registered|already exists|email.*exist/i.test(message))
-        return 'Un compte avec cette adresse e-mail existe déjà. Connectez-vous ou utilisez une autre adresse.';
+        return 'Un compte avec cette adresse e-mail existe deja. Connectez-vous ou utilisez une autre adresse.';
     if (/invalid email/i.test(message))
         return 'Adresse e-mail invalide.';
     if (/password.*characters|password.*length|at least.*characters/i.test(message))
@@ -23,6 +23,21 @@ export type RegisterState =
     | { status: 'success' }
     | { status: 'error'; message: string };
 
+function getAdminClient() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+    if (!serviceRoleKey) {
+        return { error: "Configuration serveur manquante (SUPABASE_SERVICE_ROLE_KEY). Contactez l'administrateur." as const };
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    return { adminClient };
+}
+
 /**
  * Inscription atomique : si l'insertion du profil échoue après la création
  * du compte Auth, l'utilisateur Auth est immédiatement supprimé pour permettre
@@ -36,20 +51,13 @@ export async function registerUser(
     email: string,
     password: string,
 ): Promise<RegisterState> {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-    if (!serviceRoleKey) {
+    const { adminClient, error } = getAdminClient();
+    if (error) {
         return {
             status: 'error',
-            message: "Configuration serveur manquante (SUPABASE_SERVICE_ROLE_KEY). Contactez l'administrateur.",
+            message: error,
         };
     }
-
-    // Client admin (service role) — uniquement côté serveur
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-    });
 
     // 1. Créer l'utilisateur dans Auth
     const { data, error: authError } = await adminClient.auth.admin.createUser({
@@ -74,6 +82,7 @@ export async function registerUser(
             id: userId,
             full_name: fullName,
             email,
+            phone: null,
             role: 'company',
         }]);
 

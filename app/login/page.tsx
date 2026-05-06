@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
+import { buildAuthRedirectTo, supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +13,23 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleSocialLogin = async (provider: string) => {
+    setLoading(true);
+    setError('');
+
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: provider as 'google' | 'facebook' | 'linkedin_oidc',
+      options: {
+        redirectTo: buildAuthRedirectTo('/dashboard'),
+      },
+    });
+
+    if (oauthError) {
+      setError('Connexion sociale indisponible pour le moment. Veuillez reessayer.');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -115,6 +133,56 @@ export default function LoginPage() {
               {loading ? 'Connexion...' : 'Entrer dans mon espace Woralink'}
             </button>
           </form>
+
+          <div className="mt-6">
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">OU</span>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-3 text-sm font-medium text-gray-700">Connexion sociale</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('google')}
+                  disabled={loading}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                    <FaGoogle className="h-4 w-4" />
+                  </span>
+                  Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('facebook')}
+                  disabled={loading}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                    <FaFacebookF className="h-4 w-4" />
+                  </span>
+                  Facebook
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('linkedin_oidc')}
+                  disabled={loading}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                    <FaLinkedinIn className="h-4 w-4" />
+                  </span>
+                  LinkedIn
+                </button>
+              </div>
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Vous n&apos;avez pas encore de compte ?{' '}

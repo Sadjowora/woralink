@@ -47,7 +47,7 @@ export default function SearchResultsShell({
 			</aside>
 
 			<main className="min-w-0 flex-1">
-				<div className="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:mb-5 sm:p-4">
+				<div className="mb-4 rounded-xl border border-gray-200 bg-white p-3 sm:mb-5 sm:p-4">
 					<div className="flex items-center gap-2 sm:gap-3">
 						<form action="/search" method="get" className="w-full flex-1">
 							{city ? <input type="hidden" name="city" value={city} /> : null}
@@ -65,7 +65,7 @@ export default function SearchResultsShell({
 									type="search"
 									defaultValue={q}
 									placeholder="Rechercher une entreprise, un secteur ou une ville"
-									className="h-11 w-full rounded-xl border border-black/10 bg-white pl-11 pr-4 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-300/60"
+								className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-150 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/20"
 								/>
 							</div>
 						</form>
@@ -75,7 +75,7 @@ export default function SearchResultsShell({
 							onClick={() => setFiltersOpen((current) => !current)}
 							aria-expanded={filtersOpen}
 							aria-controls="search-filters-panel"
-							className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-900 md:hidden"
+							className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors duration-150 hover:border-gray-300 hover:text-gray-900 md:hidden"
 						>
 							<SlidersHorizontal className="h-4.5 w-4.5" />
 						</button>
@@ -96,7 +96,7 @@ export default function SearchResultsShell({
 
 					<div className="mt-3 border-t border-gray-100 pt-3">
 						<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-							<p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 sm:text-xs">
+							<p className="text-xs font-medium uppercase tracking-wide text-gray-500">
 								Quick Links Villes
 							</p>
 							<div className="flex flex-wrap gap-1.5 sm:justify-end sm:gap-2">
@@ -108,10 +108,10 @@ export default function SearchResultsShell({
 										key={cityQuickLink}
 										href={getCityHref(cityQuickLink)}
 										aria-current={active ? 'page' : undefined}
-										className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors sm:text-xs ${
-											active
-												? 'border-primary/40 bg-primary/10 text-primary'
-												: 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:text-primary'
+									className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors duration-150 ${
+										active
+											? 'border-green-200 bg-green-50 text-green-700'
+											: 'border-gray-200 bg-gray-100 text-gray-500 hover:border-green-200 hover:text-green-700'
 										}`}
 									>
 										{cityQuickLink}

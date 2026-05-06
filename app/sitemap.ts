@@ -61,6 +61,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'daily',
             priority: 0.9,
         },
+        {
+            url: `${baseUrl}/politique-confidentialite`,
+            lastModified: now,
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
+        {
+            url: `${baseUrl}/conditions-utilisation`,
+            lastModified: now,
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
     ];
 
     const citySearchUrls: MetadataRoute.Sitemap = GUINEA_MAIN_CITIES.map((city) => ({

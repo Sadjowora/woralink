@@ -94,8 +94,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
 			<div className="max-w-7xl mx-auto w-full px-4 py-6 sm:py-8 flex-1">
 				<div className="mb-4 sm:mb-6">
-					<h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tighter text-primary">Rechercher un professionnel</h1>
-					<p className="text-xs sm:text-sm text-gray-500 mt-1">
+					<h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">Rechercher un professionnel</h1>
+					<p className="mt-1 text-sm text-gray-500">
 						Utilisez les filtres URL pour trouver rapidement un profil.
 					</p>
 				</div>
@@ -109,7 +109,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 				>
 					{hasResults ? (
 						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-							{companies.map((company) => (
+							{companies.map((company, index) => (
 								<Link key={company.id} href={`/pme/${company.slug}`} className="block w-full">
 									<CompanyCard
 										name={company.name}
@@ -118,26 +118,29 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 										city={company.city}
 										logoUrl={company.logo_url}
 										isVerified={Boolean(company.is_verified)}
+										imageLoading={index === 0 ? 'eager' : 'lazy'}
 									/>
 								</Link>
 							))}
 						</div>
 					) : (
 						<div className="py-12 sm:py-16">
-							<div className="mx-auto max-w-2xl rounded-2xl border border-blue-100 bg-white p-5 text-center shadow-sm sm:p-8">
-								<div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-600 sm:mb-4 sm:h-16 sm:w-16 sm:text-3xl">
-									🔍
+							<div className="mx-auto max-w-2xl rounded-xl border border-gray-200 bg-white p-5 text-center sm:p-8">
+								<div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-gray-500 sm:h-14 sm:w-14">
+									<svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+									</svg>
 								</div>
-								<h2 className="mb-2 text-lg font-semibold tracking-tighter text-primary sm:text-xl">
+								<h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">
 									Aucun professionnel trouvé dans cette zone
 								</h2>
-								<p className="mb-4 text-xs text-gray-600 sm:mb-6 sm:text-sm">
+								<p className="mb-6 text-sm text-gray-500">
 									Vous êtes basé{cityFilter ? ` à ${cityFilter}` : ' en Guinée'} et vous proposez des services ?
 									 Rejoignez Woralink pour être visible auprès de vos futurs clients.
 								</p>
 								<Link
 									href="/register"
-									className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 sm:px-6 sm:py-3"
+									className="inline-flex items-center justify-center rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
 								>
 									Inscrivez votre entreprise
 								</Link>

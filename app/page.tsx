@@ -44,11 +44,11 @@ type CoupDeCoeurCompany = {
 };
 
 const POPULAR_CATEGORIES = [
-  { label: 'BTP', icon: '🏗️' },
-  { label: 'Informatique', icon: '💻' },
-  { label: 'Mecanique', icon: '🔧' },
-  { label: 'Sante', icon: '🩺' },
-  { label: 'Transport', icon: '🚚' },
+  { label: 'BTP', sector: 'Construction & BTP', icon: '🏗️' },
+  { label: 'Numérique', sector: 'Tech & Numérique', icon: '💻' },
+  { label: 'Artisanat', sector: 'Artisanat & Art', icon: '🎨' },
+  { label: 'Santé', sector: 'Santé & Pharmacie', icon: '🩺' },
+  { label: 'Transport', sector: 'Transport & Logistique', icon: '🚚' },
 ];
 
 export default async function Home() {
@@ -143,10 +143,10 @@ export default async function Home() {
 
           <div className="mt-6 sm:mt-7 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm">
             <NextLink href="/search" className="w-full sm:w-auto rounded-md border border-gray-300 bg-white px-4 py-2.5 sm:py-2 text-gray-700 transition-colors hover:bg-gray-100 font-medium">
-              Explorer tous les profils
+               Explorer tous les profils
             </NextLink>
             <NextLink href="/register" className="w-full sm:w-auto rounded-md bg-primary px-4 py-2.5 sm:py-2 text-white transition-colors hover:bg-primary/90 font-medium">
-              Rejoindre Woralink via WhatsApp
+               Rejoindre Woralink
             </NextLink>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default async function Home() {
           {POPULAR_CATEGORIES.map((category) => (
             <NextLink
               key={category.label}
-              href={`/search?sector=${encodeURIComponent(category.label)}`}
+              href={`/search?sector=${encodeURIComponent(category.sector)}`}
               className="group rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-3 sm:p-5 text-center hover:border-primary hover:shadow-sm sm:hover:shadow-md transition-all"
             >
               <div className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">{category.icon}</div>
@@ -184,7 +184,7 @@ export default async function Home() {
 
         {featuredCompanies.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {featuredCompanies.map((company) => (
+            {featuredCompanies.map((company, index) => (
               <NextLink key={company.id} href={`/pme/${company.slug}`}>
                 <CompanyCard
                   name={company.name}
@@ -193,6 +193,7 @@ export default async function Home() {
                   city={company.city}
                   logoUrl={company.logo_url}
                   isVerified={Boolean(company.is_verified)}
+                  imageLoading={index === 0 ? 'eager' : 'lazy'}
                 />
               </NextLink>
             ))}
@@ -265,12 +266,6 @@ export default async function Home() {
           description={coupDeCoeur.company_story ?? coupDeCoeur.founder_message ?? null}
         />
       )}
-
-      <footer className="border-t border-gray-200 py-6 sm:py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center text-xs sm:text-sm text-gray-500">
-          © 2026 Woralink - Connecter les professionnels de Guinée.
-        </div>
-      </footer>
     </div>
   );
 }

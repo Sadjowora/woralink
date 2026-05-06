@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import DashboardTabs from '../../components/dashboard/DashboardTabs';
+import DashboardShell from '../../components/dashboard/DashboardShell';
 import { supabase } from '../../../lib/supabase';
 
 type Company = {
@@ -77,24 +77,38 @@ export default function DashboardMediaPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-white">
-        <DashboardTabs />
-        <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
-          <div className="rounded-none border-0 bg-white p-2 sm:rounded-md sm:border sm:border-gray-200 sm:p-8">
-            <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600 sm:p-6">
-              Chargement de votre espace visuel...
-            </div>
+      <DashboardShell title="Media" subtitle="Surveillez votre identite visuelle et vos photos.">
+        <div className="rounded-xl border border-gray-200 bg-white p-8">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500">
+            Chargement de votre espace visuel...
           </div>
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <DashboardTabs />
-      <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
-        <div className="w-full rounded-none border-0 bg-white p-2 transition-colors sm:rounded-md sm:border sm:border-primary/20 sm:p-8 sm:hover:border-primary">
+    <DashboardShell
+      title="Media"
+      subtitle="Pilotez logo, galerie et coherence visuelle de votre fiche."
+      actions={
+        <>
+          <Link
+            href="/dashboard/gallery"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+          >
+            Gerer la galerie
+          </Link>
+          <Link
+            href="/dashboard/profile?mode=edit"
+            className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
+          >
+            Modifier le profil
+          </Link>
+        </>
+      }
+    >
+      <div className="w-full rounded-xl border border-gray-200 bg-white p-5">
           {error && (
             <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {error}
@@ -131,19 +145,19 @@ export default function DashboardMediaPage() {
           <div className="mt-6 space-y-3">
             <Link
               href="/dashboard/gallery"
-              className="inline-flex w-full items-center justify-center rounded-md bg-primary px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-green-700 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white transition-colors duration-150 hover:bg-green-800"
             >
               Gérer la galerie
             </Link>
             <Link
               href="/dashboard/profile?mode=edit"
-              className="inline-flex w-full items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+              className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
             >
               Modifier mon profil
             </Link>
             <Link
               href={company ? `/pme/${company.slug}` : '/dashboard/profile'}
-              className="inline-flex w-full items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+              className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
             >
               Voir ma page publique
             </Link>
@@ -210,8 +224,7 @@ export default function DashboardMediaPage() {
           </div>
         </section>
       </div>
-        </div>
       </div>
-    </div>
+    </DashboardShell>
   );
 }

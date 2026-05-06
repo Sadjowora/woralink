@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import imageCompression from 'browser-image-compression';
-import DashboardTabs from '../../components/dashboard/DashboardTabs';
+import DashboardShell from '../../components/dashboard/DashboardShell';
 import { supabase, saveCompanyGalleryPhotos, type GalleryPhotoInput } from '../../../lib/supabase';
 
 type Company = {
@@ -269,24 +269,38 @@ export default function DashboardGalleryPage() {
 
     if (checking) {
         return (
-            <div className="min-h-screen bg-white">
-                <DashboardTabs />
-                <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
-                    <div className="rounded-none border-0 bg-white p-2 sm:rounded-md sm:border sm:border-gray-200 sm:p-8">
-                        <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600 sm:p-6">
-                            Chargement de votre galerie...
-                        </div>
+            <DashboardShell title="Galerie" subtitle="Gerez vos visuels et legendez chaque photo.">
+                <div className="rounded-xl border border-gray-200 bg-white p-8">
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                        Chargement de votre galerie...
                     </div>
                 </div>
-            </div>
+            </DashboardShell>
         );
     }
 
     return (
-        <div className="min-h-screen bg-white">
-            <DashboardTabs />
-            <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
-                <div className="w-full rounded-none border-0 bg-white p-2 transition-colors sm:rounded-md sm:border sm:border-primary/20 sm:p-8 sm:hover:border-primary">
+        <DashboardShell
+            title="Galerie"
+            subtitle="Gerez vos 5 visuels principaux et leurs legendes."
+            actions={
+                <>
+                    <Link
+                        href="/dashboard/profile"
+                        className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                    >
+                        Modifier le profil
+                    </Link>
+                    <Link
+                        href="/dashboard"
+                        className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                    >
+                        Retour dashboard
+                    </Link>
+                </>
+            }
+        >
+            <div className="w-full rounded-xl border border-gray-200 bg-white p-5">
                     <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:gap-4 border-b border-gray-100 pb-4 sm:pb-6 md:flex-row md:items-end md:justify-between">
                         <div>
                             <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Galerie</p>
@@ -299,20 +313,20 @@ export default function DashboardGalleryPage() {
                         <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row flex-wrap">
                             <Link
                                 href="/dashboard/profile"
-                                className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                             >
                                 Modifier mon profil
                             </Link>
                             <Link
                                 href="/dashboard"
-                                className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                             >
                                 Retour au dashboard
                             </Link>
                             {company && (
                                 <Link
                                     href={`/pme/${company.slug}`}
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                 >
                                     Voir ma page publique
                                 </Link>
@@ -467,7 +481,7 @@ export default function DashboardGalleryPage() {
                             <button
                                 type="submit"
                                 disabled={gallerySaving || galleryUploadingIndex !== null}
-                                className="w-full rounded-md bg-black py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                                className="w-full rounded-lg bg-green-700 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800 disabled:opacity-50"
                             >
                                 {gallerySaving ? 'Enregistrement de la galerie...' : 'Enregistrer la galerie'}
                             </button>
@@ -475,6 +489,6 @@ export default function DashboardGalleryPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </DashboardShell>
     );
 }

@@ -5,7 +5,7 @@ import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { supabase } from '../../../lib/supabase';
-import DashboardTabs from '../../components/dashboard/DashboardTabs';
+import DashboardShell from '../../components/dashboard/DashboardShell';
 import ImageUpload from '../../components/ImageUpload';
 import Image from 'next/image';
 
@@ -112,7 +112,7 @@ function SetupPageContent() {
     const [galleryError, setGalleryError] = useState('');
     const initialShortcutHandledRef = useRef(false);
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+    const { register, watch, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
         defaultValues: {
             entityName: '',
             profileType: '',
@@ -128,6 +128,8 @@ function SetupPageContent() {
             website_url: '',
         }
     });
+    const companyStoryValue = watch('companyStory') || '';
+    const companyStoryCharacterCount = companyStoryValue.length;
 
     const checkExistingCompany = useCallback(async () => {
         try {
@@ -342,24 +344,38 @@ function SetupPageContent() {
 
     if (checking) {
         return (
-            <div className="min-h-screen bg-white">
-                <DashboardTabs />
-                <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
-                    <div className="rounded-none border-0 bg-white p-2 sm:rounded-md sm:border sm:border-gray-200 sm:p-8">
-                        <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600 sm:p-6">
-                            Verification du profil...
-                        </div>
+            <DashboardShell title="Configuration" subtitle="Verification de votre fiche professionnelle.">
+                <div className="rounded-xl border border-gray-200 bg-white p-8">
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                        Verification du profil...
                     </div>
                 </div>
-            </div>
+            </DashboardShell>
         );
     }
 
     return (
-        <div className="min-h-screen bg-white">
-            <DashboardTabs />
-            <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
-                <div className="w-full rounded-none border-0 bg-white p-2 sm:rounded-md sm:border sm:border-gray-200 sm:p-8">
+        <DashboardShell
+            title={editing ? 'Modifier le profil' : 'Configuration'}
+            subtitle="Mettez a jour vos informations, votre logo et votre contenu public."
+            actions={
+                <>
+                    <Link
+                        href="/dashboard"
+                        className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                    >
+                        Retour dashboard
+                    </Link>
+                    <Link
+                        href="/dashboard/gallery"
+                        className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
+                    >
+                        Gerer la galerie
+                    </Link>
+                </>
+            }
+        >
+            <div className="w-full rounded-xl border border-gray-200 bg-white p-5">
                 {company && !editing ? (
                     <>
                         <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:gap-4 border-b border-gray-100 pb-4 sm:pb-6 md:flex-row md:items-end md:justify-between">
@@ -375,31 +391,31 @@ function SetupPageContent() {
                                 <button
                                     type="button"
                                     onClick={() => openEditor()}
-                                    className="inline-flex items-center justify-center rounded-md bg-primary px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-primary/90 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white transition-colors duration-150 hover:bg-green-800 whitespace-nowrap"
                                 >
                                     Modifier mon profil
                                 </button>
                                 <Link
                                     href={`/pme/${company.slug}`}
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                 >
                                     Voir ma page publique
                                 </Link>
                                 <Link
                                     href="/dashboard/gallery"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                 >
                                     Gérer la galerie
                                 </Link>
                                 <Link
                                     href="/dashboard"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                 >
                                     Retour au dashboard
                                 </Link>
                                 <Link
                                     href="/dashboard/media"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                 >
                                     Aperçu des médias
                                 </Link>
@@ -544,20 +560,20 @@ function SetupPageContent() {
                             <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                                 <Link
                                     href="/dashboard"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                 >
                                     Retour au dashboard
                                 </Link>
                                 <Link
                                     href="/dashboard/gallery"
-                                    className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                 >
                                     Gérer ma galerie
                                 </Link>
                                 {company && (
                                     <Link
                                         href={`/pme/${company.slug}`}
-                                        className="inline-flex items-center justify-center rounded-md border border-primary bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/5 whitespace-nowrap"
+                                        className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap"
                                     >
                                         Voir ma page publique
                                     </Link>
@@ -655,13 +671,21 @@ function SetupPageContent() {
 
                     <section className="space-y-4 sm:space-y-5 rounded-md border border-gray-200 bg-white p-4 sm:p-6">
                         <div>
-                            <label className="mb-1.5 block text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Histoire de l&apos;entreprise</label>
+                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                                <label className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Histoire de l&apos;entreprise</label>
+                                <span className="text-[10px] sm:text-xs text-gray-500 tabular-nums">{companyStoryCharacterCount} caractères</span>
+                            </div>
                             <textarea
                                 rows={6}
                                 {...register('companyStory')}
                                 placeholder="Racontez l'histoire de votre entreprise, votre mission et vos points forts."
                                 className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white resize-none"
                             />
+                            {companyStoryCharacterCount < 200 && (
+                                <p className="mt-2 text-xs sm:text-sm text-orange-600">
+                                    💡 Conseil SEO : Une description de plus de 200 mots aide Google à vous trouver plus facilement
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -766,7 +790,7 @@ function SetupPageContent() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-md bg-black py-2 sm:py-3 text-xs sm:text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                            className="w-full rounded-lg bg-green-700 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800 disabled:opacity-50"
                         >
                             {loading ? (editing ? 'Mise à jour...' : 'Création...') : (editing ? 'Mettre à jour' : 'Créer le Profil')}
                         </button>
@@ -779,9 +803,8 @@ function SetupPageContent() {
                     )}
                 </>
                 )}
-                </div>
             </div>
-        </div>
+        </DashboardShell>
     );
 }
 
@@ -789,16 +812,13 @@ export default function SetupPage() {
     return (
         <Suspense
             fallback={
-                <div className="min-h-screen bg-white">
-                    <DashboardTabs />
-                    <div className="mx-auto w-full px-0 py-2 sm:px-4 sm:py-8 lg:w-3/4">
-                        <div className="rounded-none border-0 bg-white p-2 sm:rounded-md sm:border sm:border-gray-200 sm:p-8">
-                            <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600 sm:p-6">
-                                Chargement des parametres...
-                            </div>
+                <DashboardShell title="Configuration" subtitle="Chargement des parametres de votre espace.">
+                    <div className="rounded-xl border border-gray-200 bg-white p-8">
+                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                            Chargement des parametres...
                         </div>
                     </div>
-                </div>
+                </DashboardShell>
             }
         >
             <SetupPageContent />

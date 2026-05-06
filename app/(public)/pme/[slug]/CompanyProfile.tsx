@@ -2,10 +2,22 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { Eye } from 'lucide-react';
+import { Eye, Globe, MapPin, ChevronLeft, ChevronRight, X as CloseIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import ReviewSystem from '../../../components/ReviewSystem';
 import ShareProfile from '../../../components/ShareProfile';
+import VerifiedBadge from '../../../components/ui/VerifiedBadge';
 import { supabase } from '../../../../lib/supabase';
+
+const fadeInUp = {
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
+
+const staggerContainer = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.06 } },
+};
 
 type Company = {
     id: string;
@@ -182,14 +194,34 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
     const profileUrl = `${siteUrl}/pme/${company.slug}`;
     const formattedViews = formatCompactViews(currentViews);
 
+    useEffect(() => {
+        document.title = `${company.name} - ${company.sector} à ${company.city} | Woralink`;
+
+        const sourceDescription = (company.description || company.company_story || '').trim();
+        if (!sourceDescription) {
+            return;
+        }
+
+        const metaDescriptionContent = sourceDescription.slice(0, 160);
+        let metaDescriptionTag = document.querySelector('meta[name="description"]');
+
+        if (!metaDescriptionTag) {
+            metaDescriptionTag = document.createElement('meta');
+            metaDescriptionTag.setAttribute('name', 'description');
+            document.head.appendChild(metaDescriptionTag);
+        }
+
+        metaDescriptionTag.setAttribute('content', metaDescriptionContent);
+    }, [company.name, company.sector, company.city, company.description, company.company_story]);
+
     return (
         <div className="min-h-screen bg-gray-50 pb-28">
             {/* Hero */}
-            <div className="border-b border-gray-100 bg-white">
-                <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 flex flex-col items-center gap-4 sm:gap-5">
+            <div className="border-b border-gray-200 bg-white">
+                <div className="mx-auto max-w-4xl px-4 py-10 sm:py-14 flex flex-col items-center gap-4 sm:gap-5">
                     <div className="relative">
                         {company.logo_url ? (
-                            <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 bg-white">
+                            <div className="relative h-24 w-24 sm:h-32 sm:w-32 overflow-hidden rounded-xl border border-gray-200 bg-white">
                                 <Image
                                     src={company.logo_url}
                                     alt={`Logo de ${company.name}`}
@@ -200,40 +232,35 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                                 />
                             </div>
                         ) : (
-                            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-900 text-3xl sm:text-5xl font-bold">
+                            <div className="flex h-24 w-24 sm:h-32 sm:w-32 items-center justify-center rounded-xl border border-gray-200 bg-gray-100 text-3xl sm:text-5xl font-bold text-gray-500">
                                 {company.name.charAt(0).toUpperCase()}
                             </div>
                         )}
-
-                        {company.is_verified && (
-                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full border border-primary bg-primary px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[11px] font-medium uppercase tracking-wide text-white">
-                                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-white" aria-hidden="true">
-                                    <path fillRule="evenodd" d="M10 1.667a1.5 1.5 0 0 1 1.294.742l.722 1.24 1.408.319a1.5 1.5 0 0 1 1.115 1.988l-.478 1.361.955 1.075a1.5 1.5 0 0 1-.087 2.087l-1.075.955.478 1.361a1.5 1.5 0 0 1-1.115 1.988l-1.408.32-.722 1.238a1.5 1.5 0 0 1-2.588 0l-.722-1.239-1.408-.319a1.5 1.5 0 0 1-1.115-1.988l.478-1.36-.955-.956a1.5 1.5 0 0 1 .087-2.087l1.075-.955-.478-1.361a1.5 1.5 0 0 1 1.115-1.988l1.408-.32.722-1.239A1.5 1.5 0 0 1 10 1.667Zm2.373 6.294a.75.75 0 1 0-1.11-1.005L9.14 9.298l-.404-.403a.75.75 0 1 0-1.06 1.06l.96.96a.75.75 0 0 0 1.085-.025l2.652-2.929Z" clipRule="evenodd" />
-                                </svg>
-                                Expertise Garantie
-                            </span>
-                        )}
                     </div>
 
-                    <div className="text-center space-y-2 sm:space-y-3">
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter text-primary line-clamp-2">
-                            {company.name}
-                        </h1>
+                    <div className="text-center space-y-3">
+                        <div className="flex flex-col items-center gap-2">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 line-clamp-2">
+                                {company.name}
+                            </h1>
+                            <VerifiedBadge isVerified={!!company.is_verified} />
+                        </div>
 
-                        <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-gray-500">
+                        <div className="flex items-center justify-center gap-1.5 text-sm text-gray-500">
                             <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                             <span>{formattedViews} vues</span>
                         </div>
 
                         <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
-                            <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
+                            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
                                 {company.profile_type}
                             </span>
-                            <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs sm:text-sm font-medium">
+                            <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
                                 {company.sector}
                             </span>
-                            <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 bg-gray-100 text-gray-600 rounded-full text-xs sm:text-sm font-medium">
-                                📍 {company.city}
+                            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
+                                <MapPin className="h-3 w-3" aria-hidden="true" />
+                                {company.city}
                             </span>
                         </div>
 
@@ -248,98 +275,130 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
 
             {/* Contact & Informations */}
             {(company.address || company.website_url) && (
-                <section className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10">
-                    <div className="rounded-md border border-gray-200 bg-white p-5 sm:p-7 md:p-9">
-                        <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Informations</p>
-                        <h2 className="mt-2 text-xl sm:text-2xl font-semibold tracking-tighter text-primary">Contact & Adresse</h2>
-                        <div className="mt-4 sm:mt-5 space-y-4">
+                <motion.section
+                    variants={fadeInUp}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-40px' }}
+                    className="mx-auto max-w-4xl px-4 mt-8 sm:mt-10"
+                >
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        <div className="border-b border-gray-100 px-5 py-4">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Informations</p>
+                            <h2 className="mt-2 text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">Contact &amp; Adresse</h2>
+                        </div>
+                        <div className="px-5 py-5 space-y-4">
                             {company.address && (
                                 <div>
-                                    <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Adresse physique</p>
-                                    <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{company.address}</p>
+                                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Adresse physique</p>
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{company.address}</p>
                                 </div>
                             )}
                             {company.website_url && (
                                 <div>
-                                    <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Site web ou lien social</p>
+                                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Site web ou lien social</p>
                                     <a
                                         href={company.website_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 text-sm sm:text-base text-primary hover:underline"
+                                        className="inline-flex items-center gap-2 text-sm text-green-700 hover:text-green-800 hover:underline underline-offset-4"
                                     >
+                                        <Globe className="h-4 w-4" aria-hidden="true" />
                                         {company.website_url}
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
                                     </a>
                                 </div>
                             )}
                         </div>
                     </div>
-                </section>
+                </motion.section>
             )}
 
             {/* Storytelling */}
             {(company.company_story || company.description) && (
-                <section className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10">
-                    <div className="rounded-md border border-gray-200 bg-white p-5 sm:p-7 md:p-9">
-                        <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Storytelling</p>
-                        <h2 className="mt-2 text-xl sm:text-2xl font-semibold tracking-tighter text-primary">Notre Histoire</h2>
-                        <p className="mt-4 sm:mt-5 font-serif text-base sm:text-lg leading-7 sm:leading-8 text-gray-700">
+                <motion.section
+                    variants={fadeInUp}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-40px' }}
+                    className="mx-auto max-w-4xl px-4 mt-8 sm:mt-10"
+                >
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        <div className="border-b border-gray-100 px-5 py-4">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Storytelling</p>
+                            <h2 className="mt-2 text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">Notre Histoire</h2>
+                        </div>
+                        <p className="px-5 py-5 text-base leading-relaxed text-gray-600">
                             {company.company_story || company.description}
                         </p>
                     </div>
-                </section>
+                </motion.section>
             )}
 
             {/* Metrics banner */}
-            <section className="max-w-4xl mx-auto px-4 mt-6">
-                <div className="grid grid-cols-1 divide-y divide-gray-100 rounded-md border border-gray-200 bg-white sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                    <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
-                        <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-gray-400" aria-hidden="true">
-                            <path d="M10 5.5v4.75l3 1.75" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                            <circle cx="10" cy="10" r="6.25" stroke="currentColor" strokeWidth="1.25" />
-                        </svg>
+            <motion.section
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                className="mx-auto max-w-4xl px-4 mt-6"
+            >
+                <div className="grid grid-cols-1 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                    <motion.div variants={fadeInUp} className="flex items-center gap-3 p-4 sm:p-5">
+                        <span className="rounded-lg bg-green-50 p-2 text-green-700">
+                            <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden="true">
+                                <path d="M10 5.5v4.75l3 1.75" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                                <circle cx="10" cy="10" r="6.25" stroke="currentColor" strokeWidth="1.25" />
+                            </svg>
+                        </span>
                         <div>
-                            <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Expérience</p>
-                            <p className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-medium tracking-tighter text-black tabular-nums">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Expérience</p>
+                            <p className="mt-1 text-xl font-bold tracking-tight text-gray-900 tabular-nums">
                                 {company.years_experience ?? 0} ans
                             </p>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
-                        <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-gray-400" aria-hidden="true">
-                            <path d="M4.75 15.25h10.5M6.5 13V8.75m3.5 4.25V6.5m3.5 6.5v-3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                    <motion.div variants={fadeInUp} className="flex items-center gap-3 p-4 sm:p-5">
+                        <span className="rounded-lg bg-green-50 p-2 text-green-700">
+                            <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden="true">
+                                <path d="M4.75 15.25h10.5M6.5 13V8.75m3.5 4.25V6.5m3.5 6.5v-3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </span>
                         <div>
-                            <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Projets</p>
-                            <p className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-medium tracking-tighter text-black tabular-nums">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Projets</p>
+                            <p className="mt-1 text-xl font-bold tracking-tight text-gray-900 tabular-nums">
                                 {company.completed_projects ?? 0}
                             </p>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
-                        <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-gray-400" aria-hidden="true">
-                            <path d="M6.75 8.75a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm6.5 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM3.75 15a3 3 0 0 1 6 0m2.5 0a3 3 0 1 1 6 0" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                    <motion.div variants={fadeInUp} className="flex items-center gap-3 p-4 sm:p-5">
+                        <span className="rounded-lg bg-green-50 p-2 text-green-700">
+                            <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden="true">
+                                <path d="M6.75 8.75a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm6.5 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM3.75 15a3 3 0 0 1 6 0m2.5 0a3 3 0 1 1 6 0" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </span>
                         <div>
-                            <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">Équipe</p>
-                            <p className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-medium tracking-tighter text-black tabular-nums">
+                            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Équipe</p>
+                            <p className="mt-1 text-xl font-bold tracking-tight text-gray-900 tabular-nums">
                                 {company.employee_count ?? 0}
                             </p>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
-            </section>
+            </motion.section>
 
             {/* Gallery */}
             {photos.length > 0 && (
-                <div className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10">
-                    <h2 className="mb-3 sm:mb-4 text-lg sm:text-xl font-semibold tracking-tighter text-primary">Galerie</h2>
-                    <div className="grid gap-5 sm:grid-cols-2">
+                <motion.div
+                    variants={staggerContainer}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-40px' }}
+                    className="mx-auto max-w-4xl px-4 mt-8 sm:mt-10"
+                >
+                    <h2 className="mb-4 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">Galerie</h2>
+                    <div className="grid gap-4 sm:grid-cols-2">
                         {photos.map((photo, index) => {
                             const dateLabel = photo.uploadedAt
                                 ? new Date(photo.uploadedAt).toLocaleDateString('fr-FR', {
@@ -352,44 +411,45 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                             const isImageLoaded = Boolean(loadedGalleryImages[imageKey]);
 
                             return (
-                                <article
+                                <motion.article
                                     key={`photo-post-${index}`}
-                                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                                    variants={fadeInUp}
+                                    className="overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-150 hover:border-gray-300 hover:shadow-sm"
                                 >
-                                    <div className="flex items-center justify-between border-b border-gray-100 px-3 sm:px-4 py-2 sm:py-3">
-                                        <div className="flex items-center gap-2 sm:gap-3">
+                                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                                        <div className="flex items-center gap-3">
                                             {company.logo_url ? (
-                                                <div className="relative h-8 w-8 sm:h-9 sm:w-9 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+                                                <div className="relative h-8 w-8 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
                                                     <Image
                                                         src={company.logo_url}
                                                         alt={`Logo de ${company.name}`}
                                                         fill
-                                                        sizes="(max-width: 640px) 32px, 36px"
+                                                        sizes="32px"
                                                         className="object-cover"
                                                     />
                                                 </div>
                                             ) : (
-                                                <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gray-900 text-[10px] sm:text-xs font-semibold text-white">
+                                                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
                                                     {company.name.charAt(0).toUpperCase()}
                                                 </div>
                                             )}
                                             <div>
-                                                <p className="text-xs sm:text-sm font-semibold tracking-tight text-black">{company.name}</p>
-                                                <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500">{company.city}</p>
+                                                <p className="text-sm font-semibold tracking-tight text-gray-900">{company.name}</p>
+                                                <p className="text-xs text-gray-500">{company.city}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">{dateLabel}</p>
-                                            <p className="mt-0.5 sm:mt-1 inline-flex rounded-full border border-gray-200 bg-gray-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-gray-600">
+                                            <p className="text-xs text-gray-500">{dateLabel}</p>
+                                            <span className="mt-0.5 inline-flex rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                                                 {index + 1}/{photos.length}
-                                            </p>
+                                            </span>
                                         </div>
                                     </div>
 
                                     <button
                                         type="button"
                                         onClick={() => openLightbox(index)}
-                                        className="relative block w-full aspect-square overflow-hidden bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                        className="relative block w-full aspect-square overflow-hidden bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-700/20"
                                         aria-label={`Ouvrir la photo ${index + 1}`}
                                     >
                                         {!isImageLoaded && (
@@ -410,27 +470,23 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                                         />
 
                                         {photos.length > 1 && (
-                                            <span className="absolute right-2 sm:right-3 top-2 sm:top-3 inline-flex items-center gap-1 rounded-full border border-white/40 bg-black/45 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-white backdrop-blur-sm">
-                                                <svg viewBox="0 0 20 20" fill="none" className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden="true">
-                                                    <rect x="4.25" y="4.25" width="8.5" height="8.5" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                                                    <rect x="7.25" y="7.25" width="8.5" height="8.5" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                                                </svg>
-                                                Post
+                                            <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                                                {index + 1}/{photos.length}
                                             </span>
                                         )}
                                     </button>
 
-                                    <div className="space-y-1 sm:space-y-2 px-3 sm:px-4 py-2 sm:py-3">
-                                        <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-gray-500">Légende</p>
-                                        <p className="text-xs sm:text-sm leading-relaxed text-gray-700">
+                                    <div className="px-4 py-3">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Légende</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-gray-600">
                                             {photo.caption?.trim() || 'Aucune légende fournie.'}
                                         </p>
                                     </div>
-                                </article>
+                                </motion.article>
                             );
                         })}
                     </div>
-                </div>
+                </motion.div>
             )}
 
             {/* Lightbox */}
@@ -439,78 +495,86 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                     role="dialog"
                     aria-modal="true"
                     aria-label="Visionneuse de photos"
-                    className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/85"
                     onClick={closeLightbox}
                 >
-                    {/* Close */}
                     <button
                         type="button"
                         onClick={closeLightbox}
-                        className="absolute top-4 right-4 text-white bg-white/20 hover:bg-white/30 rounded-full w-10 h-10 flex items-center justify-center text-2xl transition-colors"
+                        className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
                         aria-label="Fermer"
                     >
-                        ×
+                        <CloseIcon className="h-5 w-5" aria-hidden="true" />
                     </button>
 
-                    {/* Previous */}
                     {photoUrls.length > 1 && (
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); prevPhoto(); }}
-                            className="absolute left-4 text-white bg-white/20 hover:bg-white/30 rounded-full w-11 h-11 flex items-center justify-center text-2xl transition-colors"
+                            className="absolute left-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
                             aria-label="Photo précédente"
                         >
-                            ‹
+                            <ChevronLeft className="h-6 w-6" aria-hidden="true" />
                         </button>
                     )}
 
-                    {/* Image */}
                     <div
-                        className="relative w-full max-w-3xl mx-14 sm:mx-20 max-h-[80vh]"
+                        className="relative mx-16 w-full max-w-3xl sm:mx-20 max-h-[80vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="relative w-full" style={{ aspectRatio: '4/3' }}>
                             {!lightboxImageLoaded && (
-                                <div className="absolute inset-0 animate-pulse rounded-lg bg-gray-200" />
+                                <div className="absolute inset-0 animate-pulse rounded-xl bg-gray-800" />
                             )}
                             <Image
                                 src={photoUrls[lightboxIndex]}
                                 alt={`Photo ${lightboxIndex + 1} de ${company.name}`}
                                 fill
-                                className={`object-contain rounded-lg transition-opacity duration-300 ${lightboxImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                className={`object-contain rounded-xl transition-opacity duration-300 ${lightboxImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                                 sizes="(max-width: 768px) 100vw, 800px"
                                 onLoad={() => setLightboxImageLoaded(true)}
                             />
                         </div>
-                        <p className="text-center text-white/70 text-xs sm:text-sm mt-2 sm:mt-3">
+                        <p className="mt-3 text-center text-sm text-white/60">
                             {lightboxIndex + 1} / {photoUrls.length}
                         </p>
                     </div>
 
-                    {/* Next */}
                     {photoUrls.length > 1 && (
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
-                            className="absolute right-4 text-white bg-white/20 hover:bg-white/30 rounded-full w-11 h-11 flex items-center justify-center text-2xl transition-colors"
+                            className="absolute right-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
                             aria-label="Photo suivante"
                         >
-                            ›
+                            <ChevronRight className="h-6 w-6" aria-hidden="true" />
                         </button>
                     )}
                 </div>
             )}
 
             {/* Share Profile Section */}
-            <section className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10">
+            <motion.section
+                variants={fadeInUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                className="mx-auto max-w-4xl px-4 mt-8 sm:mt-10"
+            >
                 <ShareProfile companyName={company.name} profileUrl={profileUrl} />
-            </section>
+            </motion.section>
 
             {/* Reviews Section */}
-            <div className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10">
-                <h2 className="mb-3 sm:mb-4 text-lg sm:text-xl font-semibold tracking-tighter text-primary">Avis &amp; Notes</h2>
+            <motion.div
+                variants={fadeInUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                className="mx-auto max-w-4xl px-4 mt-8 sm:mt-10"
+            >
+                <h2 className="mb-4 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">Avis &amp; Notes</h2>
                 <ReviewSystem companyId={company.id} />
-            </div>
+            </motion.div>
 
             {/* Floating WhatsApp button */}
             {company.whatsapp && (
@@ -519,14 +583,14 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
                         href={whatsappUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold px-4 sm:px-5 py-2 sm:py-3 rounded-full shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+                        className="inline-flex items-center gap-2 rounded-full bg-green-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-green-800 sm:px-5 sm:py-3"
                         aria-label="Contacter sur WhatsApp"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
                             fill="currentColor"
-                            className="w-5 h-5 sm:w-5 sm:h-5 shrink-0"
+                            className="h-5 w-5 shrink-0"
                             aria-hidden="true"
                         >
                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
