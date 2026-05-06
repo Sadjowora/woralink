@@ -488,7 +488,6 @@ export default function DashboardGalleryPage() {
                         </form>
                     )}
                 </div>
-            </div>
         </DashboardShell>
     );
 }
