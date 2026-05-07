@@ -39,6 +39,9 @@ export default function RegisterPage() {
             provider: provider as 'google' | 'facebook' | 'linkedin_oidc',
             options: {
                 redirectTo: redirectUrl,
+                ...(provider === 'google' && {
+                    queryParams: { prompt: 'select_account' },
+                }),
             },
         });
 

@@ -4,6 +4,39 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+async function resolveRedirectPath(userId: string): Promise<'/dashboard' | '/dashboard/setup'> {
+    const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, sector, city, whatsapp')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('[AuthCallback] Error checking company profile:', {
+            message: error.message,
+            code: error.code,
+            userId,
+        });
+        // En cas d'erreur, on envoie vers le setup pour éviter un dashboard vide
+        return '/dashboard/setup';
+    }
+
+    const isProfileComplete =
+        data !== null &&
+        typeof data.name === 'string' && data.name.trim().length > 0 &&
+        typeof data.sector === 'string' && data.sector.trim().length > 0 &&
+        typeof data.city === 'string' && data.city.trim().length > 0 &&
+        typeof data.whatsapp === 'string' && data.whatsapp.trim().length > 0;
+
+    console.info(
+        '[AuthCallback] Company profile check:',
+        isProfileComplete ? 'complete → /dashboard' : 'incomplete → /dashboard/setup',
+        '| data:', data
+    );
+
+    return isProfileComplete ? '/dashboard' : '/dashboard/setup';
+}
+
 export default function AuthCallback() {
     const router = useRouter();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -14,8 +47,10 @@ export default function AuthCallback() {
                 console.info('[AuthCallback] Auth state change:', event, '| Session:', session?.user?.email ?? 'none');
 
                 if (session !== null) {
-                    console.info('[AuthCallback] Session detected, redirecting to /dashboard');
-                    router.replace('/dashboard');
+                    void resolveRedirectPath(session.user.id).then((path) => {
+                        console.info(`[AuthCallback] Session detected, redirecting to ${path}`);
+                        router.replace(path);
+                    });
                     return;
                 }
 
@@ -40,8 +75,9 @@ export default function AuthCallback() {
             }
 
             if (session) {
-                console.info('[AuthCallback] Existing session found, redirecting to /dashboard');
-                router.replace('/dashboard');
+                const path = await resolveRedirectPath(session.user.id);
+                console.info(`[AuthCallback] Existing session found, redirecting to ${path}`);
+                router.replace(path);
             }
         };
 
@@ -79,3 +115,4 @@ export default function AuthCallback() {
         </div>
     );
 }
+
