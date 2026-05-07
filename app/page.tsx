@@ -146,7 +146,7 @@ export default async function Home() {
                Explorer tous les profils
             </NextLink>
             <NextLink href="/register" className="w-full sm:w-auto rounded-md bg-primary px-4 py-2.5 sm:py-2 text-white transition-colors hover:bg-primary/90 font-medium">
-               Rejoindre Woralink
+               Rejoindre Woralink 
             </NextLink>
           </div>
         </div>

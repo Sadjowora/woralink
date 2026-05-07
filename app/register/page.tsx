@@ -29,14 +29,30 @@ export default function RegisterPage() {
         setLoading(true);
         setError('');
 
+        const redirectUrl = buildAuthRedirectTo('/auth/callback');
+        console.info(
+            `[RegisterPage] Starting OAuth flow for provider: ${provider}`,
+            `| Redirect URL: ${redirectUrl}`
+        );
+
         const { error: oauthError } = await supabase.auth.signInWithOAuth({
             provider: provider as 'google' | 'facebook' | 'linkedin_oidc',
             options: {
-                redirectTo: buildAuthRedirectTo('/dashboard'),
+                redirectTo: redirectUrl,
             },
         });
 
         if (oauthError) {
+            console.error(
+                '[RegisterPage] OAuth connection failed',
+                {
+                    provider,
+                    errorMessage: oauthError.message,
+                    errorStatus: oauthError.status,
+                    errorCode: oauthError.code,
+                    redirectUrl,
+                }
+            );
             setError("Connexion sociale indisponible pour le moment. Veuillez reessayer.");
             setLoading(false);
         }

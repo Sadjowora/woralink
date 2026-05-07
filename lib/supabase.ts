@@ -20,6 +20,7 @@ if (!siteUrl) {
  * - Détecte automatiquement si on est en localhost → HTTP permis
  * - Force HTTPS en production
  * - Jamais de slash final
+ * - Bloque les URLs avec www
  *
  * @param path Chemin relatif, ex: '/dashboard' ou 'dashboard'
  * @returns URL complète absolue, ex: 'https://woralink.com/dashboard'
@@ -56,7 +57,23 @@ export function buildAuthRedirectTo(path = '/dashboard'): string {
     const result = url.toString();
 
     // Validation : pas de slash final
-    return result.endsWith('/') ? result.slice(0, -1) : result;
+    const cleanResult = result.endsWith('/') ? result.slice(0, -1) : result;
+
+    // Log de débogage (production-safe)
+    if (typeof window !== 'undefined') {
+        console.debug(
+            '[buildAuthRedirectTo] Final redirect URL:',
+            cleanResult,
+            '| Protocol:',
+            url.protocol,
+            '| Hostname:',
+            url.hostname,
+            '| Path:',
+            url.pathname
+        );
+    }
+
+    return cleanResult;
 }
 
 export const supabase =
