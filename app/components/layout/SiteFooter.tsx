@@ -66,6 +66,13 @@ export default function SiteFooter() {
           >
             Conditions d utilisation
           </Link>
+          <span className="text-gray-300">|</span>
+          <Link
+            href="/instructions-suppression-donnees"
+            className="font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline"
+          >
+            Suppression des donnees
+          </Link>
         </p>
       </div>
     </footer>

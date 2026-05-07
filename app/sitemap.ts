@@ -73,6 +73,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'monthly',
             priority: 0.4,
         },
+        {
+            url: `${baseUrl}/instructions-suppression-donnees`,
+            lastModified: now,
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
     ];
 
     const citySearchUrls: MetadataRoute.Sitemap = GUINEA_MAIN_CITIES.map((city) => ({
