@@ -1,65 +1,43 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-
-async function resolveRedirectPath(userId: string): Promise<'/dashboard' | '/dashboard/setup'> {
-    const { data, error } = await supabase
-        .from('companies')
-        .select('id, name, sector, city, whatsapp')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-    if (error) {
-        console.error('[AuthCallback] Error checking company profile:', {
-            message: error.message,
-            code: error.code,
-            userId,
-        });
-        // En cas d'erreur, on envoie vers le setup pour éviter un dashboard vide
-        return '/dashboard/setup';
-    }
-
-    const isProfileComplete =
-        data !== null &&
-        typeof data.name === 'string' && data.name.trim().length > 0 &&
-        typeof data.sector === 'string' && data.sector.trim().length > 0 &&
-        typeof data.city === 'string' && data.city.trim().length > 0 &&
-        typeof data.whatsapp === 'string' && data.whatsapp.trim().length > 0;
-
-    console.info(
-        '[AuthCallback] Company profile check:',
-        isProfileComplete ? 'complete → /dashboard' : 'incomplete → /dashboard/setup',
-        '| data:', data
-    );
-
-    return isProfileComplete ? '/dashboard' : '/dashboard/setup';
-}
 
 export default function AuthCallback() {
     const router = useRouter();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const hasRedirected = useRef(false);
 
     useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                console.info('[AuthCallback] Auth state change:', event, '| Session:', session?.user?.email ?? 'none');
+        const redirectWithError = (message: string) => {
+            if (hasRedirected.current) return;
 
-                if (session !== null) {
-                    void resolveRedirectPath(session.user.id).then((path) => {
-                        console.info(`[AuthCallback] Session detected, redirecting to ${path}`);
-                        router.replace(path);
-                    });
-                    return;
-                }
+            hasRedirected.current = true;
+            setErrorMessage(message);
+            const encoded = encodeURIComponent(message);
+            router.replace(`/login?error=${encoded}`);
+        };
 
-                if (event === 'SIGNED_OUT') {
-                    console.warn('[AuthCallback] User signed out, redirecting to /login');
-                    router.replace('/login');
-                }
+        const redirectToDashboard = () => {
+            if (hasRedirected.current) return;
+
+            hasRedirected.current = true;
+            router.replace('/dashboard');
+        };
+
+        const timeoutId = window.setTimeout(() => {
+            redirectWithError('Aucune session detectee apres 5 secondes. Veuillez vous reconnecter.');
+        }, 5000);
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.info('[AuthCallback] Auth state change:', event, '| Session:', session?.user?.email ?? 'none');
+
+            if (session) {
+                window.clearTimeout(timeoutId);
+                redirectToDashboard();
             }
-        );
+        });
 
         // Vérification immédiate de la session existante au montage
         const checkExistingSession = async () => {
@@ -70,20 +48,21 @@ export default function AuthCallback() {
                     message: error.message,
                     status: error.status,
                 });
-                setErrorMessage('Erreur lors de la vérification de votre session. Veuillez réessayer.');
+                window.clearTimeout(timeoutId);
+                redirectWithError('Erreur lors de la verification de votre session. Veuillez vous reconnecter.');
                 return;
             }
 
             if (session) {
-                const path = await resolveRedirectPath(session.user.id);
-                console.info(`[AuthCallback] Existing session found, redirecting to ${path}`);
-                router.replace(path);
+                window.clearTimeout(timeoutId);
+                redirectToDashboard();
             }
         };
 
         void checkExistingSession();
 
         return () => {
+            window.clearTimeout(timeoutId);
             subscription.unsubscribe();
         };
     }, [router]);

@@ -25,25 +25,62 @@ export default function RegisterPage() {
     const [error, setError] = useState('');
     const router = useRouter();
 
+    const FACEBOOK_REDIRECT_URL = 'https://woralink.com/auth/callback';
+
+    const isUnauthorizedDomainError = (message: string) => {
+        const normalized = message.toLowerCase();
+        return (
+            normalized.includes('domain') ||
+            normalized.includes('redirect_uri') ||
+            normalized.includes('url blocked') ||
+            normalized.includes('not allowed') ||
+            normalized.includes('app domain') ||
+            normalized.includes('invalid redirect')
+        );
+    };
+
     const handleSocialLogin = async (provider: string) => {
         setLoading(true);
         setError('');
 
-        const redirectUrl = buildAuthRedirectTo('/auth/callback');
+        const linkedInRedirectUrl =
+            typeof window !== 'undefined'
+                ? window.location.origin + '/auth/callback'
+                : buildAuthRedirectTo('/auth/callback');
+
+        const redirectUrl = provider === 'facebook'
+            ? FACEBOOK_REDIRECT_URL
+            : provider === 'linkedin_oidc'
+                ? linkedInRedirectUrl
+            : buildAuthRedirectTo('/auth/callback');
         console.info(
             `[RegisterPage] Starting OAuth flow for provider: ${provider}`,
             `| Redirect URL: ${redirectUrl}`
         );
 
-        const { error: oauthError } = await supabase.auth.signInWithOAuth({
-            provider: provider as 'google' | 'facebook' | 'linkedin_oidc',
-            options: {
-                redirectTo: redirectUrl,
-                ...(provider === 'google' && {
-                    queryParams: { prompt: 'select_account' },
-                }),
-            },
-        });
+        const { error: oauthError } = provider === 'facebook'
+            ? await supabase.auth.signInWithOAuth({
+                provider: 'facebook',
+                options: {
+                    redirectTo: FACEBOOK_REDIRECT_URL,
+                },
+            })
+            : provider === 'linkedin_oidc'
+                ? await supabase.auth.signInWithOAuth({
+                    provider: 'linkedin_oidc',
+                    options: {
+                        redirectTo: window.location.origin + '/auth/callback',
+                    },
+                })
+            : await supabase.auth.signInWithOAuth({
+                provider: provider as 'google' | 'facebook' | 'linkedin_oidc',
+                options: {
+                    redirectTo: redirectUrl,
+                    ...(provider === 'google' && {
+                        queryParams: { prompt: 'select_account' },
+                    }),
+                },
+            });
 
         if (oauthError) {
             console.error(
@@ -56,6 +93,13 @@ export default function RegisterPage() {
                     redirectUrl,
                 }
             );
+
+            if (provider === 'facebook' && isUnauthorizedDomainError(oauthError.message)) {
+                alert(
+                    'Facebook a refuse la connexion: domaine ou URL de redirection non autorise. Verifiez la console Meta (App Domains / Valid OAuth Redirect URIs) et la configuration du code.'
+                );
+            }
+
             setError("Connexion sociale indisponible pour le moment. Veuillez reessayer.");
             setLoading(false);
         }
