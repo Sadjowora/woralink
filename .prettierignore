@@ -1,0 +1,18 @@
+# Build outputs
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Generated / lock files
+package-lock.json
+
+# Supabase migrations (SQL — not formatted by Prettier)
+supabase/migrations/
+
+# Public assets
+public/
+
+# Env files
+.env*
