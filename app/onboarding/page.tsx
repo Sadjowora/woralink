@@ -28,11 +28,48 @@ const SECTORS = [
 
 const PROFILE_TYPES = ['PME', 'Artisan', 'Freelance'];
 
+const GUINEA_CITIES = [
+  'Conakry',
+  'Kindia',
+  'Labé',
+  'Kankan',
+  'Mamou',
+  'Nzérékoré',
+  'Mali',
+  'Coyah',
+  'Dubréka',
+  'Forécariah',
+  'Fria',
+  'Gaoual',
+  'Koundara',
+  'Pita',
+  'Boffa',
+  'Boké',
+  'Télimélé',
+  'Tougué',
+  'Yomou',
+  'Dinguiraye',
+  'Kissidougou',
+  'Kérouané',
+  'Siguiri',
+  'Mandiana',
+  'Beyla',
+  'Kouroussa',
+  'Dabola',
+  'Lola',
+  'Koubia',
+  'Dalaba',
+  'Banankoro',
+  'Faranah',
+  'Kamsar',
+  'Sangaredi',
+];
+
 type FormData = {
   entityName: string;
   profileType: string;
   sector: string;
-  city: string;
+  city: string; // will be selected from GUINEA_CITIES
   whatsapp: string;
 };
 
@@ -218,11 +255,17 @@ export default function OnboardingPage() {
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-gray-500">
                 Ville *
               </label>
-              <input
-                type="text"
+              <select
                 {...register('city', { required: 'Ce champ est requis' })}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20"
-              />
+              >
+                <option value="">Sélectionnez une ville</option>
+                {GUINEA_CITIES.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
               {errors.city && (
                 <p className="mt-1 text-xs text-red-600">{String(errors.city.message)}</p>
               )}
