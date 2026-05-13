@@ -22,6 +22,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
+import { computeProfileCompletionPercent } from '../../lib/company-completion';
 import { supabase } from '../../lib/supabase';
 
 type Company = {
@@ -33,8 +34,13 @@ type Company = {
   profile_type: string;
   is_verified?: boolean | null;
   views_count?: number | null;
-  address?: string | null;
+  logo_url?: string | null;
+  whatsapp?: string | null;
   website_url?: string | null;
+  description?: string | null;
+  company_story?: string | null;
+  founder_message?: string | null;
+  address?: string | null;
 };
 
 type NavItem = {
@@ -66,12 +72,15 @@ const navItems: NavItem[] = [
 ];
 
 function StatusBadge({ label, tone }: { label: string; tone: StatusBadgeTone }) {
-  const toneClassName = tone === 'brand'
-    ? 'border-green-200 bg-green-50 text-green-700'
-    : 'border-gray-200 bg-gray-100 text-gray-500';
+  const toneClassName =
+    tone === 'brand'
+      ? 'border-green-200 bg-green-50 text-green-700'
+      : 'border-gray-200 bg-gray-100 text-gray-500';
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${toneClassName}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${toneClassName}`}
+    >
       {label}
     </span>
   );
@@ -109,12 +118,15 @@ export default function DashboardPage() {
 
   const whatsappHref = useMemo(
     () => (shareMessage ? `https://wa.me/?text=${encodeURIComponent(shareMessage)}` : '#'),
-    [shareMessage]
+    [shareMessage],
   );
 
   const facebookHref = useMemo(
-    () => (publicProfileUrl ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicProfileUrl)}` : '#'),
-    [publicProfileUrl]
+    () =>
+      publicProfileUrl
+        ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicProfileUrl)}`
+        : '#',
+    [publicProfileUrl],
   );
 
   const handleCopyProfileLink = useCallback(async () => {
@@ -195,7 +207,9 @@ export default function DashboardPage() {
 
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
-          .select('id, name, sector, city, slug, profile_type, is_verified, views_count, address, website_url')
+          .select(
+            'id, name, sector, city, slug, profile_type, is_verified, views_count, logo_url, whatsapp, website_url, description, company_story, founder_message, address',
+          )
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -230,6 +244,7 @@ export default function DashboardPage() {
   const verificationLabel = company?.is_verified ? 'Verifie' : 'En attente';
   const companyName = company?.name || 'Votre entreprise';
   const companyInitial = companyName.charAt(0).toUpperCase() || 'W';
+  const profileCompletionPercent = company ? computeProfileCompletionPercent(company) : 0;
 
   const statCards = [
     {
@@ -251,6 +266,13 @@ export default function DashboardPage() {
       icon: MapPin,
     },
     {
+      label: 'Completion profil',
+      value: `${profileCompletionPercent}%`,
+      hint:
+        profileCompletionPercent >= 80 ? 'Fiche bien optimisee' : 'Ajoutez des infos pour monter',
+      icon: UserRound,
+    },
+    {
       label: 'Verification',
       value: verificationLabel,
       hint: company?.is_verified ? 'Badge de confiance actif' : 'Validation en attente',
@@ -267,10 +289,26 @@ export default function DashboardPage() {
   ];
 
   const actionRows = [
-    { label: 'Modifier mon profil', href: '/dashboard/profile?mode=edit', meta: 'Mettez a jour vos informations' },
-    { label: 'Voir ma page publique', href: company ? `/pme/${company.slug}` : '/dashboard/profile', meta: 'Controlez le rendu visible' },
-    { label: 'Gerer la galerie', href: '/dashboard/gallery', meta: 'Ajoutez des photos a votre vitrine' },
-    { label: 'Finaliser la configuration', href: '/dashboard/setup', meta: 'Ajustez vos informations essentielles' },
+    {
+      label: 'Modifier mon profil',
+      href: '/dashboard/profile?mode=edit',
+      meta: 'Mettez a jour vos informations',
+    },
+    {
+      label: 'Voir ma page publique',
+      href: company ? `/pme/${company.slug}` : '/dashboard/profile',
+      meta: 'Controlez le rendu visible',
+    },
+    {
+      label: 'Gerer la galerie',
+      href: '/dashboard/gallery',
+      meta: 'Ajoutez des photos a votre vitrine',
+    },
+    {
+      label: 'Finaliser la configuration',
+      href: '/dashboard/setup',
+      meta: 'Ajustez vos informations essentielles',
+    },
   ];
 
   return (
@@ -281,10 +319,14 @@ export default function DashboardPage() {
         aria-hidden="true"
       />
 
-      <aside className={`fixed inset-y-0 left-0 z-40 w-60 border-r border-gray-200 bg-white transition-transform duration-150 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-60 border-r border-gray-200 bg-white transition-transform duration-150 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         <div className="flex h-16 items-center justify-between border-b border-gray-100 px-5">
           <Link href="/" className="flex items-center gap-3 text-gray-900">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-sm font-semibold text-green-700">W</span>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-sm font-semibold text-green-700">
+              W
+            </span>
             <div>
               <p className="text-lg font-semibold tracking-tight text-gray-900">Woralink</p>
               <p className="text-xs text-gray-500">Dashboard</p>
@@ -338,7 +380,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
             >
               <LogOut className="h-4 w-4" aria-hidden="true" />
               Deconnexion
@@ -360,15 +402,19 @@ export default function DashboardPage() {
             </button>
 
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Vue d&apos;ensemble</p>
-              <h1 className="text-lg font-semibold tracking-tight text-gray-900">Tableau de bord</h1>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Vue d&apos;ensemble
+              </p>
+              <h1 className="text-lg font-semibold tracking-tight text-gray-900">
+                Tableau de bord
+              </h1>
             </div>
           </div>
 
           <div className="hidden items-center gap-2 sm:flex">
             <Link
               href={company ? `/pme/${company.slug}` : '/dashboard/profile'}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
             >
               Voir ma fiche
             </Link>
@@ -389,14 +435,25 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-6">
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="space-y-6"
+            >
               {error && (
-                <motion.div variants={fadeInUp} className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                <motion.div
+                  variants={fadeInUp}
+                  className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600"
+                >
                   {error}
                 </motion.div>
               )}
 
-              <motion.section variants={staggerContainer} className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <motion.section
+                variants={staggerContainer}
+                className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+              >
                 {statCards.map((card) => {
                   const Icon = card.icon;
 
@@ -409,7 +466,9 @@ export default function DashboardPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="text-sm text-gray-500">{card.label}</p>
-                          <p className="mt-3 text-2xl font-bold tracking-tight text-gray-900">{card.value}</p>
+                          <p className="mt-3 text-2xl font-bold tracking-tight text-gray-900">
+                            {card.value}
+                          </p>
                           <p className="mt-2 text-xs font-medium text-green-700">{card.hint}</p>
                         </div>
                         <span className="rounded-lg bg-green-50 p-2 text-green-700">
@@ -422,12 +481,19 @@ export default function DashboardPage() {
               </motion.section>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                <motion.section variants={fadeInUp} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <motion.section
+                  variants={fadeInUp}
+                  className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                >
                   <div className="border-b border-gray-100 px-5 py-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Fiche entreprise</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Fiche entreprise
+                    </p>
                     <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <h2 className="text-2xl font-semibold tracking-tight text-gray-900">{companyName}</h2>
+                        <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+                          {companyName}
+                        </h2>
                         <p className="mt-1 text-sm text-gray-600">
                           {company
                             ? 'Votre vitrine est prete a recevoir du trafic local. Gardez vos informations a jour pour inspirer confiance.'
@@ -436,7 +502,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge label={statusLabel} tone={company ? 'brand' : 'muted'} />
-                        <StatusBadge label={verificationLabel} tone={company?.is_verified ? 'brand' : 'muted'} />
+                        <StatusBadge
+                          label={verificationLabel}
+                          tone={company?.is_verified ? 'brand' : 'muted'}
+                        />
                       </div>
                     </div>
                   </div>
@@ -474,10 +543,17 @@ export default function DashboardPage() {
                 </motion.section>
 
                 <div className="space-y-6">
-                  <motion.section variants={fadeInUp} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  <motion.section
+                    variants={fadeInUp}
+                    className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                  >
                     <div className="border-b border-gray-100 px-5 py-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Actions rapides</p>
-                      <h2 className="mt-2 text-lg font-semibold text-gray-900">Gerer ma presence</h2>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        Actions rapides
+                      </p>
+                      <h2 className="mt-2 text-lg font-semibold text-gray-900">
+                        Gerer ma presence
+                      </h2>
                     </div>
                     <div>
                       {actionRows.map((action, index) => (
@@ -490,19 +566,29 @@ export default function DashboardPage() {
                             <p className="font-medium text-gray-900">{action.label}</p>
                             <p className="mt-1 text-sm text-gray-500">{action.meta}</p>
                           </div>
-                          <ArrowRight className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                          <ArrowRight
+                            className="h-4 w-4 shrink-0 text-gray-400"
+                            aria-hidden="true"
+                          />
                         </Link>
                       ))}
                     </div>
                   </motion.section>
 
-                  <motion.section variants={fadeInUp} className="rounded-xl border border-gray-200 bg-white p-5 transition-shadow duration-150 hover:shadow-sm">
+                  <motion.section
+                    variants={fadeInUp}
+                    className="rounded-xl border border-gray-200 bg-white p-5 transition-shadow duration-150 hover:shadow-sm"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Performance</p>
-                        <p className="mt-3 text-2xl font-bold tracking-tight text-gray-900">{company?.views_count ?? 0}</p>
+                        <p className="mt-3 text-2xl font-bold tracking-tight text-gray-900">
+                          {company?.views_count ?? 0}
+                        </p>
                         <p className="mt-2 text-xs font-medium text-green-700">
-                          {viewsIncreased ? 'Votre fiche gagne en visibilite.' : 'Continuez a enrichir votre profil pour accelerer la decouverte.'}
+                          {viewsIncreased
+                            ? 'Votre fiche gagne en visibilite.'
+                            : 'Continuez a enrichir votre profil pour accelerer la decouverte.'}
                         </p>
                       </div>
                       <span className="rounded-lg bg-green-50 p-2 text-green-700">
@@ -514,15 +600,23 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
-                <motion.section variants={fadeInUp} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <motion.section
+                  variants={fadeInUp}
+                  className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                >
                   <div className="border-b border-gray-100 px-5 py-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Diffusion</p>
-                    <h2 className="mt-2 text-lg font-semibold text-gray-900">Partager votre profil</h2>
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Diffusion
+                    </p>
+                    <h2 className="mt-2 text-lg font-semibold text-gray-900">
+                      Partager votre profil
+                    </h2>
                   </div>
 
                   <div className="px-5 py-4">
                     <p className="text-sm text-gray-600">
-                      Envoyez votre lien public pour attirer des clients depuis WhatsApp, Facebook ou un simple copier-coller.
+                      Envoyez votre lien public pour attirer des clients depuis WhatsApp, Facebook
+                      ou un simple copier-coller.
                     </p>
 
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -530,7 +624,7 @@ export default function DashboardPage() {
                         href={whatsappHref}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
                       >
                         Partager sur WhatsApp
                       </a>
@@ -538,29 +632,38 @@ export default function DashboardPage() {
                         href={facebookHref}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
                       >
                         Partager sur Facebook
                       </a>
                       <button
                         type="button"
                         onClick={handleCopyProfileLink}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
                       >
                         {copiedProfileLink ? 'Lien copie' : 'Copier le lien'}
                       </button>
                     </div>
 
                     <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                      <p className="truncate text-sm text-gray-500">{publicProfileUrl || 'Votre lien public apparaitra ici.'}</p>
+                      <p className="truncate text-sm text-gray-500">
+                        {publicProfileUrl || 'Votre lien public apparaitra ici.'}
+                      </p>
                     </div>
                   </div>
                 </motion.section>
 
-                <motion.section variants={fadeInUp} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <motion.section
+                  variants={fadeInUp}
+                  className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                >
                   <div className="border-b border-gray-100 px-5 py-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">QR Code</p>
-                    <h2 className="mt-2 text-lg font-semibold text-gray-900">Impression et diffusion locale</h2>
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      QR Code
+                    </p>
+                    <h2 className="mt-2 text-lg font-semibold text-gray-900">
+                      Impression et diffusion locale
+                    </h2>
                   </div>
 
                   <div className="px-5 py-4">
@@ -568,7 +671,10 @@ export default function DashboardPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="text-sm font-medium text-gray-900">Code de partage</p>
-                          <p className="mt-1 text-sm text-gray-500">Affichez-le sur vos supports pour rediriger vos visiteurs vers votre vitrine.</p>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Affichez-le sur vos supports pour rediriger vos visiteurs vers votre
+                            vitrine.
+                          </p>
                         </div>
                         <span className="rounded-lg bg-green-50 p-2 text-green-700">
                           <QrCode className="h-5 w-5" aria-hidden="true" />
@@ -580,7 +686,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => setIsQrModalOpen(true)}
                           disabled={!company || !publicProfileUrl}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           Voir le QR Code
                         </button>
@@ -603,18 +709,29 @@ export default function DashboardPage() {
       </div>
 
       {isQrModalOpen && company && publicProfileUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Mon QR Code">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mon QR Code"
+        >
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Partage rapide</p>
-                <h3 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">QR Code de votre profil</h3>
-                <p className="mt-2 text-sm text-gray-600">Scannez ce code pour ouvrir votre vitrine Woralink.</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Partage rapide
+                </p>
+                <h3 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">
+                  QR Code de votre profil
+                </h3>
+                <p className="mt-2 text-sm text-gray-600">
+                  Scannez ce code pour ouvrir votre vitrine Woralink.
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsQrModalOpen(false)}
-                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
               >
                 Fermer
               </button>
@@ -644,7 +761,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={handlePrintQrCode}
-                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-300"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
               >
                 Imprimer
               </button>
