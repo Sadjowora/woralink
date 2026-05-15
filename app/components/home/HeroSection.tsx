@@ -1,7 +1,10 @@
 'use client';
 
 import NextLink from 'next/link';
-import { useEffect, useState } from 'react';
+import { useInView } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+
+import { useCountUp } from '@/hooks/useCountUp';
 
 const PLACEHOLDERS = [
   'Rechercher un menuisier a Conakry...',
@@ -12,13 +15,39 @@ const PLACEHOLDERS = [
 ];
 
 const TRUST_STATS = [
-  { value: '50+', label: 'Entreprises inscrites' },
-  { value: '8+', label: 'Villes couvertes' },
-  { value: '10+', label: "Secteurs d'activite" },
+  { target: 50, suffix: '+', label: 'Entreprises inscrites' },
+  { target: 8, suffix: '+', label: 'Villes couvertes' },
+  { target: 10, suffix: '+', label: "Secteurs d'activite" },
 ];
+
+function StatItem({
+  target,
+  suffix,
+  label,
+  animate,
+}: {
+  target: number;
+  suffix: string;
+  label: string;
+  animate: boolean;
+}) {
+  const count = useCountUp(target, 1200, animate);
+
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-2xl font-bold tracking-tight text-gray-900">
+        {count}
+        {suffix}
+      </span>
+      <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</span>
+    </div>
+  );
+}
 
 export default function HeroSection() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const isStatsInView = useInView(statsRef, { once: true, margin: '-40px' });
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -80,14 +109,9 @@ export default function HeroSection() {
           </div>
         </form>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-6 md:gap-10">
+        <div ref={statsRef} className="mt-6 flex flex-wrap justify-center gap-6 md:gap-10">
           {TRUST_STATS.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center gap-0.5">
-              <span className="text-2xl font-bold tracking-tight text-gray-900">{stat.value}</span>
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                {stat.label}
-              </span>
-            </div>
+            <StatItem key={stat.label} {...stat} animate={isStatsInView} />
           ))}
         </div>
 
