@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
 const BANNER_SHOW_AFTER_MS = 3 * 60 * 1000;
@@ -9,6 +10,8 @@ const BANNER_SLIDE_DELAY_MS = 2000;
 const SESSION_START_KEY = 'woralink:guest-banner-session-start';
 
 export default function GuestBanner() {
+  const pathname = usePathname();
+  const isOnboardingRoute = pathname.startsWith('/onboarding');
   const [isGuest, setIsGuest] = useState(false);
   const [closed, setClosed] = useState(false);
   const [shouldDisplay, setShouldDisplay] = useState(false);
@@ -47,7 +50,7 @@ export default function GuestBanner() {
   }, []);
 
   useEffect(() => {
-    if (!isGuest || closed) return;
+    if (isOnboardingRoute || !isGuest || closed) return;
 
     const now = Date.now();
     const saved = window.sessionStorage.getItem(SESSION_START_KEY);
@@ -67,10 +70,10 @@ export default function GuestBanner() {
     return () => {
       window.clearTimeout(displayTimer);
     };
-  }, [isGuest, closed]);
+  }, [isOnboardingRoute, isGuest, closed]);
 
   useEffect(() => {
-    if (!shouldDisplay || closed || !isGuest) return;
+    if (isOnboardingRoute || !shouldDisplay || closed || !isGuest) return;
 
     const animationTimer = window.setTimeout(() => {
       setIsVisible(true);
@@ -79,15 +82,15 @@ export default function GuestBanner() {
     return () => {
       window.clearTimeout(animationTimer);
     };
-  }, [shouldDisplay, closed, isGuest]);
+  }, [isOnboardingRoute, shouldDisplay, closed, isGuest]);
 
-  if (!isGuest || closed || !shouldDisplay) {
+  if (isOnboardingRoute || !isGuest || closed || !shouldDisplay) {
     return null;
   }
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-50 border-t border-white/20 bg-primary text-white shadow-2xl transform transition-all duration-500 ease-out ${
+      className={`fixed bottom-0 left-0 right-0 z-50 transform border-t border-white/20 bg-primary text-white shadow-2xl transition-all duration-500 ease-out ${
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
       }`}
     >
