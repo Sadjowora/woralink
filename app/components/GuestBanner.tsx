@@ -33,10 +33,12 @@ function detectiOS(): boolean {
   if (typeof window === 'undefined') return false;
 
   const ua = window.navigator.userAgent;
-  const isIPhone =
-    /iPhone|iPad|iPod/.test(ua) && /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS/.test(ua);
+  const isAppleMobileUA = /iPhone|iPad|iPod/.test(ua);
+  const isIPadOSDesktopMode =
+    window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1;
+  const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
 
-  return isIPhone;
+  return (isAppleMobileUA || isIPadOSDesktopMode) && isSafari;
 }
 
 function detectInstalledPwa(): boolean {
@@ -190,8 +192,7 @@ export default function GuestBanner() {
   };
 
   const isAuthenticated = isAuthKnown && !isGuest;
-  const canShowInstallBanner =
-    isAuthenticated && !isInstalled && !installDismissed && Boolean(installEvent);
+  const canShowInstallBanner = isAuthenticated && !isInstalled && !installDismissed;
 
   if (isOnboardingRoute || !isMobileDevice || !isAuthKnown) {
     return null;
@@ -253,13 +254,19 @@ export default function GuestBanner() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleInstallNow}
-              className="inline-flex items-center justify-center rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-green-800 sm:px-4 sm:text-sm"
-            >
-              Installer maintenant
-            </button>
+            {installEvent ? (
+              <button
+                type="button"
+                onClick={handleInstallNow}
+                className="inline-flex items-center justify-center rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-green-800 sm:px-4 sm:text-sm"
+              >
+                Installer maintenant
+              </button>
+            ) : (
+              <p className="max-w-56 text-right text-xs leading-relaxed text-gray-600 sm:text-sm">
+                Ouvrez le menu du navigateur puis choisissez Installer l&apos;application.
+              </p>
+            )}
 
             <button
               type="button"

@@ -10,14 +10,14 @@
 	"theme_color": "#0F4C81",
 	"icons": [
 		{
-			"src": "/icons/icon-192x192.png",
-			"sizes": "192x192",
+			"src": "/logowlink.png",
+			"sizes": "500x500",
 			"type": "image/png",
 			"purpose": "any maskable"
 		},
 		{
-			"src": "/icons/icon-512x512.png",
-			"sizes": "512x512",
+			"src": "/WhatsApp Image 2026-04-21 at 02.17.44.png",
+			"sizes": "670x670",
 			"type": "image/png",
 			"purpose": "any maskable"
 		}
