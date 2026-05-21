@@ -26,7 +26,7 @@ export default function CoupDeCoeur({
 
   return (
     <section
-      className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 sm:pb-16"
+      className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 sm:pb-16"
       style={{ animation: 'fadeInUp 0.6s ease both' }}
     >
       <style>{`
@@ -36,10 +36,10 @@ export default function CoupDeCoeur({
         }
       `}</style>
 
-      <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-linear-to-br from-emerald-50 via-white to-teal-50 shadow-sm">
-        <div className="flex flex-col md:flex-row min-h-65">
+      <div className="bg-linear-to-br relative overflow-hidden rounded-2xl border border-emerald-100 from-emerald-50 via-white to-teal-50 shadow-sm">
+        <div className="min-h-65 flex flex-col md:flex-row">
           {/* Left – image */}
-          <div className="relative w-full md:w-5/12 min-h-50 md:min-h-full overflow-hidden rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none shrink-0">
+          <div className="min-h-50 relative w-full shrink-0 overflow-hidden rounded-t-2xl md:min-h-full md:w-5/12 md:rounded-l-2xl md:rounded-tr-none">
             {imageUrl ? (
               <Image
                 src={imageUrl}
@@ -51,20 +51,20 @@ export default function CoupDeCoeur({
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-emerald-100">
-                <span className="text-7xl font-extrabold text-emerald-300 select-none">
+                <span className="select-none text-7xl font-extrabold text-emerald-300">
                   {name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
             {/* subtle overlay */}
-            <div className="absolute inset-0 bg-linear-to-r from-transparent to-black/5 pointer-events-none" />
+            <div className="bg-linear-to-r pointer-events-none absolute inset-0 from-transparent to-black/5" />
           </div>
 
           {/* Right – info */}
           <div className="flex flex-1 flex-col justify-center gap-4 px-6 py-8 md:px-10">
             {/* Badge */}
             <span
-              className="inline-flex w-fit items-center gap-1.5 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700 animate-shimmer"
+              className="inline-flex w-fit animate-shimmer items-center gap-1.5 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700"
               style={{
                 backgroundImage:
                   'linear-gradient(90deg, transparent 0%, rgba(253,224,71,0.6) 50%, transparent 100%)',
@@ -75,7 +75,7 @@ export default function CoupDeCoeur({
             </span>
 
             {/* Company name */}
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tighter text-gray-900 leading-tight">
+            <h2 className="text-2xl font-extrabold leading-tight tracking-tighter text-gray-900 sm:text-3xl md:text-4xl">
               {name}
             </h2>
 
@@ -97,16 +97,16 @@ export default function CoupDeCoeur({
             {viewsCount > 0 && (
               <p className="text-sm font-medium text-emerald-700">
                 👁️ Déjà vue{' '}
-                <span className="text-base font-extrabold">{viewsCount.toLocaleString('fr-GN')}</span>{' '}
+                <span className="text-base font-extrabold">
+                  {viewsCount.toLocaleString('fr-GN')}
+                </span>{' '}
                 fois
               </p>
             )}
 
             {/* Description */}
             {description && (
-              <p className="text-sm leading-relaxed text-gray-600 line-clamp-3">
-                {description}
-              </p>
+              <p className="line-clamp-3 text-sm leading-relaxed text-gray-600">{description}</p>
             )}
 
             {/* CTA */}

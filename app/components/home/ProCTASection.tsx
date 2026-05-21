@@ -6,8 +6,8 @@ import { motion, type Variants } from 'framer-motion';
 const benefits = [
   {
     icon: '👁️',
-    title: 'Visibilite immediate',
-    description: 'Votre profil visible par tous les utilisateurs de Woralink en Guinee.',
+    title: 'Visibilité immédiate',
+    description: 'Votre profil visible par tous les utilisateurs de Woralink en Guinée.',
   },
   {
     icon: '📞',
@@ -16,13 +16,13 @@ const benefits = [
   },
   {
     icon: '🖼️',
-    title: 'Galerie de realisations',
-    description: 'Publiez vos photos et projets pour convaincre avant meme le premier contact.',
+    title: 'Galerie de réalisations',
+    description: 'Publiez vos photos et projets pour convaincre avant même le premier contact.',
   },
   {
     icon: '✅',
-    title: 'Badge verifie',
-    description: 'Renforcez la confiance avec un profil verifie par Woralink.',
+    title: 'Badge vérifié',
+    description: 'Renforcez la confiance avec un profil vérifié par Woralink.',
   },
 ];
 
@@ -39,7 +39,7 @@ const staggerContainer: Variants = {
 export default function ProCTASection() {
   return (
     <section className="border-t border-gray-100 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
         <motion.div
           variants={fadeInUp}
           initial="hidden"
@@ -51,11 +51,11 @@ export default function ProCTASection() {
             Pour les professionnels
           </span>
           <h2 className="text-2xl font-semibold tracking-tight text-gray-900 md:text-3xl">
-            Vous etes une entreprise, un artisan ou un freelance ?
+            Vous êtes une entreprise, un artisan ou un freelance ?
           </h2>
           <p className="mt-3 text-base leading-relaxed text-gray-500">
-            Rejoignez Woralink gratuitement et donnez de la visibilite a votre activite aupres de
-            milliers de clients en Guinee.
+            Rejoignez Woralink gratuitement et donnez de la visibilité à votre activité auprès de
+            milliers de clients en Guinée.
           </p>
         </motion.div>
 
@@ -97,7 +97,7 @@ export default function ProCTASection() {
             href="/comment-ca-marche"
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
           >
-            Comment ca marche ?
+            Comment ça marche ?
           </Link>
         </motion.div>
       </div>

@@ -7,16 +7,18 @@
 1. `@AGENTS.md` — instructions principales du projet (architecture, conventions, règles métier)
 2. `@CLAUDE.md` — qui référence `@AGENTS.md`, à lire aussi pour le contexte complet
 
-Ces fichiers sont prioritaires. Les directives design ci-dessous s'appliquent **en complément**, sans jamais contredire ce qui est défini dans `AGENTS.md`.
+Ces fichiers sont **prioritaires**. Les directives design ci-dessous s'appliquent **en complément**, sans jamais contredire ce qui est défini dans `AGENTS.md`.
 
 ---
 
-## 🎨 Étape 2 — Appliquer le nouveau design system
+## 🎨 Étape 2 — Design system Woralink
 
 ### Philosophie visuelle
 
 Style **Vercel-inspired** : clean, light, spacieux, typographie forte, détails soignés.
 Pas de fioriture. Chaque élément a une raison d'être. Le contenu respire.
+
+Inspiration pour la page `/search` : **ProductHunt** (liste de startups) — cards horizontales avec rang, logo, badges, description courte, et bouton BigUp.
 
 ---
 
@@ -45,20 +47,23 @@ Textes :
   - Lien hover         : hover:text-green-700
   - Lien hover dark    : hover:text-green-800
 
-Badges / Tags :
-  - Fond brand         : bg-green-50  text-green-700  border-green-200
-  - Fond neutre        : bg-gray-100  text-gray-500   border-gray-200
+Badges :
+  - Brand (Vérifié, actif) : bg-green-50  text-green-700  border-green-200
+  - PME                    : bg-blue-50   text-blue-700   border-blue-200
+  - Freelance              : bg-green-50  text-green-700  border-green-200
+  - Artisan                : bg-amber-50  text-amber-700  border-amber-200
+  - Neutre (ville, secteur): bg-gray-100  text-gray-500   border-gray-200
 ```
 
-**Règle absolue :** ne jamais utiliser de couleurs en dehors de cette palette Tailwind.
-Pas de style inline `color:`, pas de CSS custom pour les couleurs — Tailwind uniquement.
+**Règle absolue :** ne jamais utiliser de couleurs hors palette Tailwind.
+Pas de `style={{ color: '...' }}`, pas de CSS custom pour les couleurs.
 
 ---
 
 ### Typographie
 
 ```
-H1 hero    : text-4xl md:text-5xl lg:text-6xl  font-bold    text-gray-900  tracking-tight
+H1 hero    : text-4xl md:text-5xl lg:text-6xl  font-bold     text-gray-900  tracking-tight
 H2 section : text-2xl md:text-3xl              font-semibold text-gray-900  tracking-tight
 H3 card    : text-lg                            font-semibold text-gray-900
 Corps      : text-base  text-gray-600  leading-relaxed
@@ -73,90 +78,97 @@ Lien brand : text-green-700  hover:text-green-800  font-medium  underline-offset
 
 ```tsx
 // Bouton principal (CTA — fond sombre style Vercel)
-<button className="
-  inline-flex items-center gap-2
-  px-5 py-2.5 rounded-lg
-  bg-gray-900 text-white text-sm font-medium
-  hover:bg-gray-700
-  transition-colors duration-150
-  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2
-">
+<button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2">
 
 // Bouton secondaire (outline neutre)
-<button className="
-  inline-flex items-center gap-2
-  px-5 py-2.5 rounded-lg
-  border border-gray-200 bg-white
-  text-gray-700 text-sm font-medium
-  hover:bg-gray-50 hover:border-gray-300
-  transition-colors duration-150
-">
+<button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors duration-150">
 
 // Bouton brand (vert — actions de confiance)
-<button className="
-  inline-flex items-center gap-2
-  px-5 py-2.5 rounded-lg
-  bg-green-700 text-white text-sm font-medium
-  hover:bg-green-800
-  transition-colors duration-150
-">
+<button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-green-700 text-white text-sm font-medium hover:bg-green-800 transition-colors duration-150">
 ```
 
 ---
 
-### Cards (entreprises, profils, PME)
+### Cards standard (profils, PME, résultats)
 
 ```tsx
-<div className="
-  group relative
-  bg-white rounded-xl
-  border border-gray-200
-  p-5
-  hover:border-gray-300
-  hover:shadow-sm
-  transition-all duration-150
-  cursor-pointer
-">
+<div className="group relative bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-sm transition-all duration-150 cursor-pointer">
 ```
 
 Pas de shadow spectaculaire. L'élévation vient de `hover:shadow-sm` + `hover:border-gray-300`.
-Style Vercel : sobre, propre, fonctionnel.
+
+---
+
+### Cards résultats `/search` — style ProductHunt
+
+Structure horizontale obligatoire pour toute card de résultat sur la page `/search` :
+
+```tsx
+<div className="flex cursor-pointer items-start gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-all duration-150 hover:border-gray-300 hover:shadow-sm">
+  {/* 1. Bloc rang (gauche, min-w-[40px]) */}
+  <div className="flex min-w-[40px] flex-col items-center pt-1">
+    <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Rang</span>
+    <span className="text-lg font-semibold text-gray-900">#1</span>
+  </div>
+
+  {/* 2. Logo (52x52, rounded-lg, border, lettre fallback) */}
+  <div className="w-13 h-13 flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 text-lg font-semibold text-gray-500">
+    {logo ? <Image src={logo} alt={name} width={52} height={52} /> : name[0]}
+  </div>
+
+  {/* 3. Corps de la card (flex-1) */}
+  <div className="min-w-0 flex-1">
+    <div className="mb-1 flex flex-wrap items-center gap-2">
+      <span className="text-[15px] font-semibold text-gray-900">{name}</span>
+      {/* Badge type */}
+      <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+        PME
+      </span>
+      {/* Badge vérifié si applicable */}
+      {verified && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+          <CheckCircleIcon className="h-3 w-3" /> Vérifié
+        </span>
+      )}
+    </div>
+    <p className="mb-2 text-xs text-gray-500">
+      {sector} · {city}
+    </p>
+    <p className="line-clamp-2 text-sm leading-relaxed text-gray-600">{description}</p>
+    <a
+      href={`/pme/${slug}`}
+      className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline"
+    >
+      Voir le profil →
+    </a>
+  </div>
+
+  {/* 4. Bouton BigUp (droite, style ProductHunt) */}
+  <div className="group/bigup flex shrink-0 cursor-pointer flex-col items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 transition-colors duration-150 hover:border-green-700">
+    <ChevronUpIcon className="h-4 w-4 text-gray-400 transition-colors group-hover/bigup:text-green-700" />
+    <span className="text-sm font-medium text-gray-600">{bigupCount}</span>
+  </div>
+</div>
+```
 
 ---
 
 ### Inputs / Barre de recherche
 
 ```tsx
-<input className="
-  w-full px-4 py-2.5 rounded-lg
-  border border-gray-200 bg-white
-  text-gray-900 placeholder:text-gray-400
-  text-sm
-  focus:outline-none focus:ring-2 focus:ring-green-700/20 focus:border-green-700
-  transition-all duration-150
-">
+<input className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-green-700/20 focus:border-green-700 transition-all duration-150">
 ```
 
 ---
 
-### Badges / Tags
+### Pills de tri et de filtre
 
 ```tsx
-// Brand (secteur actif, "Coup de Cœur", vérifié)
-<span className="
-  inline-flex items-center gap-1
-  px-2.5 py-0.5 rounded-full
-  text-xs font-medium
-  bg-green-50 text-green-700 border border-green-200
-">
+// Pill inactive
+<span className="px-3 py-1 rounded-full border border-gray-200 text-xs font-medium text-gray-500 bg-white cursor-pointer hover:border-gray-400 transition-colors">
 
-// Neutre (type PME/Freelance, ville, secteur)
-<span className="
-  inline-flex items-center gap-1
-  px-2.5 py-0.5 rounded-full
-  text-xs font-medium
-  bg-gray-100 text-gray-500 border border-gray-200
-">
+// Pill active (ex: tri sélectionné, ville active)
+<span className="px-3 py-1 rounded-full border border-green-700 text-xs font-medium text-white bg-green-700 cursor-pointer">
 ```
 
 ---
@@ -177,10 +189,11 @@ Container       : max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
 Sections        : py-16 md:py-24
 Gap entre cards : gap-4 md:gap-6
 Grille standard : grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+Layout /search  : grid grid-cols-[220px_1fr] gap-6  (sidebar + contenu)
 ```
 
 - **Fond de page** : `bg-white` — light mode uniquement
-- **Sections alternées** : une section sur deux en `bg-gray-50` pour créer du rythme
+- **Sections alternées** : `bg-gray-50` pour créer du rythme
 - **Navbar** : `bg-white/80 border-b border-gray-200 backdrop-blur-sm sticky top-0 z-50`
 - **Footer** : `bg-gray-50 border-t border-gray-200 text-gray-500`
 
@@ -222,60 +235,38 @@ const staggerContainer = {
 ## 🇬🇳 Contexte Woralink
 
 - Annuaire des professionnels guinéens : PME, artisans, freelances, startups
-- Villes : Conakry, Labé, Kankan, N'Zérékoré, Kindia, Mamou, Boké, Boké
-- Secteurs : BTP, Informatique, Mécanique, Santé, Transport, Médias, Finance
+- Villes : Conakry, Labé, Kankan, N'Zérékoré, Kindia, Mamou, Boké, Faranah
+- Secteurs : BTP, Tech & Numérique, Mécanique, Santé, Transport, Médias, Finance, Artisanat
 - Langue : **Français uniquement**
 - Ton : professionnel, chaleureux, local, de confiance
-- Stack : Next.js 14, React, Tailwind CSS, Supabase
+- Stack : Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase
 
 ---
 
 ## 🚫 Interdits absolus
 
 - PAS de fond sombre global (`bg-gray-900`, `bg-black`) — light mode only
-- PAS de couleurs hors palette `green-*` / `gray-*` Tailwind
+- PAS de couleurs hors palette `green-*` / `gray-*` / `blue-*` / `amber-*` Tailwind
 - PAS de style inline pour les couleurs
 - PAS de `shadow-xl` ou `shadow-2xl` sur les cards — `shadow-sm` maximum
 - PAS de `rounded-2xl` ou plus sur les cards — `rounded-xl` maximum
 - PAS d'animations > 0.35s
+- PAS de `<form>` sur les pages qui utilisent des URL params — utiliser `onChange` + `useRouter`
 - PAS de modification de la logique métier, des appels Supabase, ni de l'architecture définie dans `AGENTS.md`
+- PAS de dark mode — l'application est light mode uniquement
 
 ---
 
-## ✅ Checklist avant chaque modification
-
-- [ ] J'ai lu `AGENTS.md` et `CLAUDE.md` en premier
-- [ ] Je respecte l'architecture et les conventions de ces fichiers
-- [ ] J'utilise uniquement `text-green-700` / `gray-*` / `green-*` Tailwind
-- [ ] Le fond est `bg-white` ou `bg-gray-50`
-- [ ] Les animations sont subtiles (≤ 0.35s, pas de loop)
-- [ ] Le composant est mobile-first
-- [ ] Aucune logique métier n'a été touchée
-
----
-
----
-
-## 🚀 Étape 3 — Améliorations prioritaires de la page d'accueil
-
-Ces 3 améliorations sont **prioritaires** pour augmenter la conversion et l'acquisition d'entreprises.
-Chaque section ci-dessous contient les instructions exactes à appliquer dans le composant concerné.
-
----
+## 🚀 Étape 3 — Améliorations prioritaires homepage
 
 ### 🔍 POINT 1 — Hero : Optimiser la barre de recherche
 
-**Objectif :** Rendre la barre de recherche plus visible, plus engageante et plus efficace pour convertir les visiteurs.
+Dans le composant Hero (`HeroSection.tsx` ou `components/home/Hero.tsx`) :
 
-**Instructions pour Copilot :**
-
-Dans le composant Hero (ex: `HeroSection.tsx` ou `components/home/Hero.tsx`) :
-
-1. **Wrapper de la barre de recherche** — entourer l'input + bouton dans un conteneur card avec ombre légère :
+**1. Wrapper de la barre de recherche**
 
 ```tsx
 <div className="mx-auto flex w-full max-w-2xl items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all duration-150 focus-within:border-green-700 focus-within:ring-2 focus-within:ring-green-700/10">
-  {/* Icône loupe à gauche */}
   <svg
     className="h-4 w-4 shrink-0 text-gray-400"
     fill="none"
@@ -289,22 +280,18 @@ Dans le composant Hero (ex: `HeroSection.tsx` ou `components/home/Hero.tsx`) :
       d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
     />
   </svg>
-
-  {/* Input */}
   <input
     type="text"
     placeholder="Rechercher un menuisier à Conakry..."
     className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
   />
-
-  {/* Bouton Rechercher */}
   <button className="shrink-0 rounded-lg bg-green-700 px-4 py-1.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800">
     Rechercher
   </button>
 </div>
 ```
 
-2. **Placeholder rotatif** — le placeholder doit changer toutes les 3 secondes via `useState` + `useEffect` pour suggérer des cas d'usage concrets :
+**2. Placeholder rotatif** — changer toutes les 3 secondes
 
 ```tsx
 const placeholders = [
@@ -325,13 +312,9 @@ useEffect(() => {
 }, []);
 ```
 
-3. **Accroche du Hero** — remplacer le titre générique par une formulation plus émotionnelle et locale. Exemple :
+**3. Titre du Hero**
 
 ```tsx
-// AVANT (à remplacer)
-<h1>Trouvez les meilleures PME, startups, artisans et freelances de Guinée</h1>
-
-// APRÈS
 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight text-center">
   Le meilleur professionnel de Guinée{" "}
   <span className="text-green-700">est peut-être à côté de chez vous</span>
@@ -342,25 +325,19 @@ useEffect(() => {
 </p>
 ```
 
-4. **Règles à respecter :**
-   - La logique de recherche existante (router push, query params) ne doit PAS être modifiée
-   - Seul le rendu visuel change
-   - Le composant reste mobile-first
+**Règles :**
+
+- La logique de recherche existante (router push, query params) ne doit PAS être modifiée
+- Seul le rendu visuel change
+- Composant mobile-first
 
 ---
 
-### 📊 POINT 2 — Hero : Ajouter les stats de confiance
+### 📊 POINT 2 — Hero : Stats de confiance
 
-**Objectif :** Rassurer immédiatement le visiteur avec des chiffres concrets affichés sous la barre de recherche.
-
-**Instructions pour Copilot :**
-
-Ajouter un bloc stats **juste sous la barre de recherche**, toujours dans le composant Hero :
+Ajouter **juste sous la barre de recherche** dans le Hero :
 
 ```tsx
-{
-  /* Stats de confiance */
-}
 <div className="mt-6 flex flex-wrap justify-center gap-6 md:gap-10">
   {[
     { value: '50+', label: 'Entreprises inscrites' },
@@ -374,27 +351,21 @@ Ajouter un bloc stats **juste sous la barre de recherche**, toujours dans le com
       </span>
     </div>
   ))}
-</div>;
+</div>
 ```
 
-**Règles importantes :**
+**Règles :**
 
-- Les valeurs (`50+`, `8`, `10+`) sont des **valeurs statiques pour l'instant**. Ne pas faire d'appel Supabase ici — les chiffres seront mis à jour manuellement au fur et à mesure de la croissance.
-- Si dans le futur un appel Supabase est nécessaire pour ces stats, il devra passer par une Server Component ou un `getStaticProps` avec revalidation — jamais un appel client bloquant dans le Hero.
-- Séparateur visuel optionnel entre les stats sur desktop : `divide-x divide-gray-200` si alignés en ligne.
+- Valeurs **statiques** pour l'instant — pas d'appel Supabase dans le Hero
+- Séparateur visuel optionnel sur desktop : `divide-x divide-gray-200`
 
 ---
 
-### 🏢 POINT 3 — Nouvelle section "Inscrivez votre entreprise"
+### 🏢 POINT 3 — Section ProCTA
 
-**Objectif :** Cibler les professionnels qui visitent la page et les convertir en inscrits. Cette section doit être **distincte de la section visiteur** et parler directement aux entreprises.
-
-**Instructions pour Copilot :**
-
-Créer un nouveau composant `ProCTASection.tsx` dans `components/home/` et l'intégrer dans la page d'accueil **après la section "Dernières entreprises"** et **avant le footer**.
+Créer `components/home/ProCTASection.tsx` et l'intégrer **après la section "Dernières entreprises"** et **avant le footer**.
 
 ```tsx
-// components/home/ProCTASection.tsx
 'use client';
 
 import Link from 'next/link';
@@ -427,7 +398,6 @@ const fadeInUp = {
   hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
 };
-
 const staggerContainer = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.06 } },
@@ -437,7 +407,6 @@ export default function ProCTASection() {
   return (
     <section className="border-t border-gray-100 bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-        {/* En-tête */}
         <motion.div
           variants={fadeInUp}
           initial="hidden"
@@ -457,7 +426,6 @@ export default function ProCTASection() {
           </p>
         </motion.div>
 
-        {/* Grille des bénéfices */}
         <motion.div
           variants={staggerContainer}
           initial="hidden"
@@ -479,7 +447,6 @@ export default function ProCTASection() {
           ))}
         </motion.div>
 
-        {/* CTA final */}
         <motion.div
           variants={fadeInUp}
           initial="hidden"
@@ -506,22 +473,122 @@ export default function ProCTASection() {
 }
 ```
 
-**Intégration dans `page.tsx` (ou `index.tsx`) :**
+**Intégration dans `page.tsx` :**
 
 ```tsx
-// Importer le composant
 import ProCTASection from '@/components/home/ProCTASection';
-
 // Placer après <DernieresEntreprisesSection /> et avant <Footer />
 <ProCTASection />;
 ```
 
-**Règles à respecter :**
+**Règles :** composant purement UI, aucun appel Supabase, liens vers routes existantes uniquement.
 
-- Ce composant est **purement UI** — aucun appel Supabase, aucune logique métier
-- Le lien `/register` doit pointer vers la route d'inscription existante du projet
-- Le lien `/comment-ca-marche` pointe vers la page existante
-- Ne pas modifier ces routes
+---
+
+## 🔍 Étape 4 — Page `/search` : refonte style ProductHunt
+
+### Objectif
+
+La page `/search` doit ressembler à la liste de startups de ProductHunt :
+cards horizontales avec rang, logo, badges, description, bouton BigUp.
+Le layout est **sidebar (220px) + zone résultats (flex-1)**.
+
+---
+
+### Composant SearchResultCard
+
+```tsx
+// components/search/SearchResultCard.tsx
+interface SearchResultCardProps {
+  rank: number;
+  logo?: string;
+  name: string;
+  type: 'PME' | 'Freelance' | 'Artisan';
+  verified: boolean;
+  sector: string;
+  city: string;
+  description: string;
+  slug: string;
+  bigupCount: number;
+}
+```
+
+Structure JSX : voir section **"Cards résultats `/search`"** dans Étape 2.
+
+---
+
+### Sidebar des filtres — deux blocs séparés
+
+**Bloc 1 — Quick Links** (card blanche, rounded-xl, border, p-4) :
+
+- Label `QUICK LINKS` en `text-xs uppercase tracking-wide text-gray-400`
+- Tags en pills : `rounded-full border border-gray-200 text-xs px-2.5 py-0.5 hover:bg-gray-50`
+- Clic sur un tag → update `?q=` via `useRouter`
+
+**Bloc 2 — Filtres** (card blanche, rounded-xl, border, p-4) :
+
+- Label `FILTRES` identique
+- Trois `<select>` : Ville, Secteur d'activité, Type de profil
+- Chaque `<select>` avec un label `text-xs font-medium text-gray-600` au-dessus
+- Bouton "Effacer les filtres" : pleine largeur, ghost style, `text-sm text-gray-500`
+- Chaque filtre update l'URL param correspondant (`?city=`, `?sector=`, `?type=`) via `useSearchParams` + `useRouter`
+
+---
+
+### Toolbar résultats
+
+```tsx
+<div className="flex flex-wrap items-center justify-between gap-2">
+  {/* Tri */}
+  <div className="flex items-center gap-2">
+    <span className="text-xs text-gray-400">Trier par</span>
+    {['Pertinence', 'Plus vus', 'Vérifiés'].map((label) => (
+      <button
+        key={label}
+        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+          currentSort === label
+            ? 'border-green-700 bg-green-700 text-white'
+            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-400'
+        }`}
+        onClick={() => updateSort(label)}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+  {/* Compteur */}
+  <span className="text-sm text-gray-400">{count} résultats</span>
+</div>
+```
+
+---
+
+### Pills villes (sous la toolbar)
+
+```tsx
+<div className="flex flex-wrap gap-2">
+  {cities.map((city) => (
+    <button
+      key={city}
+      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+        currentCity === city
+          ? 'border-green-700 bg-green-50 text-green-700'
+          : 'border-gray-200 bg-white text-gray-500 hover:border-green-700 hover:text-green-700'
+      }`}
+      onClick={() => updateCity(city)}
+    >
+      {city}
+    </button>
+  ))}
+</div>
+```
+
+**Règles pour toute la page `/search` :**
+
+- Tout l'état de filtre/tri passe par les **URL params** (`useSearchParams` + `useRouter`) — jamais `useState` seul
+- Pas de `<form>` — utiliser `onClick` / `onChange`
+- La logique de requête Supabase existante ne doit PAS être modifiée
+- Composant `SearchResultCard` = Client Component (`'use client'`)
 
 ---
 
@@ -529,10 +596,11 @@ import ProCTASection from '@/components/home/ProCTASection';
 
 - [ ] J'ai lu `AGENTS.md` et `CLAUDE.md` en premier
 - [ ] Je respecte l'architecture et les conventions de ces fichiers
-- [ ] J'utilise uniquement `text-green-700` / `gray-*` / `green-*` Tailwind
-- [ ] Le fond est `bg-white` ou `bg-gray-50`
+- [ ] J'utilise uniquement les couleurs de la palette définie (green / gray / blue / amber)
+- [ ] Le fond est `bg-white` ou `bg-gray-50` — jamais de fond sombre global
 - [ ] Les animations sont subtiles (≤ 0.35s, pas de loop)
 - [ ] Le composant est mobile-first
-- [ ] Aucune logique métier n'a été touchée
-- [ ] Les stats (Point 2) sont statiques — pas d'appel Supabase dans le Hero
-- [ ] `ProCTASection` est un composant purement UI sans logique métier
+- [ ] Aucune logique métier ni appel Supabase n'a été touché
+- [ ] L'état des filtres passe par les URL params (pas de useState isolé)
+- [ ] Les stats du Hero (Point 2) sont statiques — pas d'appel Supabase
+- [ ] `ProCTASection` est un composant purement UI

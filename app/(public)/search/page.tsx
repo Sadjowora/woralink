@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { computeProfileCompletionPercent } from '../../../lib/company-completion';
 import { supabase } from '../../../lib/supabase';
-import CompanyCard from '../../components/company/CompanyCard';
 import Navbar from '../../components/layout/Navbar';
+import SearchListItem from './SearchListItem';
+import SimilarCompaniesRail from './SimilarCompaniesRail';
 import SearchResultsShell from './search-results-shell';
 const SECTORS = [
   'Commerce & Distribution',
@@ -62,45 +63,64 @@ type Company = {
   company_story?: string | null;
   founder_message?: string | null;
   address?: string | null;
+  bigup?: number | null;
 };
 
 type SearchPageProps = {
   searchParams: Promise<{
     city?: string;
     sector?: string;
+    type?: string;
     q?: string;
+    sort?: string;
   }>;
 };
 
+type SortOption = 'relevance' | 'views' | 'verified';
+
+function resolveSort(value: string): SortOption {
+  if (value === 'views') return 'views';
+  if (value === 'verified') return 'verified';
+  return 'relevance';
+}
+
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { city = '', sector = '', q = '' } = await searchParams;
+  const { city = '', sector = '', type = '', q = '', sort = 'relevance' } = await searchParams;
 
   const cityFilter = resolveCityFilter(city);
   const sectorFilter = resolveSectorFilter(sector);
+  const typeFilter = type.trim();
   const queryFilter = q.trim();
+  const sortFilter = resolveSort(sort);
 
   let query = supabase
     .from('companies')
     .select(
-      'id, name, profile_type, sector, city, slug, logo_url, is_verified, views_count, whatsapp, website_url, description, company_story, founder_message, address',
+      'id, name, profile_type, sector, city, slug, logo_url, is_verified, views_count, whatsapp, website_url, description, company_story, founder_message, address, bigup',
     )
-    .order('is_verified', { ascending: false })
     .order('views_count', { ascending: false, nullsFirst: false });
   if (cityFilter) query = query.ilike('city', `%${escapeLikePattern(cityFilter)}%`);
   if (sectorFilter) query = query.eq('sector', sectorFilter);
+  if (typeFilter) query = query.eq('profile_type', typeFilter);
   if (queryFilter) {
-    const escapedQuery = escapeLikePattern(queryFilter);
-    query = query.or(
-      [
-        `name.ilike.%${escapedQuery}%`,
-        `sector.ilike.%${escapedQuery}%`,
-        `city.ilike.%${escapedQuery}%`,
-      ].join(','),
-    );
+    query = query.textSearch('fts_tokens', queryFilter, {
+      config: 'french',
+      type: 'websearch',
+    });
   }
 
   const { data, error } = await query;
   const companies = ((data as Company[]) || []).sort((a, b) => {
+    if (sortFilter === 'views') {
+      return (b.views_count ?? 0) - (a.views_count ?? 0);
+    }
+
+    if (sortFilter === 'verified') {
+      const verificationDiff = Number(Boolean(b.is_verified)) - Number(Boolean(a.is_verified));
+      if (verificationDiff !== 0) return verificationDiff;
+      return (b.views_count ?? 0) - (a.views_count ?? 0);
+    }
+
     const aViews = a.views_count ?? 0;
     const bViews = b.views_count ?? 0;
     if (bViews !== aViews) return bViews - aViews;
@@ -108,7 +128,38 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     const completionDiff = computeProfileCompletionPercent(b) - computeProfileCompletionPercent(a);
     return completionDiff;
   });
+
+  let similarQuery = supabase
+    .from('companies')
+    .select('id, name, profile_type, sector, city, slug, is_verified, views_count')
+    .order('is_verified', { ascending: false })
+    .order('views_count', { ascending: false, nullsFirst: false })
+    .limit(10);
+
+  if (sectorFilter) {
+    similarQuery = similarQuery.eq('sector', sectorFilter);
+  } else if (cityFilter) {
+    similarQuery = similarQuery.ilike('city', `%${escapeLikePattern(cityFilter)}%`);
+  } else if (companies[0]?.sector) {
+    similarQuery = similarQuery.eq('sector', companies[0].sector);
+  }
+
+  const { data: similarData } = await similarQuery;
+  const displayedIds = new Set(companies.map((item) => item.id));
+  const similarCompanies = ((similarData as Company[]) || [])
+    .filter((item) => !displayedIds.has(item.id))
+    .slice(0, 6);
+
   const hasResults = !error && companies.length > 0;
+
+  const buildQuickHref = (params: { city?: string; sector?: string; q?: string }) => {
+    const next = new URLSearchParams();
+    if (params.q) next.set('q', params.q);
+    if (params.city) next.set('city', params.city);
+    if (params.sector) next.set('sector', params.sector);
+    const search = next.toString();
+    return search ? `/search?${search}` : '/search';
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -120,32 +171,29 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             Rechercher un professionnel
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Utilisez les filtres URL pour trouver rapidement un profil.
+            Trouvez des professionnels vérifiés partout en Guinée — PME, artisans, freelances et
+            startups de confiance.
           </p>
         </div>
 
         <SearchResultsShell
           city={cityFilter}
           sector={sectorFilter}
+          type={typeFilter}
           q={queryFilter}
+          sort={sortFilter}
           resultsCount={companies.length}
           errorMessage={error ? 'Impossible de charger les résultats. Réessayez.' : undefined}
         >
           {hasResults ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-              {companies.map((company, index) => (
-                <Link key={company.id} href={`/pme/${company.slug}`} className="block w-full">
-                  <CompanyCard
-                    name={company.name}
-                    profileType={company.profile_type}
-                    sector={company.sector}
-                    city={company.city}
-                    logoUrl={company.logo_url}
-                    isVerified={Boolean(company.is_verified)}
-                    imageLoading={index === 0 ? 'eager' : 'lazy'}
-                  />
-                </Link>
-              ))}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.35fr)_240px] lg:gap-6">
+              <div className="space-y-3 sm:space-y-4">
+                {companies.map((company, index) => (
+                  <SearchListItem key={company.id} company={company} index={index} />
+                ))}
+              </div>
+
+              <SimilarCompaniesRail items={similarCompanies} />
             </div>
           ) : (
             <div className="py-12 sm:py-16">
@@ -173,6 +221,28 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   Vous êtes basé{cityFilter ? ` à ${cityFilter}` : ' en Guinée'} et vous proposez
                   des services ? Rejoignez Woralink pour être visible auprès de vos futurs clients.
                 </p>
+
+                <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+                  <Link
+                    href={buildQuickHref({ city: 'Conakry' })}
+                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                  >
+                    Conakry
+                  </Link>
+                  <Link
+                    href={buildQuickHref({ sector: 'Construction & BTP' })}
+                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                  >
+                    BTP
+                  </Link>
+                  <Link
+                    href={buildQuickHref({ sector: 'Santé & Pharmacie' })}
+                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                  >
+                    Santé
+                  </Link>
+                </div>
+
                 <Link
                   href="/register"
                   className="inline-flex items-center justify-center rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
