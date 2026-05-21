@@ -16,9 +16,9 @@
 			"purpose": "any"
 		},
 		{
-			"src": "/WhatsApp Image 2026-04-21 at 02.17.44.png",
+			"src": "/logowlink-maskable.svg",
 			"sizes": "670x670",
-			"type": "image/png",
+			"type": "image/svg+xml",
 			"purpose": "maskable"
 		}
 	]
