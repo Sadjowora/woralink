@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import NextLink from 'next/link';
 import { supabase } from '../lib/supabase';
-import CompanyCard from './components/company/CompanyCard';
 import CoupDeCoeur from './components/CoupDeCoeur';
+import SearchListItem from './(public)/search/SearchListItem';
 import HeroSection from './components/home/HeroSection';
 import ProCTASection from './components/home/ProCTASection';
 import Navbar from './components/layout/Navbar';
@@ -22,8 +22,12 @@ type Company = {
   profile_type: string;
   sector: string;
   city: string;
+  address?: string | null;
   slug: string;
   logo_url?: string;
+  company_story?: string | null;
+  views_count?: number | null;
+  bigup?: number | null;
   is_verified?: boolean | null;
 };
 
@@ -56,9 +60,11 @@ const POPULAR_CATEGORIES = [
 export default async function Home() {
   const { data, error } = await supabase
     .from('companies')
-    .select('*')
+    .select(
+      'id, name, profile_type, sector, city, address, company_story, slug, logo_url, bigup, views_count, is_verified',
+    )
     .order('created_at', { ascending: false })
-    .limit(3);
+    .limit(5);
 
   const featuredCompanies: Company[] = error ? [] : ((data as Company[]) ?? []);
 
@@ -169,20 +175,39 @@ export default async function Home() {
         </div>
 
         {featuredCompanies.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredCompanies.map((company, index) => (
-              <NextLink key={company.id} href={`/pme/${company.slug}`}>
-                <CompanyCard
-                  name={company.name}
-                  profileType={company.profile_type}
-                  sector={company.sector}
-                  city={company.city}
-                  logoUrl={company.logo_url}
-                  isVerified={Boolean(company.is_verified)}
-                  imageLoading={index === 0 ? 'eager' : 'lazy'}
-                />
-              </NextLink>
-            ))}
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-3 sm:space-y-4">
+              {featuredCompanies.map((company, index) => (
+                <SearchListItem key={company.id} company={company} index={index} compact />
+              ))}
+            </div>
+
+            <NextLink
+              href="/search"
+              className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 transition-all duration-150 hover:border-green-700 hover:bg-white hover:shadow-sm sm:px-6 sm:py-5"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500 transition-colors duration-150 group-hover:text-green-700">
+                  Explorer davantage
+                </p>
+                <p className="mt-1 text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
+                  Découvrir plus de professionnels partout en Guinée
+                </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  PME, startups, artisans et freelances vérifiés vous attendent.
+                </p>
+              </div>
+
+              <span className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 group-hover:bg-green-800">
+                Voir toute la sélection
+                <span
+                  aria-hidden="true"
+                  className="transition-transform duration-150 group-hover:translate-x-0.5"
+                >
+                  →
+                </span>
+              </span>
+            </NextLink>
           </div>
         ) : (
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center sm:p-8">

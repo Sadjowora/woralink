@@ -5,8 +5,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
-const BANNER_SHOW_AFTER_MS = 3 * 60 * 1000;
-const BANNER_SLIDE_DELAY_MS = 2000;
+const BANNER_SHOW_AFTER_MS = 90 * 1000;
 const SESSION_START_KEY = 'woralink:guest-banner-session-start';
 
 export default function GuestBanner() {
@@ -65,24 +64,13 @@ export default function GuestBanner() {
 
     const displayTimer = window.setTimeout(() => {
       setShouldDisplay(true);
+      setIsVisible(true);
     }, remaining);
 
     return () => {
       window.clearTimeout(displayTimer);
     };
   }, [isOnboardingRoute, isGuest, closed]);
-
-  useEffect(() => {
-    if (isOnboardingRoute || !shouldDisplay || closed || !isGuest) return;
-
-    const animationTimer = window.setTimeout(() => {
-      setIsVisible(true);
-    }, BANNER_SLIDE_DELAY_MS);
-
-    return () => {
-      window.clearTimeout(animationTimer);
-    };
-  }, [isOnboardingRoute, shouldDisplay, closed, isGuest]);
 
   if (isOnboardingRoute || !isGuest || closed || !shouldDisplay) {
     return null;
@@ -94,7 +82,7 @@ export default function GuestBanner() {
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
       }`}
     >
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-3.5">
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-3 py-3 sm:flex-nowrap sm:gap-4 sm:px-5 sm:py-3.5">
         <p className="flex-1 text-xs font-medium leading-relaxed sm:text-sm">
           Vous êtes un professionnel ? Créez votre vitrine gratuite sur Woralink
         </p>

@@ -26,7 +26,7 @@ const SECTORS = [
   'Autre',
 ];
 
-const PROFILE_TYPES = ['PME', 'Artisan', 'Freelance'];
+const PROFILE_TYPES = ['PME', 'Startup', 'Artisan', 'Freelance'];
 
 const GUINEA_CITIES = [
   'Conakry',
