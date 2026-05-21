@@ -6,20 +6,21 @@
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",
-	"background_color": "#F3F6F9",
-	"theme_color": "#0F4C81",
+	"background_color": "#ffffff",
+	"theme_color": "#0077B5",
 	"icons": [
 		{
 			"src": "/logowlink.png",
 			"sizes": "500x500",
 			"type": "image/png",
-			"purpose": "any maskable"
+			"purpose": "any"
 		},
 		{
 			"src": "/WhatsApp Image 2026-04-21 at 02.17.44.png",
 			"sizes": "670x670",
 			"type": "image/png",
-			"purpose": "any maskable"
+			"purpose": "maskable"
 		}
 	]
 }
+
