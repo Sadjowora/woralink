@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { computeProfileCompletionPercent } from '../../../lib/company-completion';
 import { supabase } from '../../../lib/supabase';
 import Navbar from '../../components/layout/Navbar';
+import FeaturedCompaniesSidebar from './FeaturedCompaniesSidebar';
 import SearchListItem from './SearchListItem';
-import SimilarCompaniesRail from './SimilarCompaniesRail';
 import SearchResultsShell from './search-results-shell';
 const SECTORS = [
   'Commerce & Distribution',
@@ -78,6 +78,41 @@ type SearchPageProps = {
 
 type SortOption = 'relevance' | 'views' | 'verified';
 
+type FeaturedCompany = {
+  id: string;
+  name: string;
+  city: string;
+  sector: string;
+  slug: string;
+  viewsCount: number;
+  bravosCount: number;
+};
+
+type FeaturedAnalyticsRow = {
+  slot: 'company_of_day' | 'champion_of_week' | 'pme_of_month';
+  company_id: string;
+  company_name: string;
+  city: string | null;
+  sector: string | null;
+  slug: string;
+  views_24h: number | null;
+  bravos_7d: number | null;
+  views_30d: number | null;
+  bravos_30d: number | null;
+};
+
+function mapFeaturedCompany(company: Company): FeaturedCompany {
+  return {
+    id: company.id,
+    name: company.name,
+    city: company.city,
+    sector: company.sector,
+    slug: company.slug,
+    viewsCount: Math.max(0, Number(company.views_count ?? 0) || 0),
+    bravosCount: Math.max(0, Number(company.bigup ?? 0) || 0),
+  };
+}
+
 function resolveSort(value: string): SortOption {
   if (value === 'views') return 'views';
   if (value === 'verified') return 'verified';
@@ -92,6 +127,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const typeFilter = type.trim();
   const queryFilter = q.trim();
   const sortFilter = resolveSort(sort);
+  const featuredAnalyticsPromise = supabase.rpc('get_featured_companies_analytics');
 
   let query = supabase
     .from('companies')
@@ -129,26 +165,82 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     return completionDiff;
   });
 
-  let similarQuery = supabase
-    .from('companies')
-    .select('id, name, profile_type, sector, city, slug, is_verified, views_count')
-    .order('is_verified', { ascending: false })
-    .order('views_count', { ascending: false, nullsFirst: false })
-    .limit(10);
+  const byViews = [...companies].sort(
+    (a, b) => (Number(b.views_count ?? 0) || 0) - (Number(a.views_count ?? 0) || 0),
+  );
+  const byBravos = [...companies].sort(
+    (a, b) => (Number(b.bigup ?? 0) || 0) - (Number(a.bigup ?? 0) || 0),
+  );
 
-  if (sectorFilter) {
-    similarQuery = similarQuery.eq('sector', sectorFilter);
-  } else if (cityFilter) {
-    similarQuery = similarQuery.ilike('city', `%${escapeLikePattern(cityFilter)}%`);
-  } else if (companies[0]?.sector) {
-    similarQuery = similarQuery.eq('sector', companies[0].sector);
-  }
+  const fallbackCompanyOfTheDay = byViews[0] ? mapFeaturedCompany(byViews[0]) : null;
+  const fallbackChampionOfWeek = byBravos[0] ? mapFeaturedCompany(byBravos[0]) : null;
 
-  const { data: similarData } = await similarQuery;
-  const displayedIds = new Set(companies.map((item) => item.id));
-  const similarCompanies = ((similarData as Company[]) || [])
-    .filter((item) => !displayedIds.has(item.id))
-    .slice(0, 6);
+  const excludedIds = new Set(
+    [fallbackCompanyOfTheDay?.id, fallbackChampionOfWeek?.id].filter(Boolean),
+  );
+  const comboCandidates = companies.filter((company) => !excludedIds.has(company.id));
+  const fallbackPmeOfMonthSource =
+    comboCandidates.sort((a, b) => {
+      const aViews = Number(a.views_count ?? 0) || 0;
+      const bViews = Number(b.views_count ?? 0) || 0;
+      const aBravos = Number(a.bigup ?? 0) || 0;
+      const bBravos = Number(b.bigup ?? 0) || 0;
+
+      const aScore = aViews + aBravos * 20;
+      const bScore = bViews + bBravos * 20;
+
+      return bScore - aScore;
+    })[0] ??
+    byViews[0] ??
+    null;
+
+  const fallbackPmeOfMonth = fallbackPmeOfMonthSource
+    ? mapFeaturedCompany(fallbackPmeOfMonthSource)
+    : null;
+
+  const { data: featuredAnalyticsData } = await featuredAnalyticsPromise;
+  const featuredAnalyticsRows = (featuredAnalyticsData as FeaturedAnalyticsRow[] | null) ?? [];
+  const analyticsBySlot = new Map(featuredAnalyticsRows.map((row) => [row.slot, row]));
+
+  const analyticsCompanyOfDay = analyticsBySlot.get('company_of_day');
+  const analyticsChampionOfWeek = analyticsBySlot.get('champion_of_week');
+  const analyticsPmeOfMonth = analyticsBySlot.get('pme_of_month');
+
+  const companyOfTheDay = analyticsCompanyOfDay
+    ? {
+        id: analyticsCompanyOfDay.company_id,
+        name: analyticsCompanyOfDay.company_name,
+        city: analyticsCompanyOfDay.city ?? 'Guinée',
+        sector: analyticsCompanyOfDay.sector ?? 'Secteur non précisé',
+        slug: analyticsCompanyOfDay.slug,
+        viewsCount: Math.max(0, Number(analyticsCompanyOfDay.views_24h ?? 0) || 0),
+        bravosCount: Math.max(0, Number(analyticsCompanyOfDay.bravos_7d ?? 0) || 0),
+      }
+    : fallbackCompanyOfTheDay;
+
+  const championOfWeek = analyticsChampionOfWeek
+    ? {
+        id: analyticsChampionOfWeek.company_id,
+        name: analyticsChampionOfWeek.company_name,
+        city: analyticsChampionOfWeek.city ?? 'Guinée',
+        sector: analyticsChampionOfWeek.sector ?? 'Secteur non précisé',
+        slug: analyticsChampionOfWeek.slug,
+        viewsCount: Math.max(0, Number(analyticsChampionOfWeek.views_24h ?? 0) || 0),
+        bravosCount: Math.max(0, Number(analyticsChampionOfWeek.bravos_7d ?? 0) || 0),
+      }
+    : fallbackChampionOfWeek;
+
+  const pmeOfMonth = analyticsPmeOfMonth
+    ? {
+        id: analyticsPmeOfMonth.company_id,
+        name: analyticsPmeOfMonth.company_name,
+        city: analyticsPmeOfMonth.city ?? 'Guinée',
+        sector: analyticsPmeOfMonth.sector ?? 'Secteur non précisé',
+        slug: analyticsPmeOfMonth.slug,
+        viewsCount: Math.max(0, Number(analyticsPmeOfMonth.views_30d ?? 0) || 0),
+        bravosCount: Math.max(0, Number(analyticsPmeOfMonth.bravos_30d ?? 0) || 0),
+      }
+    : fallbackPmeOfMonth;
 
   const hasResults = !error && companies.length > 0;
 
@@ -186,14 +278,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           errorMessage={error ? 'Impossible de charger les résultats. Réessayez.' : undefined}
         >
           {hasResults ? (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.35fr)_240px] lg:gap-6">
-              <div className="space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+              <div className="space-y-3 sm:space-y-4 lg:col-span-8">
                 {companies.map((company, index) => (
                   <SearchListItem key={company.id} company={company} index={index} />
                 ))}
               </div>
 
-              <SimilarCompaniesRail items={similarCompanies} />
+              <FeaturedCompaniesSidebar
+                companyOfTheDay={companyOfTheDay}
+                championOfWeek={championOfWeek}
+                pmeOfMonth={pmeOfMonth}
+              />
             </div>
           ) : (
             <div className="py-12 sm:py-16">

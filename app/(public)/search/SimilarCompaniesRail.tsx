@@ -24,7 +24,7 @@ export default function SimilarCompaniesRail({ items }: SimilarCompaniesRailProp
         Entreprises similaires
       </h2>
       <p className="mt-1 text-xs text-gray-500">
-        Découvrez d'autres profils proches de votre recherche.
+        Découvrez d&apos;autres profils proches de votre recherche.
       </p>
 
       <ul className="mt-4 space-y-3">

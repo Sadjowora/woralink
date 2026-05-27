@@ -37,17 +37,38 @@ export async function proxy(request: NextRequest) {
 
   // Authenticated but accessing /dashboard without a company profile → /onboarding
   if (pathname.startsWith('/dashboard')) {
-    const { data: company } = await supabaseServer
-      .from('companies')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data: profile } = await supabaseServer
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle<{ role: string | null }>();
 
-    if (!company?.id) {
-      const onboardingUrl = request.nextUrl.clone();
-      onboardingUrl.pathname = '/onboarding';
-      onboardingUrl.search = '';
-      return NextResponse.redirect(onboardingUrl);
+    const normalizedRole = String(profile?.role ?? '').toLowerCase();
+
+    if (normalizedRole === 'client' || normalizedRole === 'visitor') {
+      if (!pathname.startsWith('/dashboard/client')) {
+        const clientDashboardUrl = request.nextUrl.clone();
+        clientDashboardUrl.pathname = '/dashboard/client';
+        clientDashboardUrl.search = '';
+        return NextResponse.redirect(clientDashboardUrl);
+      }
+
+      return response;
+    }
+
+    if (normalizedRole === 'company') {
+      const { data: company } = await supabaseServer
+        .from('companies')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!company?.id) {
+        const onboardingUrl = request.nextUrl.clone();
+        onboardingUrl.pathname = '/onboarding';
+        onboardingUrl.search = '';
+        return NextResponse.redirect(onboardingUrl);
+      }
     }
   }
 

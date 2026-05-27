@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Eye, Globe, MapPin, ChevronLeft, ChevronRight, X as CloseIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import ReviewSystem from '../../../components/ReviewSystem';
 import ShareProfile from '../../../components/ShareProfile';
 import VerifiedBadge from '../../../components/ui/VerifiedBadge';
 import { computeProfileCompletionPercent } from '../../../../lib/company-completion';
 import { supabase } from '../../../../lib/supabase';
+import { sendContactMessage, type ContactState } from '../../contact/actions';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 12 },
@@ -52,6 +53,8 @@ type CompanyProfileProps = {
   }>;
 };
 
+type ProfileRole = 'company' | 'client' | 'visitor' | string;
+
 function formatCompactViews(value: number): string {
   if (value < 1000) return String(value);
   if (value < 1_000_000) {
@@ -85,8 +88,53 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
   const [currentViews, setCurrentViews] = useState<number>(
     Math.max(0, Number(company.views ?? company.views_count ?? 0) || 0),
   );
+  const [contactAuthLoading, setContactAuthLoading] = useState(true);
+  const [senderId, setSenderId] = useState('');
+  const [userRole, setUserRole] = useState<ProfileRole>('');
+  const [contactSubject, setContactSubject] = useState('');
+  const [contactBody, setContactBody] = useState('');
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactState, setContactState] = useState<ContactState>({ status: 'idle' });
   const hasIncrementedViewsRef = useRef(false);
   const photoUrls = photos.map((photo) => photo.url);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadContactPermission = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        if (!cancelled) {
+          setSenderId('');
+          setUserRole('');
+          setContactAuthLoading(false);
+        }
+        return;
+      }
+
+      const id = session.user.id;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', id)
+        .maybeSingle<{ role: ProfileRole | null }>();
+
+      if (!cancelled) {
+        setSenderId(id);
+        setUserRole(String(profile?.role ?? '').toLowerCase());
+        setContactAuthLoading(false);
+      }
+    };
+
+    void loadContactPermission();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (hasIncrementedViewsRef.current) return;
@@ -201,6 +249,28 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
   const profileUrl = `${siteUrl}/pme/${company.slug}`;
   const formattedViews = formatCompactViews(currentViews);
   const completionPercent = computeProfileCompletionPercent(company);
+  const canSendDirectMessage = Boolean(senderId) && userRole === 'client';
+
+  const handleSendContactMessage = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!canSendDirectMessage || contactSubmitting) {
+      return;
+    }
+
+    setContactSubmitting(true);
+    setContactState({ status: 'idle' });
+
+    const result = await sendContactMessage(senderId, company.id, contactSubject, contactBody);
+    setContactState(result);
+
+    if (result.status === 'success') {
+      setContactSubject('');
+      setContactBody('');
+    }
+
+    setContactSubmitting(false);
+  };
 
   useEffect(() => {
     document.title = `${company.name} - ${company.sector} à ${company.city} | Woralink`;
@@ -607,6 +677,96 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
           )}
         </div>
       )}
+
+      <motion.section
+        variants={fadeInUp}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-40px' }}
+        className="mx-auto mt-8 max-w-4xl px-4 sm:mt-10"
+      >
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-100 px-5 py-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Contact direct
+            </p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
+              Envoyer un message à ce professionnel
+            </h2>
+          </div>
+
+          <div className="px-5 py-5">
+            {contactAuthLoading ? (
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500">
+                Vérification de votre accès en cours...
+              </div>
+            ) : (
+              <form onSubmit={handleSendContactMessage} className="space-y-4">
+                {!canSendDirectMessage && (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                    Connectez-vous avec un compte Visiteur pour envoyer un message directement à ce
+                    professionnel.
+                  </div>
+                )}
+
+                <AnimatePresence mode="wait">
+                  {contactState.status === 'success' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.25 }}
+                      className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700"
+                    >
+                      {contactState.message}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {contactState.status === 'error' && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    {contactState.message}
+                  </div>
+                )}
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Sujet</label>
+                  <input
+                    type="text"
+                    value={contactSubject}
+                    onChange={(e) => setContactSubject(e.target.value)}
+                    disabled={!canSendDirectMessage || contactSubmitting}
+                    required
+                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-700/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+                    placeholder="Ex: Demande de devis"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Message</label>
+                  <textarea
+                    value={contactBody}
+                    onChange={(e) => setContactBody(e.target.value)}
+                    disabled={!canSendDirectMessage || contactSubmitting}
+                    required
+                    rows={5}
+                    className="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-700/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+                    placeholder="Décrivez votre besoin en détail..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!canSendDirectMessage || contactSubmitting}
+                  className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {contactSubmitting ? 'Envoi en cours...' : 'Envoyer'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </motion.section>
 
       {/* Share Profile Section */}
       <motion.section
