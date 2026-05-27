@@ -12,28 +12,33 @@ export const metadata: Metadata = {
 
 const WHATSAPP_NUMBER = '+224620027539'; // ← remplace par ton numéro pro
 
-export default function ContactPage() {
+export default function ContactPage({ searchParams }: { searchParams?: { company?: string } }) {
+  const targetCompanyName =
+    typeof searchParams?.company === 'string' && searchParams.company.trim()
+      ? searchParams.company.trim()
+      : undefined;
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <Navbar />
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 pt-20 pb-24 sm:pt-28">
+      <main className="mx-auto max-w-5xl px-4 pb-24 pt-20 sm:px-6 sm:pt-28">
         {/* En-tête */}
-        <div className="mb-10 sm:mb-14 text-center">
+        <div className="mb-10 text-center sm:mb-14">
           <span className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
             Nous contacter
           </span>
-          <h1 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter text-gray-900">
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tighter text-gray-900 sm:text-4xl md:text-5xl">
             Une question&nbsp;? On vous répond.
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm sm:text-base text-gray-500 leading-relaxed">
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-gray-500 sm:text-base">
             Support, partenariats ou signalements — notre équipe est disponible pour vous aider.
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
           {/* Infos de contact */}
-          <aside className="lg:col-span-2 flex flex-col gap-6">
+          <aside className="flex flex-col gap-6 lg:col-span-2">
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
                 Nous trouver
@@ -48,10 +53,10 @@ export default function ContactPage() {
                     <MapPin className="h-4 w-4 text-gray-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-0.5">
+                    <p className="mb-0.5 text-xs font-medium uppercase tracking-widest text-gray-500">
                       Localisation
                     </p>
-                    <p className="text-sm text-gray-700 leading-relaxed">
+                    <p className="text-sm leading-relaxed text-gray-700">
                       Conakry, République de Guinée
                     </p>
                   </div>
@@ -62,7 +67,7 @@ export default function ContactPage() {
                     <MessageCircle className="h-4 w-4 text-gray-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-0.5">
+                    <p className="mb-0.5 text-xs font-medium uppercase tracking-widest text-gray-500">
                       WhatsApp pro
                     </p>
                     <Link
@@ -95,7 +100,7 @@ export default function ContactPage() {
               </div>
 
               <div className="mt-6 rounded-md border border-gray-100 bg-gray-50 p-4">
-                <p className="text-xs text-gray-500 leading-relaxed">
+                <p className="text-xs leading-relaxed text-gray-500">
                   Délai de réponse habituel&nbsp;:{' '}
                   <span className="font-medium text-gray-700">24 à 48h</span> en jours ouvrables.
                 </p>
@@ -105,7 +110,7 @@ export default function ContactPage() {
 
           {/* Formulaire */}
           <div className="lg:col-span-3">
-            <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
               <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">
                 Formulaire
               </p>
@@ -117,7 +122,7 @@ export default function ContactPage() {
               </p>
 
               <div className="mt-6">
-                <ContactForm />
+                <ContactForm targetCompanyName={targetCompanyName} />
               </div>
             </div>
           </div>

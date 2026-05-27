@@ -6,7 +6,11 @@ import { submitContactMessage, type ContactFormState } from './actions';
 
 const SUBJECTS = ['Support', 'Partenariat', 'Signalement'] as const;
 
-export default function ContactForm() {
+type ContactFormProps = {
+  targetCompanyName?: string;
+};
+
+export default function ContactForm({ targetCompanyName }: ContactFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState<string>('');
@@ -19,7 +23,13 @@ export default function ContactForm() {
     setLoading(true);
     setState({ status: 'idle' });
 
-    const result = await submitContactMessage({ name, email, subject, message });
+    const result = await submitContactMessage({
+      name,
+      email,
+      subject,
+      message,
+      targetCompanyName,
+    });
     setState(result);
     setLoading(false);
 
@@ -57,6 +67,12 @@ export default function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {targetCompanyName && (
+        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          Message destiné à : <span className="font-semibold">{targetCompanyName}</span>
+        </div>
+      )}
+
       {state.status === 'error' && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.message}
@@ -113,7 +129,7 @@ export default function ContactForm() {
           required
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10 appearance-none"
+          className="w-full appearance-none rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10"
         >
           <option value="" disabled>
             Sélectionner un sujet

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import AuthShell from '../components/auth/AuthShell';
+import { registerUser } from './actions';
 import { buildAuthRedirectTo, supabase } from '@/lib/supabase';
 
 function mapSignUpError(message: string) {
@@ -115,15 +116,25 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+      const result = await registerUser(fullName, email, password, role);
 
-      if (signUpError) {
-        setError(mapSignUpError(signUpError.message));
+      if (result.status === 'error') {
+        setError(result.message);
         return;
       }
 
-      if (data.user) {
-        router.push('/onboarding');
+      if (result.status === 'success') {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (signInError) {
+          setError(
+            'Compte créé, mais la connexion automatique a échoué. Connectez-vous pour continuer.',
+          );
+          router.push('/login');
+          return;
+        }
+
+        router.push(role === 'visitor' ? '/dashboard/client' : '/onboarding');
         return;
       }
 
@@ -226,27 +237,12 @@ export default function RegisterPage() {
               <option value="visitor">Visiteur</option>
               <option value="company">PME, Entreprise, Artisan, Freelance, Startup</option>
             </select>
+            <p className="mt-2 text-xs text-gray-500">Tous les champs sont obligatoires.</p>
           </div>
-
-          {role === 'visitor' && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 sm:p-4">
-              <p className="font-semibold">Inscription non requise pour les visiteurs</p>
-              <p className="mt-1">
-                Notre plateforme vous permet de consulter librement les professionnels sans créer de
-                compte.{' '}
-                <Link
-                  href="/search"
-                  className="font-semibold text-amber-900 underline hover:text-amber-700"
-                >
-                  Parcourir les professionnels
-                </Link>
-              </p>
-            </div>
-          )}
 
           <button
             type="submit"
-            disabled={loading || role === 'visitor'}
+            disabled={loading}
             className="w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 sm:py-3"
           >
             {loading ? 'Inscription...' : 'Créer mon espace Woralink'}
