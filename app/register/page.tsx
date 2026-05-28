@@ -1,17 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import AuthShell from '../components/auth/AuthShell';
 import { registerUser } from './actions';
 import { buildAuthRedirectTo, supabase } from '@/lib/supabase';
 
+function isEmailAlreadyUsedError(message: string) {
+  return /already registered|already exists|email.*exist/i.test(message);
+}
+
 function mapSignUpError(message: string) {
-  if (/already registered|already exists|email.*exist/i.test(message)) {
+  if (isEmailAlreadyUsedError(message)) {
     return 'Un compte avec cette adresse e-mail existe deja. Connectez-vous ou utilisez une autre adresse.';
   }
+
   return "Une erreur est survenue lors de l'inscription. Veuillez reessayer.";
 }
 
@@ -54,6 +60,7 @@ export default function RegisterPage() {
         : provider === 'linkedin_oidc'
           ? linkedInRedirectUrl
           : buildAuthRedirectTo('/auth/callback');
+
     console.info(
       `[RegisterPage] Starting OAuth flow for provider: ${provider}`,
       `| Redirect URL: ${redirectUrl}`,
@@ -147,6 +154,8 @@ export default function RegisterPage() {
     }
   };
 
+  const duplicateEmailError = isEmailAlreadyUsedError(error);
+
   return (
     <AuthShell
       eyebrow="Inscription"
@@ -170,12 +179,37 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:p-4">
-            {error}
+          <div
+            className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:p-4"
+            role="alert"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <p>{error}</p>
+            </div>
           </div>
         )}
 
         <form onSubmit={handleSignUp} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Quel type de profil voulez-vous créer ?
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as 'company' | 'visitor')}
+              required
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
+            >
+              <option value="visitor">Visiteur / Client</option>
+              <option value="company">Entreprise, Artisan, Freelance, Startup</option>
+            </select>
+            <p className="mt-2 text-xs text-gray-500">
+              Commencez par choisir votre profil, puis complétez vos informations.
+            </p>
+          </div>
+
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Nom complet</label>
             <input
@@ -195,9 +229,24 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
+              aria-invalid={duplicateEmailError}
+              className={`w-full rounded-xl px-3 py-2.5 text-sm text-gray-900 outline-none transition sm:px-4 sm:py-3 ${
+                duplicateEmailError
+                  ? 'border border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
+                  : 'border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20'
+              }`}
               placeholder="vous@entreprise.com"
             />
+            {duplicateEmailError && (
+              <p
+                className="mt-2 flex items-center gap-1 text-xs text-red-700"
+                role="alert"
+                aria-live="polite"
+              >
+                <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                Cette adresse e-mail est déjà utilisée.
+              </p>
+            )}
           </div>
 
           <div>
@@ -224,20 +273,6 @@ export default function RegisterPage() {
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
               placeholder="Répétez votre mot de passe"
             />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Rôle</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as 'company' | 'visitor')}
-              required
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
-            >
-              <option value="visitor">Visiteur</option>
-              <option value="company">PME, Entreprise, Artisan, Freelance, Startup</option>
-            </select>
-            <p className="mt-2 text-xs text-gray-500">Tous les champs sont obligatoires.</p>
           </div>
 
           <button
@@ -267,59 +302,57 @@ export default function RegisterPage() {
           </p>
         </form>
 
-        {role !== 'visitor' && (
-          <div className="mt-5 sm:mt-6">
-            <div className="relative my-4 sm:my-5">
-              <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-                  OU
-                </span>
-              </div>
+        <div className="mt-5 sm:mt-6">
+          <div className="relative my-4 sm:my-5">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-gray-200" />
             </div>
-
-            <div>
-              <p className="mb-3 text-sm font-medium text-gray-700">Connexion sociale</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => handleSocialLogin('google')}
-                  disabled={loading}
-                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
-                    <FaGoogle className="h-4 w-4" />
-                  </span>
-                  Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSocialLogin('facebook')}
-                  disabled={loading}
-                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
-                    <FaFacebookF className="h-4 w-4" />
-                  </span>
-                  Facebook
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSocialLogin('linkedin_oidc')}
-                  disabled={loading}
-                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
-                    <FaLinkedinIn className="h-4 w-4" />
-                  </span>
-                  LinkedIn
-                </button>
-              </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+                OU
+              </span>
             </div>
           </div>
-        )}
+
+          <div>
+            <p className="mb-3 text-sm font-medium text-gray-700"> Connexion sociale </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => handleSocialLogin('google')}
+                disabled={loading}
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                  <FaGoogle className="h-4 w-4" />
+                </span>
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSocialLogin('facebook')}
+                disabled={loading}
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                  <FaFacebookF className="h-4 w-4" />
+                </span>
+                Facebook
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSocialLogin('linkedin_oidc')}
+                disabled={loading}
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                  <FaLinkedinIn className="h-4 w-4" />
+                </span>
+                LinkedIn
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-5 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600 sm:mt-6 sm:p-4">
           Une fois inscrit, vous serez redirigé vers votre onglet profil pour finaliser votre fiche
