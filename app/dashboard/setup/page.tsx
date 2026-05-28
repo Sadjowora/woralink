@@ -358,8 +358,8 @@ function SetupPageContent() {
   if (checking) {
     return (
       <DashboardShell title="Configuration" subtitle="Verification de votre fiche professionnelle.">
-        <div className="rounded-xl border border-gray-200 bg-white p-8">
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
             Verification du profil...
           </div>
         </div>
@@ -375,7 +375,7 @@ function SetupPageContent() {
         <>
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
           >
             Retour dashboard
           </Link>
@@ -388,18 +388,18 @@ function SetupPageContent() {
         </>
       }
     >
-      <div className="w-full rounded-xl border border-gray-200 bg-white p-5">
+      <div className="w-full rounded-xl border border-gray-200 bg-white p-5 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
         {company && !editing ? (
           <>
             <div className="mb-6 flex flex-col gap-3 border-b border-gray-100 pb-4 sm:mb-8 sm:gap-4 sm:pb-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                   Votre entreprise
                 </p>
                 <h2 className="mt-2 text-xl font-bold tracking-tighter text-primary sm:text-2xl md:text-3xl">
                   Tableau de bord Woralink
                 </h2>
-                <p className="mt-2 text-xs text-gray-600 sm:text-sm">
+                <p className="mt-2 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
                   Retrouvez les informations essentielles de votre fiche et accedez aux actions
                   rapides.
                 </p>
@@ -415,25 +415,25 @@ function SetupPageContent() {
                 </button>
                 <Link
                   href={`/pme/${company.slug}`}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 sm:px-5 sm:py-3 sm:text-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   Voir ma page publique
                 </Link>
                 <Link
                   href="/dashboard/gallery"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 sm:px-5 sm:py-3 sm:text-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   Gérer la galerie
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 sm:px-5 sm:py-3 sm:text-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   Retour au dashboard
                 </Link>
                 <Link
                   href="/dashboard/media"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 sm:px-5 sm:py-3 sm:text-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   Aperçu des médias
                 </Link>
@@ -450,7 +450,7 @@ function SetupPageContent() {
               <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-primary sm:text-xs">
                 Image professionnelle
               </p>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700 sm:text-base">
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700 transition-colors duration-200 dark:text-slate-200 sm:text-base">
                 Un profil à jour inspire davantage confiance, valorise votre savoir-faire et
                 renforce immédiatement votre image professionnelle. Prenez quelques minutes pour
                 affiner votre fiche, enrichir vos informations et montrer aux visiteurs une
@@ -458,43 +458,43 @@ function SetupPageContent() {
               </p>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-              <section className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
+              <section className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                 <div className="mb-4 flex items-center justify-between gap-2 sm:mb-5">
                   <div>
-                    <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                    <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Resume
                     </p>
                     <h3 className="mt-2 text-lg font-semibold text-black sm:text-xl">
                       Votre fiche entreprise
                     </h3>
-                    <p className="mt-1 text-xs text-gray-600 sm:text-sm">
+                    <p className="mt-1 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
                       Les informations visibles par vos visiteurs sur Woralink.
                     </p>
                   </div>
-                  <span className="whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-700 sm:px-3 sm:py-1 sm:text-xs">
+                  <span className="whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-700 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:px-3 sm:py-1 sm:text-xs">
                     En ligne
                   </span>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-md border border-gray-200 bg-white p-4">
-                    <p className="text-[9px] uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+                    <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Statut
                     </p>
                     <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
                       En ligne
                     </p>
                   </div>
-                  <div className="rounded-md border border-gray-200 bg-white p-4">
-                    <p className="text-[9px] uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+                    <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Ville
                     </p>
                     <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
                       {company.city}
                     </p>
                   </div>
-                  <div className="rounded-md border border-gray-200 bg-white p-4">
-                    <p className="text-[9px] uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+                    <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Secteur
                     </p>
                     <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
@@ -504,8 +504,8 @@ function SetupPageContent() {
                 </div>
               </section>
 
-              <section className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
-                <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+              <section className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+                <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                   Details
                 </p>
                 <h3 className="mt-2 text-lg font-semibold text-black sm:text-xl">
@@ -514,66 +514,66 @@ function SetupPageContent() {
                 <div className="mt-5 overflow-hidden rounded-md border border-gray-200">
                   <ul className="tabular-nums">
                     <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Nom de l&apos;entité
                       </span>
-                      <span className="text-right text-xs font-medium text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.name}
                       </span>
                     </li>
                     <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Type de profil
                       </span>
-                      <span className="text-right text-xs font-medium text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.profile_type}
                       </span>
                     </li>
                     <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Secteur d&apos;activité
                       </span>
-                      <span className="text-right text-xs font-medium text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.sector}
                       </span>
                     </li>
                     <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Ville
                       </span>
-                      <span className="text-right text-xs font-medium text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.city}
                       </span>
                     </li>
                     <li className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Numéro WhatsApp
                       </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.whatsapp}
                       </span>
                     </li>
                     <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Années d&apos;expérience
                       </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.years_experience ?? 'À renseigner'}
                       </span>
                     </li>
                     <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Projets terminés
                       </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.completed_projects ?? 'À renseigner'}
                       </span>
                     </li>
                     <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Nombre d&apos;employés
                       </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 sm:text-sm">
+                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
                         {company.employee_count ?? 'À renseigner'}
                       </span>
                     </li>
@@ -581,18 +581,18 @@ function SetupPageContent() {
                 </div>
                 <div className="mt-3 space-y-2 rounded-md border border-gray-200 p-3 sm:mt-4 sm:space-y-3 sm:p-4">
                   <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                       Histoire de l&apos;entreprise
                     </p>
-                    <p className="mt-1 text-xs text-gray-700 sm:text-sm">
+                    <p className="mt-1 text-xs text-gray-700 transition-colors duration-200 dark:text-slate-200 sm:text-sm">
                       {company.company_story || 'À renseigner'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 sm:text-xs">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                       Message de l&apos;entreprise
                     </p>
-                    <p className="mt-1 text-xs text-gray-700 sm:text-sm">
+                    <p className="mt-1 text-xs text-gray-700 transition-colors duration-200 dark:text-slate-200 sm:text-sm">
                       {company.founder_message || 'À renseigner'}
                     </p>
                   </div>
@@ -600,8 +600,8 @@ function SetupPageContent() {
               </section>
 
               {company.logo_url && (
-                <div className="rounded-md border border-gray-200 bg-white p-4 sm:p-6">
-                  <label className="mb-1 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+                  <label className="mb-1 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Logo
                   </label>
                   <Image
@@ -614,8 +614,8 @@ function SetupPageContent() {
                 </div>
               )}
 
-              <div className="rounded-md border border-gray-200 bg-white p-6 lg:col-span-2">
-                <label className="mb-1 block text-[10px] font-medium uppercase tabular-nums tracking-widest text-gray-500">
+              <div className="rounded-md border border-gray-200 bg-white p-6 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 lg:col-span-2">
+                <label className="mb-1 block text-[10px] font-medium uppercase tabular-nums tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300">
                   Galerie ({galleryUrls.filter(Boolean).length}/5)
                 </label>
                 {galleryUrls.some(Boolean) ? (
@@ -634,7 +634,9 @@ function SetupPageContent() {
                       ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Aucune photo de galerie.</p>
+                  <p className="text-sm text-gray-500 transition-colors duration-200 dark:text-slate-300">
+                    Aucune photo de galerie.
+                  </p>
                 )}
               </div>
             </div>
@@ -642,13 +644,13 @@ function SetupPageContent() {
         ) : (
           <>
             <div className="mb-6 text-center">
-              <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+              <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                 Dashboard Woralink
               </p>
               <h1 className="mt-2 text-xl font-bold tracking-tighter text-primary sm:text-2xl md:text-3xl">
                 {editing ? 'Modifier votre profil' : 'Créer un profil professionnel'}
               </h1>
-              <p className="mt-2 text-xs text-gray-600 sm:text-sm">
+              <p className="mt-2 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
                 {editing
                   ? 'Mettez à jour votre fiche et votre galerie pour garder une page publique complète.'
                   : 'Configurez votre fiche entreprise pour apparaître sur Woralink et commencer à recevoir des demandes.'}
@@ -656,20 +658,20 @@ function SetupPageContent() {
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 sm:px-4 sm:text-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-4 sm:text-sm"
                 >
                   Retour au dashboard
                 </Link>
                 <Link
                   href="/dashboard/gallery"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 sm:px-4 sm:text-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-4 sm:text-sm"
                 >
                   Gérer ma galerie
                 </Link>
                 {company && (
                   <Link
                     href={`/pme/${company.slug}`}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 sm:px-4 sm:text-sm"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-4 sm:text-sm"
                   >
                     Voir ma page publique
                   </Link>
@@ -679,14 +681,14 @@ function SetupPageContent() {
 
             {!editing && !company && (
               <div className="mb-4 text-center sm:mb-6">
-                <p className="mb-3 text-xs text-gray-500 sm:text-sm">
+                <p className="mb-3 text-xs text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
                   Vous pourrez compléter votre profil professionnel à tout moment depuis votre
                   tableau de bord.
                 </p>
                 <div className="flex justify-center">
                   <Link
                     href="/dashboard"
-                    className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition-colors hover:border-primary hover:text-primary sm:text-sm"
+                    className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition-colors hover:border-primary hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:text-sm"
                   >
                     Passer pour plus tard
                   </Link>
@@ -695,15 +697,15 @@ function SetupPageContent() {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
-              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 sm:space-y-5 sm:p-6">
+              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:space-y-5 sm:p-6">
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Nom de l&apos;entité
                   </label>
                   <input
                     type="text"
                     {...register('entityName', { required: 'Ce champ est requis' })}
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                   />
                   {errors.entityName && (
                     <p className="mt-1 text-xs text-red-600 sm:text-sm">
@@ -714,12 +716,12 @@ function SetupPageContent() {
 
                 <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Type de profil
                     </label>
                     <select
                       {...register('profileType', { required: 'Ce champ est requis' })}
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                     >
                       <option value="">Sélectionnez un type</option>
                       {profileTypes.map((type) => (
@@ -736,12 +738,12 @@ function SetupPageContent() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Secteur d&apos;activité
                     </label>
                     <select
                       {...register('sector', { required: 'Ce champ est requis' })}
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                     >
                       <option value="">Sélectionnez un secteur</option>
                       {sectors.map((sector) => (
@@ -760,13 +762,13 @@ function SetupPageContent() {
 
                 <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Ville
                     </label>
                     <input
                       type="text"
                       {...register('city', { required: 'Ce champ est requis' })}
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                     />
                     {errors.city && (
                       <p className="mt-1 text-xs text-red-600 sm:text-sm">
@@ -776,7 +778,7 @@ function SetupPageContent() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                    <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Numéro WhatsApp
                     </label>
                     <input
@@ -790,7 +792,7 @@ function SetupPageContent() {
                         },
                       })}
                       placeholder="+33123456789"
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                     />
                     {errors.whatsapp && (
                       <p className="mt-1 text-xs text-red-600 sm:text-sm">
@@ -801,13 +803,13 @@ function SetupPageContent() {
                 </div>
               </section>
 
-              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 sm:space-y-5 sm:p-6">
+              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:space-y-5 sm:p-6">
                 <div>
                   <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <label className="text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                    <label className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Histoire de l&apos;entreprise
                     </label>
-                    <span className="text-[10px] tabular-nums text-gray-500 sm:text-xs">
+                    <span className="text-[10px] tabular-nums text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                       {companyStoryCharacterCount} caractères
                     </span>
                   </div>
@@ -815,7 +817,7 @@ function SetupPageContent() {
                     rows={6}
                     {...register('companyStory')}
                     placeholder="Racontez l'histoire de votre entreprise, votre mission et vos points forts."
-                    className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                    className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                   />
                   {companyStoryCharacterCount < 200 && (
                     <p className="mt-2 text-xs text-orange-600 sm:text-sm">
@@ -826,12 +828,12 @@ function SetupPageContent() {
                 </div>
 
                 <div>
-                  <p className="mb-3 text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <p className="mb-3 text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Chiffres clés
                   </p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                     <div>
-                      <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                      <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                         Années d&apos;expérience
                       </label>
                       <input
@@ -839,12 +841,12 @@ function SetupPageContent() {
                         min={0}
                         inputMode="numeric"
                         {...register('yearsExperience')}
-                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs tabular-nums text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs tabular-nums text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                      <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                         Projets terminés
                       </label>
                       <input
@@ -852,12 +854,12 @@ function SetupPageContent() {
                         min={0}
                         inputMode="numeric"
                         {...register('completedProjects')}
-                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs tabular-nums text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs tabular-nums text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                      <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                         Nombre d&apos;employés
                       </label>
                       <input
@@ -865,57 +867,57 @@ function SetupPageContent() {
                         min={1}
                         inputMode="numeric"
                         {...register('employeeCount')}
-                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs tabular-nums text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs tabular-nums text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                       />
                     </div>
                   </div>
                 </div>
               </section>
 
-              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 sm:space-y-5 sm:p-6">
+              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:space-y-5 sm:p-6">
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Message de l&apos;entreprise
                   </label>
                   <textarea
                     rows={5}
                     {...register('founderMessage')}
                     placeholder="Partagez un message de votre entreprise pour créer un lien de confiance."
-                    className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                    className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Adresse physique
                   </label>
                   <textarea
                     rows={3}
                     {...register('address')}
                     placeholder="Ex: 123 Avenue Ahmed Sékou Touré, Conakry, Guinée"
-                    className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                    className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Site web ou lien social
                   </label>
                   <input
                     type="url"
                     {...register('website_url')}
                     placeholder="https://votre-site.com ou https://linkedin.com/company/..."
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3 sm:text-sm"
+                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                   />
                 </div>
               </section>
 
-              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 sm:space-y-5 sm:p-6">
+              <section className="space-y-4 rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:space-y-5 sm:p-6">
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 sm:text-[10px]">
+                  <label className="mb-1.5 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Logo de l&apos;entreprise (optionnel)
                   </label>
-                  <small className="mb-2 block text-[10px] text-gray-500 sm:text-xs">
+                  <small className="mb-2 block text-[10px] text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                     Formats acceptés : PNG, JPG, GIF. Taille max : 5MB.
                   </small>
                   <ImageUpload
@@ -930,7 +932,7 @@ function SetupPageContent() {
                   )}
                 </div>
 
-                <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 sm:p-4 sm:text-sm">
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:p-4 sm:text-sm">
                   La galerie se met à jour sur une page dédiée. Utilisez le lien{' '}
                   <Link
                     href="/dashboard/gallery"
@@ -980,8 +982,8 @@ export default function SetupPage() {
     <Suspense
       fallback={
         <DashboardShell title="Configuration" subtitle="Chargement des parametres de votre espace.">
-          <div className="rounded-xl border border-gray-200 bg-white p-8">
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500">
+          <div className="rounded-xl border border-gray-200 bg-white p-8 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
               Chargement des parametres...
             </div>
           </div>

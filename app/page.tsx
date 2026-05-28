@@ -162,7 +162,7 @@ export default async function Home() {
     (trendItemsData as TrendingGalleryItem[]) ?? [];
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen bg-white text-gray-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
       <Navbar />
       <HeroSection />
 
@@ -184,10 +184,10 @@ export default async function Home() {
             <NextLink
               key={category.label}
               href={`/search?sector=${encodeURIComponent(category.sector)}`}
-              className="group rounded-xl border border-gray-200 bg-white p-3 text-center transition-all hover:border-primary hover:shadow-sm sm:rounded-2xl sm:p-5 sm:hover:shadow-md"
+              className="group rounded-xl border border-gray-200 bg-white p-3 text-center transition-all hover:border-primary hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-green-700 sm:rounded-2xl sm:p-5 sm:hover:shadow-md"
             >
               <div className="mb-1.5 text-2xl sm:mb-2 sm:text-3xl">{category.icon}</div>
-              <p className="line-clamp-2 text-xs font-semibold text-gray-800 group-hover:text-primary sm:text-sm">
+              <p className="line-clamp-2 text-xs font-semibold text-gray-800 transition-colors duration-200 group-hover:text-primary dark:text-slate-200 dark:group-hover:text-green-400 sm:text-sm">
                 {category.label}
               </p>
             </NextLink>
@@ -218,16 +218,16 @@ export default async function Home() {
 
             <NextLink
               href="/search"
-              className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 transition-all duration-150 hover:border-green-700 hover:bg-white hover:shadow-sm sm:px-6 sm:py-5"
+              className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 transition-all duration-150 hover:border-green-700 hover:bg-white hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-green-700 dark:hover:bg-slate-800 sm:px-6 sm:py-5"
             >
               <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500 transition-colors duration-150 group-hover:text-green-700">
                   Explorer davantage
                 </p>
-                <p className="mt-1 text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
+                <p className="mt-1 text-base font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-lg">
                   Découvrir plus de professionnels partout en Guinée
                 </p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 transition-colors duration-200 dark:text-slate-400">
                   PME, startups, artisans et freelances vérifiés vous attendent.
                 </p>
               </div>
@@ -244,8 +244,8 @@ export default async function Home() {
             </NextLink>
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center sm:p-8">
-            <p className="text-gray-600">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+            <p className="text-gray-600 transition-colors duration-200 dark:text-slate-300">
               Aucune entreprise affichée pour le moment. Soyez le premier à rejoindre Woralink.
             </p>
             <NextLink
@@ -265,7 +265,7 @@ export default async function Home() {
           <h2 className="text-lg font-bold tracking-tighter text-primary sm:text-2xl md:text-3xl">
             Tendances
           </h2>
-          <p className="mt-2 text-xs text-gray-600 sm:text-sm">
+          <p className="mt-2 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-400 sm:text-sm">
             Découvrez les dernières réalisations d&apos;artisans et PME proches de vous.
           </p>
         </div>
@@ -276,7 +276,7 @@ export default async function Home() {
               <div key={`${item.slug}-${item.url}-${index}`} className="break-inside-avoid">
                 <NextLink
                   href={`/pme/${item.slug}`}
-                  className="group relative block overflow-hidden rounded-xl border border-gray-200"
+                  className="group relative block overflow-hidden rounded-xl border border-gray-200 transition-colors duration-200 dark:border-slate-800"
                 >
                   <Image
                     src={item.url}
@@ -303,7 +303,7 @@ export default async function Home() {
               <h2 className="text-lg font-bold tracking-tighter text-primary sm:text-2xl md:text-3xl">
                 Coup de Cœur
               </h2>
-              <p className="mt-1 text-xs text-gray-500 sm:text-sm">
+              <p className="mt-1 text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400 sm:text-sm">
                 L&apos;entreprise qui fait parler d&apos;elle cette semaine.
               </p>
             </div>

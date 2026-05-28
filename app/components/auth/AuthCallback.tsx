@@ -96,8 +96,8 @@ export default function AuthCallback() {
 
   if (errorMessage) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white px-4">
-        <div className="w-full max-w-sm rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+      <div className="flex min-h-screen items-center justify-center bg-white px-4 transition-colors duration-200 dark:bg-slate-950">
+        <div className="w-full max-w-sm rounded-xl border border-red-200 bg-red-50 p-6 text-center transition-colors duration-200 dark:border-red-900/50 dark:bg-red-950/40">
           <p className="text-sm font-medium text-red-700">{errorMessage}</p>
           <a
             href="/login"
@@ -111,13 +111,15 @@ export default function AuthCallback() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white transition-colors duration-200 dark:bg-slate-950">
       <div
-        className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-green-700"
+        className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-green-700 dark:border-slate-700"
         role="status"
         aria-label="Chargement en cours"
       />
-      <p className="text-sm text-gray-500">Connexion en cours, veuillez patienter…</p>
+      <p className="text-sm text-gray-500 transition-colors duration-200 dark:text-slate-400">
+        Connexion en cours, veuillez patienter…
+      </p>
     </div>
   );
 }

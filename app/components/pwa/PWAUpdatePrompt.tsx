@@ -109,8 +109,10 @@ export default function PWAUpdatePrompt() {
   if (!updateReady || dismissed) return null;
 
   return (
-    <div className="z-80 fixed bottom-4 right-4 max-w-xs rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-      <p className="text-xs font-medium text-gray-900">Une nouvelle version est disponible.</p>
+    <div className="z-80 fixed bottom-4 right-4 max-w-xs rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors duration-200 dark:border-slate-700 dark:bg-slate-900">
+      <p className="text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100">
+        Une nouvelle version est disponible.
+      </p>
       <div className="mt-2 flex items-center gap-2">
         <button
           type="button"
@@ -122,7 +124,7 @@ export default function PWAUpdatePrompt() {
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors duration-150 hover:bg-gray-50"
+          className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors duration-150 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           Plus tard
         </button>

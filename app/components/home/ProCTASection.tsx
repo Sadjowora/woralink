@@ -38,7 +38,7 @@ const staggerContainer: Variants = {
 
 export default function ProCTASection() {
   return (
-    <section className="border-t border-gray-100 bg-gray-50">
+    <section className="border-t border-gray-100 bg-gray-50 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900/40">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
         <motion.div
           variants={fadeInUp}
@@ -50,10 +50,10 @@ export default function ProCTASection() {
           <span className="mb-4 inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
             Pour les professionnels
           </span>
-          <h2 className="text-2xl font-semibold tracking-tight text-gray-900 md:text-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100 md:text-3xl">
             Vous êtes une entreprise, un artisan ou un freelance ?
           </h2>
-          <p className="mt-3 text-base leading-relaxed text-gray-500">
+          <p className="mt-3 text-base leading-relaxed text-gray-500 transition-colors duration-200 dark:text-slate-400">
             Rejoignez Woralink gratuitement et donnez de la visibilité à votre activité auprès de
             milliers de clients en Guinée.
           </p>
@@ -71,11 +71,15 @@ export default function ProCTASection() {
               key={benefit.title}
               variants={fadeInUp}
               whileHover={{ y: -2 }}
-              className="group relative rounded-xl border border-gray-200 bg-white p-5 transition-all duration-150 hover:border-gray-300 hover:shadow-sm"
+              className="group relative rounded-xl border border-gray-200 bg-white p-5 transition-all duration-150 hover:border-gray-300 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
             >
               <span className="mb-3 block text-2xl">{benefit.icon}</span>
-              <h3 className="mb-1 text-base font-semibold text-gray-900">{benefit.title}</h3>
-              <p className="text-sm leading-relaxed text-gray-500">{benefit.description}</p>
+              <h3 className="mb-1 text-base font-semibold text-gray-900 transition-colors duration-200 dark:text-slate-100">
+                {benefit.title}
+              </h3>
+              <p className="text-sm leading-relaxed text-gray-500 transition-colors duration-200 dark:text-slate-400">
+                {benefit.description}
+              </p>
             </motion.div>
           ))}
         </motion.div>
@@ -95,7 +99,7 @@ export default function ProCTASection() {
           </Link>
           <Link
             href="/comment-ca-marche"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
           >
             Comment ça marche ?
           </Link>

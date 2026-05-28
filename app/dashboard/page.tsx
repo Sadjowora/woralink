@@ -79,13 +79,15 @@ export default function DashboardPage() {
   }, [router, supabase]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4">
-      <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-wide text-gray-500">Dashboard</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-white px-4 transition-colors duration-200 dark:bg-slate-950">
+      <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
+        <p className="text-sm font-medium uppercase tracking-wide text-gray-500 transition-colors duration-200 dark:text-slate-300">
+          Dashboard
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100">
           Chargement de votre espace personnalisé...
         </h1>
-        <p className="mt-3 text-sm text-gray-600">
+        <p className="mt-3 text-sm text-gray-600 transition-colors duration-200 dark:text-slate-300">
           Vérification de votre session et de votre profil en cours.
         </p>
       </div>

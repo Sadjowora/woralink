@@ -158,20 +158,20 @@ export default function GuestBanner() {
   if (canShowInstallBanner) {
     if (isIOSDevice) {
       return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white shadow-sm">
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white shadow-sm transition-colors duration-200 dark:border-slate-700 dark:bg-slate-900">
           <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-3.5">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900 sm:text-base">
+              <p className="text-sm font-semibold text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-base">
                 Woralink est plus rapide sur mobile !
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-gray-600 sm:text-sm">
+              <p className="mt-2 text-xs leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
                 Pour installer Woralink sur votre iPhone : appuyez sur Partager ↑ puis sur{' '}
                 <span className="font-semibold">« Sur l&apos;écran d&apos;accueil »</span> ⊕.
               </p>
             </div>
 
             <div className="relative flex flex-col items-center gap-2">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-gray-50">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-gray-50 transition-colors duration-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                 <span className="text-xl leading-none">↗</span>
               </div>
 
@@ -184,7 +184,7 @@ export default function GuestBanner() {
               type="button"
               onClick={handleCloseInstallBanner}
               aria-label="Fermer le bandeau"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <span aria-hidden="true">×</span>
             </button>
@@ -194,13 +194,13 @@ export default function GuestBanner() {
     }
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white shadow-sm">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white shadow-sm transition-colors duration-200 dark:border-slate-700 dark:bg-slate-900">
         <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-3.5">
           <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-900 sm:text-base">
+            <p className="text-sm font-semibold text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-base">
               Woralink est plus rapide sur mobile !
             </p>
-            <p className="mt-0.5 text-xs leading-relaxed text-gray-600 sm:text-sm">
+            <p className="mt-0.5 text-xs leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
               Installez l&apos;application sur votre écran d&apos;accueil pour accéder à vos
               services en un clic.
             </p>
@@ -216,7 +216,7 @@ export default function GuestBanner() {
                 Installer maintenant
               </button>
             ) : (
-              <p className="max-w-56 text-right text-xs leading-relaxed text-gray-600 sm:text-sm">
+              <p className="max-w-56 text-right text-xs leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
                 Ouvrez le menu du navigateur puis choisissez Installer l&apos;application.
               </p>
             )}
@@ -225,7 +225,7 @@ export default function GuestBanner() {
               type="button"
               onClick={handleCloseInstallBanner}
               aria-label="Fermer le bandeau"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <span aria-hidden="true">×</span>
             </button>
