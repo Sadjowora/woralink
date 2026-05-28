@@ -3,6 +3,9 @@ import withPWAInit from 'next-pwa';
 
 const withPWA = withPWAInit({
   dest: 'public',
+  register: true,
+  skipWaiting: false,
+  reloadOnOnline: false,
   disable:
     process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_ENABLE_PWA_DEV !== 'true',
 });

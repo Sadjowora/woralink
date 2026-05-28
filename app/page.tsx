@@ -49,6 +49,19 @@ type CoupDeCoeurCompany = {
   founder_message?: string | null;
 };
 
+type FeaturedAnalyticsRow = {
+  slot: 'company_of_day' | 'champion_of_week' | 'pme_of_month';
+  company_id: string;
+  company_name: string;
+  city: string | null;
+  sector: string | null;
+  slug: string;
+  views_24h: number | null;
+  bravos_7d: number | null;
+  views_30d: number | null;
+  bravos_30d: number | null;
+};
+
 const POPULAR_CATEGORIES = [
   { label: 'BTP', sector: 'Construction & BTP', icon: '🏗️' },
   { label: 'Numérique', sector: 'Tech & Numérique', icon: '💻' },
@@ -68,47 +81,68 @@ export default async function Home() {
 
   const featuredCompanies: Company[] = error ? [] : ((data as Company[]) ?? []);
 
-  // Coup de Cœur: top views, fallback to most recent with photo
+  // Coup de Cœur: same shared source as /search (RPC get_featured_companies_analytics).
   let coupDeCoeur: (CoupDeCoeurCompany & { photo_url?: string | null }) | null = null;
   {
-    const { data: topViewed } = await supabase
-      .from('companies')
-      .select('id, name, sector, city, slug, logo_url, views_count, company_story, founder_message')
-      .not('logo_url', 'is', null)
-      .order('views_count', { ascending: false })
-      .limit(1)
-      .single();
+    const { data: featuredAnalyticsData } = await supabase.rpc('get_featured_companies_analytics');
+    const featuredAnalyticsRows = (featuredAnalyticsData as FeaturedAnalyticsRow[] | null) ?? [];
+    const championAnalytics = featuredAnalyticsRows.find((row) => row.slot === 'champion_of_week');
 
-    if (topViewed && (topViewed.views_count ?? 0) > 0) {
-      const { data: photo } = await supabase
-        .from('company_photos')
-        .select('url')
-        .eq('company_id', topViewed.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+    let championOfWeek: (CoupDeCoeurCompany & { photo_url?: string | null }) | null = null;
+
+    if (championAnalytics?.company_id) {
+      const { data: championCompany } = await supabase
+        .from('companies')
+        .select(
+          'id, name, sector, city, slug, logo_url, views_count, company_story, founder_message',
+        )
+        .eq('id', championAnalytics.company_id)
         .maybeSingle();
-      coupDeCoeur = { ...topViewed, photo_url: photo?.url ?? null };
+
+      if (championCompany?.id) {
+        const { data: photo } = await supabase
+          .from('company_photos')
+          .select('url')
+          .eq('company_id', championCompany.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        championOfWeek = {
+          ...(championCompany as CoupDeCoeurCompany),
+          photo_url: photo?.url ?? null,
+        };
+      }
+    }
+
+    if (championOfWeek) {
+      coupDeCoeur = championOfWeek;
     } else {
-      // fallback: most recently registered company with a logo
-      const { data: recent } = await supabase
+      // Fallback: visibilité totale si pas d'activité semaine courante.
+      const { data: fallbackChampion } = await supabase
         .from('companies')
         .select(
           'id, name, sector, city, slug, logo_url, views_count, company_story, founder_message',
         )
         .not('logo_url', 'is', null)
-        .order('created_at', { ascending: false })
+        .order('bigup', { ascending: false, nullsFirst: false })
+        .order('views_count', { ascending: false, nullsFirst: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (recent) {
+      if (fallbackChampion?.id) {
         const { data: photo } = await supabase
           .from('company_photos')
           .select('url')
-          .eq('company_id', recent.id)
+          .eq('company_id', fallbackChampion.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
-        coupDeCoeur = { ...recent, photo_url: photo?.url ?? null };
+
+        coupDeCoeur = {
+          ...fallbackChampion,
+          photo_url: photo?.url ?? null,
+        };
       }
     }
   }
