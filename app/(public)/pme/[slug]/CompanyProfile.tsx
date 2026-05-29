@@ -2,14 +2,24 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { Eye, Globe, MapPin, ChevronLeft, ChevronRight, X as CloseIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  Eye,
+  Globe,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight,
+  X as CloseIcon,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ReviewSystem from '../../../components/ReviewSystem';
 import ShareProfile from '../../../components/ShareProfile';
 import VerifiedBadge from '../../../components/ui/VerifiedBadge';
 import { computeProfileCompletionPercent } from '../../../../lib/company-completion';
 import { supabase } from '../../../../lib/supabase';
-import { sendContactMessage, type ContactState } from '../../contact/actions';
+import { sendContactMessage, startChatRoom, type ContactState } from '../../contact/actions';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 12 },
@@ -88,8 +98,11 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
   const [currentViews, setCurrentViews] = useState<number>(
     Math.max(0, Number(company.views ?? company.views_count ?? 0) || 0),
   );
+  const router = useRouter();
   const [contactAuthLoading, setContactAuthLoading] = useState(true);
   const [senderId, setSenderId] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatToast, setChatToast] = useState('');
   const [userRole, setUserRole] = useState<ProfileRole>('');
   const [contactSubject, setContactSubject] = useState('');
   const [contactBody, setContactBody] = useState('');
@@ -167,7 +180,6 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
         return;
       }
 
-      console.log('[Views] calling RPC increment_view', { company_slug: company.slug });
       let rpcData: unknown = null;
       let finalError: { message?: string; details?: string; hint?: string; code?: string } | null =
         null;
@@ -201,9 +213,6 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
         });
         return;
       }
-
-      console.log('[Views] increment success', { rpcData });
-      window.sessionStorage.setItem(viewedKey, '1');
       const nextViews = extractViewsCount(rpcData);
       if (nextViews !== null) {
         setCurrentViews(nextViews);
@@ -251,6 +260,37 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
   const completionPercent = computeProfileCompletionPercent(company);
   const canSendDirectMessage = Boolean(senderId) && userRole === 'client';
 
+  useEffect(() => {
+    if (!chatToast) return;
+    const timer = window.setTimeout(() => setChatToast(''), 3200);
+    return () => window.clearTimeout(timer);
+  }, [chatToast]);
+
+  const handleStartChat = async () => {
+    if (!senderId) {
+      router.push('/login');
+      return;
+    }
+    if (!company.id) {
+      setChatToast('Ce professionnel ne peut pas encore recevoir de messages directs.');
+      return;
+    }
+    if (senderId === company.user_id) return; // propriétaire sur son propre profil
+    setChatLoading(true);
+    setChatToast('');
+    const result = await startChatRoom(senderId, company.id);
+    setChatLoading(false);
+    if ('error' in result) {
+      setChatToast(result.error);
+      return;
+    }
+    if (userRole === 'company') {
+      router.push(`/dashboard/messages?room=${result.roomId}`);
+      return;
+    }
+    router.push(`/dashboard/client?tab=messages&company=${company.id}`);
+  };
+
   const handleSendContactMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -294,6 +334,12 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28 transition-colors duration-200 dark:bg-slate-950">
+      {chatToast && (
+        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 shadow-sm">
+          {chatToast}
+        </div>
+      )}
+
       {/* Hero */}
       <div className="border-b border-gray-200 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-4 py-10 sm:gap-5 sm:py-14">
@@ -333,9 +379,6 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
             </p>
 
             <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
-              <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {company.profile_type}
-              </span>
               <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
                 {company.sector}
               </span>
@@ -349,6 +392,25 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:mt-3 sm:text-base">
                 {company.description}
               </p>
+            )}
+
+            {/* Bouton Contacter — masqué si propriétaire ou auth en cours */}
+            {!contactAuthLoading && senderId !== company.user_id && (
+              <div className="flex flex-col items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleStartChat}
+                  disabled={chatLoading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:opacity-60"
+                >
+                  {chatLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {chatLoading ? 'Connexion...' : 'Contacter le professionnel'}
+                </button>
+              </div>
             )}
           </div>
         </div>

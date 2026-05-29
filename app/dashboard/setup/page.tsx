@@ -388,7 +388,7 @@ function SetupPageContent() {
         </>
       }
     >
-      <div className="w-full rounded-xl border border-gray-200 bg-white p-5 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
+      <div className="w-full rounded-xl border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-5">
         {company && !editing ? (
           <>
             <div className="mb-6 flex flex-col gap-3 border-b border-gray-100 pb-4 sm:mb-8 sm:gap-4 sm:pb-6 md:flex-row md:items-end md:justify-between">
@@ -437,6 +437,12 @@ function SetupPageContent() {
                 >
                   Aperçu des médias
                 </Link>
+                <Link
+                  href="/dashboard/messages"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
+                >
+                  Messagerie
+                </Link>
               </div>
             </div>
 
@@ -457,14 +463,14 @@ function SetupPageContent() {
                 entreprise sérieuse, active et prête à être contactée.
               </p>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-              <section className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+            <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+              <section className="rounded-md border border-gray-200 bg-white p-3 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                 <div className="mb-4 flex items-center justify-between gap-2 sm:mb-5">
                   <div>
                     <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Resume
                     </p>
-                    <h3 className="mt-2 text-lg font-semibold text-black sm:text-xl">
+                    <h3 className="mt-2 text-base font-semibold text-black sm:text-xl">
                       Votre fiche entreprise
                     </h3>
                     <p className="mt-1 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
@@ -476,44 +482,44 @@ function SetupPageContent() {
                   </span>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+                <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+                  <div className="rounded-md border border-gray-200 bg-white p-3 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 sm:p-4">
                     <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Statut
                     </p>
-                    <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
+                    <p className="mt-1.5 text-xl font-medium tracking-tighter text-black sm:mt-2 sm:text-3xl">
                       En ligne
                     </p>
                   </div>
-                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+                  <div className="rounded-md border border-gray-200 bg-white p-3 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 sm:p-4">
                     <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Ville
                     </p>
-                    <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
+                    <p className="mt-1.5 text-xl font-medium tracking-tighter text-black sm:mt-2 sm:text-3xl">
                       {company.city}
                     </p>
                   </div>
-                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+                  <div className="rounded-md border border-gray-200 bg-white p-3 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 sm:p-4">
                     <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                       Secteur
                     </p>
-                    <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
+                    <p className="mt-1.5 text-xl font-medium tracking-tighter text-black sm:mt-2 sm:text-3xl">
                       {company.sector}
                     </p>
                   </div>
                 </div>
               </section>
 
-              <section className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+              <section className="rounded-md border border-gray-200 bg-white p-3 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                 <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                   Details
                 </p>
-                <h3 className="mt-2 text-lg font-semibold text-black sm:text-xl">
+                <h3 className="mt-2 text-base font-semibold text-black sm:text-xl">
                   Fiche detaillee
                 </h3>
-                <div className="mt-5 overflow-hidden rounded-md border border-gray-200">
+                <div className="mt-3 overflow-hidden rounded-md border border-gray-200 sm:mt-5">
                   <ul className="tabular-nums">
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Nom de l&apos;entité
                       </span>
@@ -521,7 +527,7 @@ function SetupPageContent() {
                         {company.name}
                       </span>
                     </li>
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Type de profil
                       </span>
@@ -529,7 +535,7 @@ function SetupPageContent() {
                         {company.profile_type}
                       </span>
                     </li>
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Secteur d&apos;activité
                       </span>
@@ -537,7 +543,7 @@ function SetupPageContent() {
                         {company.sector}
                       </span>
                     </li>
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Ville
                       </span>
@@ -545,7 +551,7 @@ function SetupPageContent() {
                         {company.city}
                       </span>
                     </li>
-                    <li className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Numéro WhatsApp
                       </span>
@@ -553,7 +559,7 @@ function SetupPageContent() {
                         {company.whatsapp}
                       </span>
                     </li>
-                    <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 border-t border-gray-100 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Années d&apos;expérience
                       </span>
@@ -561,7 +567,7 @@ function SetupPageContent() {
                         {company.years_experience ?? 'À renseigner'}
                       </span>
                     </li>
-                    <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 border-t border-gray-100 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Projets terminés
                       </span>
@@ -569,7 +575,7 @@ function SetupPageContent() {
                         {company.completed_projects ?? 'À renseigner'}
                       </span>
                     </li>
-                    <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
+                    <li className="flex items-center justify-between gap-3 border-t border-gray-100 px-3 py-2.5 hover:bg-gray-50 sm:gap-4 sm:px-4 sm:py-3">
                       <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
                         Nombre d&apos;employés
                       </span>
@@ -600,21 +606,21 @@ function SetupPageContent() {
               </section>
 
               {company.logo_url && (
-                <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+                <div className="rounded-md border border-gray-200 bg-white p-3 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                   <label className="mb-1 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
                     Logo
                   </label>
                   <Image
                     src={company.logo_url}
                     alt="Logo de l'entreprise"
-                    width={80}
-                    height={80}
+                    width={72}
+                    height={72}
                     className="rounded-lg border object-cover"
                   />
                 </div>
               )}
 
-              <div className="rounded-md border border-gray-200 bg-white p-6 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 lg:col-span-2">
+              <div className="rounded-md border border-gray-200 bg-white p-3 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 sm:p-6 lg:col-span-2">
                 <label className="mb-1 block text-[10px] font-medium uppercase tabular-nums tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300">
                   Galerie ({galleryUrls.filter(Boolean).length}/5)
                 </label>

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquareText,
   QrCode,
   Search,
   Settings,
@@ -48,6 +49,12 @@ const navItems = [
     href: '/dashboard/media',
     icon: QrCode,
     match: (pathname: string) => pathname === '/dashboard/media',
+  },
+  {
+    label: 'Messagerie',
+    href: '/dashboard/messages',
+    icon: MessageSquareText,
+    match: (pathname: string) => pathname === '/dashboard/messages',
   },
   {
     label: 'Configuration',
