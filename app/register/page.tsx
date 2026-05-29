@@ -165,7 +165,7 @@ export default function RegisterPage() {
       footerLinkLabel="Se connecter"
       footerLinkHref="/login"
     >
-      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:rounded-3xl sm:p-8">
         <div className="mb-5 sm:mb-6">
           <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600">
             Création de compte
@@ -173,7 +173,7 @@ export default function RegisterPage() {
           <h2 className="mt-2 text-2xl font-bold tracking-tighter text-primary sm:text-3xl">
             Rejoindre Woralink
           </h2>
-          <p className="mt-2 text-xs text-gray-500 sm:text-sm">
+          <p className="mt-2 text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400 sm:text-sm">
             Créez votre compte puis complétez votre profil pour publier votre fiche entreprise.
           </p>
         </div>
@@ -193,47 +193,51 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSignUp} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 transition-colors duration-200 dark:text-slate-300">
               Quel type de profil voulez-vous créer ?
             </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'company' | 'visitor')}
               required
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:px-4 sm:py-3"
             >
               <option value="visitor">Visiteur / Client</option>
               <option value="company">Entreprise, Artisan, Freelance, Startup</option>
             </select>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400">
               Commencez par choisir votre profil, puis complétez vos informations.
             </p>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Nom complet</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 transition-colors duration-200 dark:text-slate-300">
+              Nom complet
+            </label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:px-4 sm:py-3"
               placeholder="Votre nom complet"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 transition-colors duration-200 dark:text-slate-300">
+              Email
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               aria-invalid={duplicateEmailError}
-              className={`w-full rounded-xl px-3 py-2.5 text-sm text-gray-900 outline-none transition sm:px-4 sm:py-3 ${
+              className={`w-full rounded-xl bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition dark:bg-slate-900 dark:text-slate-100 sm:px-4 sm:py-3 ${
                 duplicateEmailError
                   ? 'border border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-                  : 'border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20'
+                  : 'border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700'
               }`}
               placeholder="vous@entreprise.com"
             />
@@ -250,19 +254,21 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Mot de passe</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 transition-colors duration-200 dark:text-slate-300">
+              Mot de passe
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:px-4 sm:py-3"
               placeholder="Choisissez un mot de passe"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 transition-colors duration-200 dark:text-slate-300">
               Confirmer le mot de passe
             </label>
             <input
@@ -270,7 +276,7 @@ export default function RegisterPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:px-4 sm:py-3"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:px-4 sm:py-3"
               placeholder="Répétez votre mot de passe"
             />
           </div>
@@ -283,7 +289,7 @@ export default function RegisterPage() {
             {loading ? 'Inscription...' : 'Créer mon espace Woralink'}
           </button>
 
-          <p className="text-xs leading-relaxed text-gray-500">
+          <p className="text-xs leading-relaxed text-gray-500 transition-colors duration-200 dark:text-slate-400">
             En créant un compte, vous acceptez notre{' '}
             <Link
               href="/politique-confidentialite"
@@ -305,25 +311,28 @@ export default function RegisterPage() {
         <div className="mt-5 sm:mt-6">
           <div className="relative my-4 sm:my-5">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full border-t border-gray-200 transition-colors duration-200 dark:border-slate-700" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+              <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 transition-colors duration-200 dark:bg-slate-900 dark:text-slate-400">
                 OU
               </span>
             </div>
           </div>
 
           <div>
-            <p className="mb-3 text-sm font-medium text-gray-700"> Connexion sociale </p>
+            <p className="mb-3 text-sm font-medium text-gray-700 transition-colors duration-200 dark:text-slate-300">
+              {' '}
+              Connexion sociale{' '}
+            </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => handleSocialLogin('google')}
                 disabled={loading}
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-green-400"
               >
-                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 transition-colors duration-150 group-hover:text-green-700 dark:text-slate-400 dark:group-hover:text-green-400">
                   <FaGoogle className="h-4 w-4" />
                 </span>
                 Google
@@ -332,9 +341,9 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => handleSocialLogin('facebook')}
                 disabled={loading}
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-green-400"
               >
-                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 transition-colors duration-150 group-hover:text-green-700 dark:text-slate-400 dark:group-hover:text-green-400">
                   <FaFacebookF className="h-4 w-4" />
                 </span>
                 Facebook
@@ -343,9 +352,9 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => handleSocialLogin('linkedin_oidc')}
                 disabled={loading}
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-green-400"
               >
-                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 group-hover:text-green-700">
+                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500 transition-colors duration-150 group-hover:text-green-700 dark:text-slate-400 dark:group-hover:text-green-400">
                   <FaLinkedinIn className="h-4 w-4" />
                 </span>
                 LinkedIn
@@ -354,7 +363,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600 sm:mt-6 sm:p-4">
+        <div className="mt-5 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600 transition-colors duration-200 dark:bg-slate-800 dark:text-slate-300 sm:mt-6 sm:p-4">
           Une fois inscrit, vous serez redirigé vers votre onglet profil pour finaliser votre fiche
           entreprise.
           <div className="mt-2">

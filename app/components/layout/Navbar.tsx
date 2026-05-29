@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Moon, Sun } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
 type UserData = {
@@ -69,6 +71,11 @@ function UserAvatar({
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.classList.contains('dark');
+  });
+  const [themeIconRotation, setThemeIconRotation] = useState(0);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -76,6 +83,19 @@ export default function Navbar() {
   const [profileIdentity, setProfileIdentity] = useState<ProfileIdentity | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => {
+      setIsDark(root.classList.contains('dark'));
+    });
+
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const loadProfileIdentity = async (userId: string) => {
@@ -179,6 +199,18 @@ export default function Navbar() {
     }
   }, [menuOpen, mobileMenuOpen]);
 
+  const toggleTheme = () => {
+    if (typeof window === 'undefined') return;
+
+    const root = document.documentElement;
+    const nextIsDark = !root.classList.contains('dark');
+
+    root.classList.toggle('dark', nextIsDark);
+    localStorage.setItem('theme', nextIsDark ? 'dark' : 'light');
+    setIsDark(nextIsDark);
+    setThemeIconRotation((prev) => prev + 180);
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setCompanyIdentity(null);
@@ -193,7 +225,7 @@ export default function Navbar() {
 
   if (loading) {
     return (
-      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/70 backdrop-blur-md">
+      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/70 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
         <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6">
           <Image
             src="/woralink.png"
@@ -204,14 +236,14 @@ export default function Navbar() {
             style={{ width: 'auto', height: 'auto' }}
             className="object-contain"
           />
-          <div className="h-9 w-32 animate-pulse rounded-md border border-gray-100 bg-gray-100" />
+          <div className="h-9 w-32 animate-pulse rounded-md border border-gray-100 bg-gray-100 dark:border-slate-700 dark:bg-slate-800" />
         </div>
       </nav>
     );
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/70 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/70 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
       <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-5">
           <Link href="/" className="shrink-0 transition-opacity hover:opacity-80">
@@ -227,7 +259,7 @@ export default function Navbar() {
           </Link>
           <Link
             href="/search"
-            className="hidden text-[15px] font-semibold text-gray-500 transition-colors hover:text-black sm:inline-flex"
+            className="hidden text-[15px] font-semibold text-gray-500 transition-colors hover:text-black dark:text-slate-300 dark:hover:text-slate-100 sm:inline-flex"
           >
             Explorer
           </Link>
@@ -237,16 +269,33 @@ export default function Navbar() {
         <div className="hidden sm:flex sm:items-center sm:gap-6">
           <Link
             href="/apropos"
-            className="text-[15px] font-semibold text-gray-500 transition-colors hover:text-black"
+            className="text-[15px] font-semibold text-gray-500 transition-colors hover:text-black dark:text-slate-300 dark:hover:text-slate-100"
           >
             À propos
           </Link>
+
+          <motion.button
+            type="button"
+            onClick={toggleTheme}
+            whileTap={{ scale: 0.96 }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+            aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
+            title={isDark ? 'Mode clair' : 'Mode sombre'}
+          >
+            <motion.span
+              animate={{ rotate: themeIconRotation }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="inline-flex"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </motion.span>
+          </motion.button>
 
           {user ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-gray-100 transition-colors hover:border-gray-300"
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-gray-100 transition-colors hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
@@ -258,7 +307,7 @@ export default function Navbar() {
                 <svg
                   viewBox="0 0 20 20"
                   fill="currentColor"
-                  className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-white text-gray-600"
+                  className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-white text-gray-600 dark:bg-slate-900 dark:text-slate-300"
                   aria-hidden="true"
                 >
                   <path
@@ -270,10 +319,10 @@ export default function Navbar() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-48 rounded-md border border-gray-200 bg-white p-1 shadow-md">
+                <div className="absolute right-0 z-20 mt-2 w-48 rounded-md border border-gray-200 bg-white p-1 shadow-md dark:border-slate-700 dark:bg-slate-900">
                   <Link
                     href="/dashboard"
-                    className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
                     onClick={() => setMenuOpen(false)}
                   >
                     Ma page
@@ -292,13 +341,13 @@ export default function Navbar() {
                       }
                       setMenuOpen(false);
                     }}
-                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Partager mon profil
                   </button>
                   <button
                     onClick={handleSignOut}
-                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
                   >
                     Déconnexion
                   </button>
@@ -309,13 +358,13 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link
                 href="/comment-ca-marche"
-                className="px-1 py-2 text-[15px] font-semibold text-gray-600 transition-colors hover:text-primary"
+                className="px-1 py-2 text-[15px] font-semibold text-gray-600 transition-colors hover:text-primary dark:text-slate-300 dark:hover:text-green-400"
               >
                 Comment ça marche ?
               </Link>
               <Link
                 href="/login"
-                className="px-1 py-2 text-[15px] font-semibold text-gray-500 transition-colors hover:text-black"
+                className="px-1 py-2 text-[15px] font-semibold text-gray-500 transition-colors hover:text-black dark:text-slate-300 dark:hover:text-slate-100"
               >
                 Connexion
               </Link>
@@ -331,9 +380,25 @@ export default function Navbar() {
 
         {/* Mobile Hamburger */}
         <div className="flex items-center gap-3 sm:hidden">
+          <motion.button
+            type="button"
+            onClick={toggleTheme}
+            whileTap={{ scale: 0.96 }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+            aria-label={isDark ? 'Activer le mode clair' : 'Activer le mode sombre'}
+            title={isDark ? 'Mode clair' : 'Mode sombre'}
+          >
+            <motion.span
+              animate={{ rotate: themeIconRotation }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="inline-flex"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </motion.span>
+          </motion.button>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-700"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-700 dark:text-slate-200"
             aria-label="Ouvrir le menu"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,47 +417,49 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div
           ref={mobileMenuRef}
-          className="space-y-3 border-t border-gray-100 bg-white px-4 py-4 sm:hidden"
+          className="space-y-3 border-t border-gray-100 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-950 sm:hidden"
         >
           <Link
             href="/search"
-            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100"
+            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
             onClick={() => setMobileMenuOpen(false)}
           >
             Explorer
           </Link>
           <Link
             href="/apropos"
-            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100"
+            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
             onClick={() => setMobileMenuOpen(false)}
           >
             À propos
           </Link>
           <Link
             href="/comment-ca-marche"
-            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-primary"
+            className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-primary dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400"
             onClick={() => setMobileMenuOpen(false)}
           >
             Comment ça marche ?
           </Link>
           {user ? (
             <>
-              <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-slate-700 dark:bg-slate-900">
                 <UserAvatar
                   logoUrl={companyIdentity?.logo_url ?? null}
                   initials={userInitials}
                   displayName={avatarDisplayName}
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">
+                  <p className="truncate text-sm font-semibold text-gray-900 dark:text-slate-100">
                     {profileIdentity?.full_name || 'Mon compte'}
                   </p>
-                  <p className="truncate text-xs text-gray-500">{user?.email || ''}</p>
+                  <p className="truncate text-xs text-gray-500 dark:text-slate-400">
+                    {user?.email || ''}
+                  </p>
                 </div>
               </div>
               <Link
                 href="/dashboard"
-                className="block rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                className="block rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Ma page
@@ -411,13 +478,13 @@ export default function Navbar() {
                   }
                   setMobileMenuOpen(false);
                 }}
-                className="block w-full rounded-md px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+                className="block w-full rounded-md px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Partager mon profil
               </button>
               <button
                 onClick={handleSignOut}
-                className="block w-full rounded-md px-4 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+                className="block w-full rounded-md px-4 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
               >
                 Déconnexion
               </button>
@@ -426,7 +493,7 @@ export default function Navbar() {
             <>
               <Link
                 href="/login"
-                className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100"
+                className="block rounded-md px-4 py-2 text-[15px] font-semibold text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Connexion

@@ -10,29 +10,34 @@ export const metadata: Metadata = {
 
 export default function PolitiqueConfidentialitePage() {
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen bg-white text-gray-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
       <Navbar />
 
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-12 sm:py-16">
-        <header className="mb-10 rounded-xl border border-gray-200 bg-gray-50 p-6 sm:p-8">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Politique de confidentialite</p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+      <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
+        <header className="mb-10 rounded-xl border border-gray-200 bg-gray-50 p-6 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            Politique de confidentialite
+          </p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-4xl">
             Protection des donnees personnelles
           </h1>
-          <p className="mt-4 text-sm leading-relaxed text-gray-600">
+          <p className="mt-4 text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-300">
             Date d&apos;entree en vigueur: 6 mai 2026
             <br />
             Derniere mise a jour: 6 mai 2026
           </p>
         </header>
 
-        <div className="space-y-8 text-gray-700">
+        <div className="space-y-8 text-gray-700 transition-colors duration-200 dark:text-slate-300">
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">1. Qui sommes-nous</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              1. Qui sommes-nous
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Woralink est une plateforme SaaS dediee a la decouverte des artisans, freelances, startups et PME en
-              Guinee, et plus largement en Afrique. Woralink permet aux professionnels d&apos;ameliorer leur visibilite
-              digitale et aux utilisateurs de trouver des prestataires locaux.
+              Woralink est une plateforme SaaS dediee a la decouverte des artisans, freelances,
+              startups et PME en Guinee, et plus largement en Afrique. Woralink permet aux
+              professionnels d&apos;ameliorer leur visibilite digitale et aux utilisateurs de
+              trouver des prestataires locaux.
             </p>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
               Responsable du traitement: Woralink
@@ -42,39 +47,53 @@ export default function PolitiqueConfidentialitePage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">2. Portee de la politique</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              2. Portee de la politique
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Cette politique decrit la maniere dont Woralink collecte, utilise, stocke, partage et protege les donnees
-              personnelles des utilisateurs de ses services web et mobiles, conformement aux lois applicables,
-              notamment le RGPD (Reglement UE 2016/679) lorsque celui-ci s&apos;applique.
+              Cette politique decrit la maniere dont Woralink collecte, utilise, stocke, partage et
+              protege les donnees personnelles des utilisateurs de ses services web et mobiles,
+              conformement aux lois applicables, notamment le RGPD (Reglement UE 2016/679) lorsque
+              celui-ci s&apos;applique.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">3. Donnees collectees</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              3. Donnees collectees
+            </h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-base leading-relaxed text-gray-600">
               <li>Donnees d&apos;identite: nom, prenom, nom d&apos;entreprise, fonction.</li>
-              <li>Donnees de contact: adresse e-mail, numero de telephone, adresse professionnelle.</li>
               <li>
-                Donnees de profil: description d&apos;activite, secteur, ville/localisation, medias (photos, logo),
-                horaires, liens professionnels.
+                Donnees de contact: adresse e-mail, numero de telephone, adresse professionnelle.
               </li>
               <li>
-                Donnees d&apos;authentification: identifiants de connexion, informations liees a l&apos;authentification via
-                fournisseur tiers (ex. Google).
+                Donnees de profil: description d&apos;activite, secteur, ville/localisation, medias
+                (photos, logo), horaires, liens professionnels.
               </li>
               <li>
-                Donnees techniques: adresse IP, type d&apos;appareil, navigateur, systeme d&apos;exploitation, journaux
-                techniques.
+                Donnees d&apos;authentification: identifiants de connexion, informations liees a
+                l&apos;authentification via fournisseur tiers (ex. Google).
               </li>
-              <li>Donnees d&apos;utilisation: pages visitees, actions realisees, preferences, interactions.</li>
-              <li>Donnees de communication: messages envoyes via formulaires de contact et support.</li>
+              <li>
+                Donnees techniques: adresse IP, type d&apos;appareil, navigateur, systeme
+                d&apos;exploitation, journaux techniques.
+              </li>
+              <li>
+                Donnees d&apos;utilisation: pages visitees, actions realisees, preferences,
+                interactions.
+              </li>
+              <li>
+                Donnees de communication: messages envoyes via formulaires de contact et support.
+              </li>
               <li>Donnees marketing: consentements et preferences de communication.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">4. Methodes de collecte</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              4. Methodes de collecte
+            </h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-base leading-relaxed text-gray-600">
               <li>Formulaires en ligne (inscription, profil, contact).</li>
               <li>Authentification et connexion sociale (ex. Google OAuth).</li>
@@ -85,75 +104,105 @@ export default function PolitiqueConfidentialitePage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">5. Finalites et bases legales</h2>
-            <p className="mt-3 text-base leading-relaxed text-gray-600">Nous utilisons vos donnees pour:</p>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              5. Finalites et bases legales
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              Nous utilisons vos donnees pour:
+            </p>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-base leading-relaxed text-gray-600">
               <li>Creer et gerer votre compte utilisateur.</li>
               <li>Publier et administrer les profils professionnels.</li>
               <li>Permettre la mise en relation entre utilisateurs et professionnels.</li>
-              <li>Assurer la securite, la prevention de la fraude et le bon fonctionnement du service.</li>
+              <li>
+                Assurer la securite, la prevention de la fraude et le bon fonctionnement du service.
+              </li>
               <li>Repondre aux demandes de support et de contact.</li>
               <li>Ameliorer nos services, fonctionnalites et performances.</li>
               <li>Envoyer des informations utiles et communications marketing selon vos choix.</li>
               <li>Respecter nos obligations legales et reglementaires.</li>
             </ul>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Bases legales selon les cas: execution du contrat, consentement, interet legitime et obligation legale.
+              Bases legales selon les cas: execution du contrat, consentement, interet legitime et
+              obligation legale.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold tracking-tight text-gray-900">6. Cookies</h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Woralink utilise des cookies et technologies similaires pour assurer le fonctionnement technique,
-              memoriser vos preferences, mesurer l&apos;audience et ameliorer l&apos;experience utilisateur.
+              Woralink utilise des cookies et technologies similaires pour assurer le fonctionnement
+              technique, memoriser vos preferences, mesurer l&apos;audience et ameliorer
+              l&apos;experience utilisateur.
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-base leading-relaxed text-gray-600">
               <li>Cookies strictement necessaires.</li>
               <li>Cookies de performance et d&apos;analyse.</li>
               <li>Cookies de fonctionnalite.</li>
-              <li>Cookies marketing, uniquement si vous y consentez lorsque la loi l&apos;exige.</li>
+              <li>
+                Cookies marketing, uniquement si vous y consentez lorsque la loi l&apos;exige.
+              </li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">7. Services tiers</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              7. Services tiers
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Nous pouvons recourir a des prestataires tiers pour operer le service, notamment Supabase
-              (infrastructure, base de donnees, authentification, stockage), Google Auth et d&apos;autres integrations
-              techniques necessaires.
+              Nous pouvons recourir a des prestataires tiers pour operer le service, notamment
+              Supabase (infrastructure, base de donnees, authentification, stockage), Google Auth et
+              d&apos;autres integrations techniques necessaires.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">8. Partage des donnees</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              8. Partage des donnees
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Nous ne vendons pas vos donnees personnelles. Nous pouvons partager certaines donnees avec des
-              sous-traitants techniques, pour respecter une obligation legale ou lorsqu&apos;une operation de fusion/cession
-              l&apos;exige, avec garanties adequates.
+              Nous ne vendons pas vos donnees personnelles. Nous pouvons partager certaines donnees
+              avec des sous-traitants techniques, pour respecter une obligation legale ou
+              lorsqu&apos;une operation de fusion/cession l&apos;exige, avec garanties adequates.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">9. Transferts internationaux</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              9. Transferts internationaux
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Vos donnees peuvent etre traitees hors de votre pays de residence, y compris hors EEE. Lorsque de tels
-              transferts ont lieu, Woralink met en place des garanties appropriees (clauses contractuelles types,
-              mesures techniques et organisationnelles, evaluations de protection).
+              Vos donnees peuvent etre traitees hors de votre pays de residence, y compris hors EEE.
+              Lorsque de tels transferts ont lieu, Woralink met en place des garanties appropriees
+              (clauses contractuelles types, mesures techniques et organisationnelles, evaluations
+              de protection).
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">10. Stockage et conservation</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              10. Stockage et conservation
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Les donnees sont stockees sur des infrastructures securisees exploitees par Woralink et ses prestataires.
+              Les donnees sont stockees sur des infrastructures securisees exploitees par Woralink
+              et ses prestataires.
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-base leading-relaxed text-gray-600">
               <li>Donnees de compte: pendant la duree du compte actif.</li>
-              <li>Donnees de profil public professionnel: jusqu&apos;a suppression/modification ou fermeture du compte.</li>
-              <li>Donnees de support/contact: jusqu&apos;a 24 mois apres traitement de la demande.</li>
-              <li>Donnees techniques et logs: duree limitee necessaire a la securite et au diagnostic.</li>
-              <li>Donnees marketing: jusqu&apos;au retrait du consentement ou au maximum 3 ans sans interaction.</li>
+              <li>
+                Donnees de profil public professionnel: jusqu&apos;a suppression/modification ou
+                fermeture du compte.
+              </li>
+              <li>
+                Donnees de support/contact: jusqu&apos;a 24 mois apres traitement de la demande.
+              </li>
+              <li>
+                Donnees techniques et logs: duree limitee necessaire a la securite et au diagnostic.
+              </li>
+              <li>
+                Donnees marketing: jusqu&apos;au retrait du consentement ou au maximum 3 ans sans
+                interaction.
+              </li>
               <li>Donnees soumises a obligations legales: selon les delais imposes par la loi.</li>
             </ul>
           </section>
@@ -179,7 +228,9 @@ export default function PolitiqueConfidentialitePage() {
               <li>Droit d&apos;opposition.</li>
               <li>Droit a la portabilite.</li>
               <li>Droit de retirer votre consentement.</li>
-              <li>Droit d&apos;introduire une reclamation aupres d&apos;une autorite competente.</li>
+              <li>
+                Droit d&apos;introduire une reclamation aupres d&apos;une autorite competente.
+              </li>
             </ul>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
               Pour exercer vos droits: geniewora@gmail.com / +351 920287214
@@ -189,31 +240,39 @@ export default function PolitiqueConfidentialitePage() {
           <section>
             <h2 className="text-2xl font-semibold tracking-tight text-gray-900">13. Mineurs</h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Woralink n&apos;est pas destine aux mineurs de moins de 16 ans sans autorisation parentale lorsque la loi
-              locale l&apos;exige. Si vous pensez qu&apos;un mineur nous a transmis des donnees sans autorisation appropriee,
-              contactez-nous.
+              Woralink n&apos;est pas destine aux mineurs de moins de 16 ans sans autorisation
+              parentale lorsque la loi locale l&apos;exige. Si vous pensez qu&apos;un mineur nous a
+              transmis des donnees sans autorisation appropriee, contactez-nous.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">14. Liens vers des services tiers</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              14. Liens vers des services tiers
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Notre plateforme peut contenir des liens vers des services tiers. Woralink n&apos;est pas responsable des
-              pratiques de confidentialite de ces services. Consultez leurs politiques respectives.
+              Notre plateforme peut contenir des liens vers des services tiers. Woralink n&apos;est
+              pas responsable des pratiques de confidentialite de ces services. Consultez leurs
+              politiques respectives.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">15. Modifications de cette politique</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+              15. Modifications de cette politique
+            </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-600">
-              Nous pouvons mettre a jour cette politique pour refleter les evolutions legales, techniques ou
-              operationnelles. La version la plus recente est publiee sur nos supports officiels.
+              Nous pouvons mettre a jour cette politique pour refleter les evolutions legales,
+              techniques ou operationnelles. La version la plus recente est publiee sur nos supports
+              officiels.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold tracking-tight text-gray-900">16. Contact</h2>
-            <p className="mt-3 text-base leading-relaxed text-gray-600">Pour toute question relative a la confidentialite:</p>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              Pour toute question relative a la confidentialite:
+            </p>
             <p className="mt-2 text-base leading-relaxed text-gray-600">
               E-mail: geniewora@gmail.com
               <br />
@@ -221,26 +280,36 @@ export default function PolitiqueConfidentialitePage() {
             </p>
           </section>
 
-          <section className="rounded-xl border border-green-200 bg-green-50 p-6">
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900">Version simplifiee</h2>
-            <p className="mt-3 text-base leading-relaxed text-gray-700">
-              Woralink collecte certaines donnees (identite, contact, profil professionnel et donnees techniques) pour
-              faire fonctionner la plateforme, securiser les comptes et ameliorer le service. Nous utilisons des
-              prestataires comme Supabase et Google Auth. Nous ne vendons pas vos donnees. Vous pouvez demander
-              l&apos;acces, la correction, la suppression ou la portabilite de vos donnees a tout moment.
+          <section className="rounded-xl border border-green-200 bg-green-50 p-6 transition-colors duration-200 dark:border-green-900/40 dark:bg-green-950/20">
+            <h2 className="text-2xl font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100">
+              Version simplifiee
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-700 transition-colors duration-200 dark:text-slate-300">
+              Woralink collecte certaines donnees (identite, contact, profil professionnel et
+              donnees techniques) pour faire fonctionner la plateforme, securiser les comptes et
+              ameliorer le service. Nous utilisons des prestataires comme Supabase et Google Auth.
+              Nous ne vendons pas vos donnees. Vous pouvez demander l&apos;acces, la correction, la
+              suppression ou la portabilite de vos donnees a tout moment.
             </p>
           </section>
         </div>
 
-        <div className="mt-10 border-t border-gray-100 pt-6 text-sm text-gray-500">
-          En poursuivant votre utilisation de Woralink, vous reconnaissez avoir pris connaissance de cette politique.
+        <div className="mt-10 border-t border-gray-100 pt-6 text-sm text-gray-500 transition-colors duration-200 dark:border-slate-800 dark:text-slate-400">
+          En poursuivant votre utilisation de Woralink, vous reconnaissez avoir pris connaissance de
+          cette politique.
           <div className="mt-3 flex-wrap items-center gap-4">
-            <Link href="/" className="font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline">
+            <Link
+              href="/"
+              className="font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline"
+            >
               Retour à l&apos;accueil
             </Link>
-              <Link href="/conditions-utilisation" className="font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline">
-                Voir les conditions d&apos;utilisation
-              </Link>
+            <Link
+              href="/conditions-utilisation"
+              className="font-medium text-green-700 underline-offset-4 hover:text-green-800 hover:underline"
+            >
+              Voir les conditions d&apos;utilisation
+            </Link>
           </div>
         </div>
       </main>

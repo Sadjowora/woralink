@@ -142,10 +142,10 @@ export default function BigUpButton({ companyId, initialCount = 0 }: BigUpButton
         animate={isPopping ? { scale: [1, 1.08, 1] } : { scale: 1 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         onAnimationComplete={() => setIsPopping(false)}
-        className={`flex min-w-14 flex-row items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium leading-none transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-80 ${
+        className={`flex min-w-14 flex-row items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium leading-none transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-80 ${
           hasVoted
             ? 'border-green-700 bg-green-700 text-white hover:border-green-800 hover:bg-green-800'
-            : 'border-gray-300 bg-white text-gray-700 hover:border-green-700 hover:bg-green-50 hover:text-green-700'
+            : 'border-gray-300 bg-white text-gray-700 hover:border-green-700 hover:bg-green-50 hover:text-green-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-green-700 dark:hover:bg-slate-800 dark:hover:text-green-400'
         }`}
         aria-label="Bravo"
       >
@@ -157,14 +157,14 @@ export default function BigUpButton({ companyId, initialCount = 0 }: BigUpButton
           initial={{ scale: 0.95, opacity: 0.9 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.18 }}
-          className={`text-base font-semibold ${hasVoted ? 'text-white' : 'text-gray-900'}`}
+          className={`text-base font-semibold ${hasVoted ? 'text-white' : 'text-gray-900 dark:text-white'}`}
         >
           {count}
         </motion.span>
       </motion.button>
 
       {notice ? (
-        <div className="max-w-64 rounded-lg border border-gray-200 bg-white p-2 text-right text-[11px] leading-relaxed text-gray-600 shadow-sm">
+        <div className="max-w-64 rounded-lg border border-gray-200 bg-white p-2 text-right text-[11px] leading-relaxed text-gray-600 shadow-sm transition-colors duration-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:shadow-none">
           <p>{notice}</p>
           {!isAuthenticated ? (
             <Link

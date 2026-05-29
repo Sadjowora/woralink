@@ -48,10 +48,10 @@ export default function ContactForm({ targetCompanyName }: ContactFormProps) {
           <CheckCircle2 className="h-7 w-7 text-primary" />
         </div>
         <div>
-          <p className="text-lg font-semibold tracking-tighter text-gray-900">
+          <p className="text-lg font-semibold tracking-tighter text-gray-900 transition-colors duration-200 dark:text-slate-100">
             Merci&nbsp;! Votre message a bien été envoyé.
           </p>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 transition-colors duration-200 dark:text-slate-400">
             Nous reviendrons vers vous dans les plus brefs délais.
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function ContactForm({ targetCompanyName }: ContactFormProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Mamadou Diallo"
-            className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10"
+            className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:bg-slate-900 dark:focus:ring-slate-600/30"
           />
         </div>
 
@@ -112,7 +112,7 @@ export default function ContactForm({ targetCompanyName }: ContactFormProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="vous@exemple.com"
-            className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10"
+            className="w-full rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:bg-slate-900 dark:focus:ring-slate-600/30"
           />
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function ContactForm({ targetCompanyName }: ContactFormProps) {
           required
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          className="w-full appearance-none rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10"
+          className="w-full appearance-none rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:bg-slate-900 dark:focus:ring-slate-600/30"
         >
           <option value="" disabled>
             Sélectionner un sujet
@@ -156,7 +156,7 @@ export default function ContactForm({ targetCompanyName }: ContactFormProps) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Décrivez votre demande en détail…"
-          className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10"
+          className="w-full resize-none rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:bg-slate-900 dark:focus:ring-slate-600/30"
         />
       </div>
 

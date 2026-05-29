@@ -36,7 +36,7 @@ export default function CoupDeCoeur({
         }
       `}</style>
 
-      <div className="bg-linear-to-br relative overflow-hidden rounded-2xl border border-emerald-100 from-emerald-50 via-white to-teal-50 shadow-sm">
+      <div className="bg-linear-to-br relative overflow-hidden rounded-2xl border border-emerald-100 from-emerald-50 via-white to-teal-50 shadow-sm transition-colors duration-200 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
         <div className="min-h-65 flex flex-col md:flex-row">
           {/* Left – image */}
           <div className="min-h-50 relative w-full shrink-0 overflow-hidden rounded-t-2xl md:min-h-full md:w-5/12 md:rounded-l-2xl md:rounded-tr-none">
@@ -75,19 +75,19 @@ export default function CoupDeCoeur({
             </span>
 
             {/* Company name */}
-            <h2 className="text-2xl font-extrabold leading-tight tracking-tighter text-gray-900 sm:text-3xl md:text-4xl">
+            <h2 className="text-2xl font-extrabold leading-tight tracking-tighter text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-3xl md:text-4xl">
               {name}
             </h2>
 
             {/* Sector + city */}
-            <div className="flex flex-wrap gap-2 text-sm text-gray-500">
+            <div className="flex flex-wrap gap-2 text-sm text-gray-500 transition-colors duration-200 dark:text-slate-400">
               {sector && (
-                <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 font-medium text-gray-700">
+                <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 font-medium text-gray-700 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
                   {sector}
                 </span>
               )}
               {city && (
-                <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-gray-600">
+                <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-gray-600 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                   📍 {city}
                 </span>
               )}
@@ -106,7 +106,9 @@ export default function CoupDeCoeur({
 
             {/* Description */}
             {description && (
-              <p className="line-clamp-3 text-sm leading-relaxed text-gray-600">{description}</p>
+              <p className="line-clamp-3 text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-300">
+                {description}
+              </p>
             )}
 
             {/* CTA */}

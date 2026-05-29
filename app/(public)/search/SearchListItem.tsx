@@ -45,8 +45,8 @@ export default function SearchListItem({ company, index, compact = false }: Sear
           : 'border-gray-200 bg-gray-100 text-gray-500';
 
   return (
-    <article className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-150 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-sm">
-      <div className="bg-linear-to-r pointer-events-none absolute inset-0 from-green-50/0 via-green-50/40 to-transparent opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
+    <article className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:shadow-none">
+      <div className="bg-linear-to-r pointer-events-none absolute inset-0 from-green-50/0 via-green-50/40 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:via-green-900/20" />
       <Link
         href={`/pme/${company.slug}`}
         className="absolute inset-0 z-10 rounded-xl"
@@ -55,15 +55,15 @@ export default function SearchListItem({ company, index, compact = false }: Sear
 
       <div className={`relative z-0 flex items-start gap-4 ${cardPadding}`}>
         <div className="flex min-w-10 flex-col items-center pt-1">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 transition-colors duration-150 group-hover:text-green-700">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 transition-colors duration-200 group-hover:text-green-700 dark:text-slate-500 dark:group-hover:text-green-400">
             RANG
           </span>
-          <span className="text-lg font-semibold text-gray-900 transition-colors duration-150 group-hover:text-green-700">
+          <span className="text-lg font-semibold text-gray-900 transition-colors duration-200 group-hover:text-green-700 dark:text-white dark:group-hover:text-green-400">
             #{rank}
           </span>
         </div>
 
-        <div className="h-13 w-13 relative shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-50 transition-all duration-150 group-hover:border-green-200 group-hover:bg-green-50">
+        <div className="h-13 w-13 relative shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-50 transition-all duration-200 group-hover:border-green-200 group-hover:bg-green-50 dark:border-slate-700 dark:bg-slate-800 dark:group-hover:border-green-700 dark:group-hover:bg-slate-700">
           {company.logo_url ? (
             <Image
               src={company.logo_url}
@@ -73,7 +73,7 @@ export default function SearchListItem({ company, index, compact = false }: Sear
               className="object-cover transition-transform duration-150 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-base font-semibold text-gray-500 transition-colors duration-150 group-hover:text-green-700">
+            <div className="flex h-full w-full items-center justify-center text-base font-semibold text-gray-500 transition-colors duration-200 group-hover:text-green-700 dark:text-slate-300 dark:group-hover:text-green-400">
               {(company.name.charAt(0) || 'E').toUpperCase()}
             </div>
           )}
@@ -81,7 +81,7 @@ export default function SearchListItem({ company, index, compact = false }: Sear
 
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
-            <h3 className="line-clamp-1 text-[15px] font-medium text-gray-900 transition-colors duration-150 group-hover:text-green-700">
+            <h3 className="line-clamp-1 text-[15px] font-medium text-gray-900 transition-colors duration-200 group-hover:text-green-700 dark:text-white dark:group-hover:text-green-400">
               {company.name}
             </h3>
             <span
@@ -103,19 +103,19 @@ export default function SearchListItem({ company, index, compact = false }: Sear
             ) : null}
           </div>
 
-          <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+          <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400">
             <span className="inline-flex items-center gap-1">
               <svg
                 aria-hidden="true"
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                className="h-3.5 w-3.5 text-gray-400"
+                className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500"
               >
                 <path d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5v-13A1.5 1.5 0 0015.5 2h-11zM6 5h2v2H6V5zm3 0h2v2H9V5zm3 0h2v2h-2V5zM6 8h2v2H6V8zm3 0h2v2H9V8zm3 0h2v2h-2V8zM6 11h2v2H6v-2zm3 0h2v2H9v-2zm3 0h2v2h-2v-2zM8 14h4v4H8v-4z" />
               </svg>
               <span>{company.sector}</span>
             </span>
-            <span aria-hidden="true" className="text-gray-400">
+            <span aria-hidden="true" className="text-gray-400 dark:text-slate-500">
               •
             </span>
             {company.address ? (
@@ -125,7 +125,7 @@ export default function SearchListItem({ company, index, compact = false }: Sear
                     aria-hidden="true"
                     viewBox="0 0 20 20"
                     fill="currentColor"
-                    className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                    className="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-slate-500"
                   >
                     <path
                       fillRule="evenodd"
@@ -135,7 +135,7 @@ export default function SearchListItem({ company, index, compact = false }: Sear
                   </svg>
                   <span className="line-clamp-1">{company.address}</span>
                 </span>
-                <span aria-hidden="true" className="text-gray-400">
+                <span aria-hidden="true" className="text-gray-400 dark:text-slate-500">
                   •
                 </span>
               </>
@@ -146,24 +146,26 @@ export default function SearchListItem({ company, index, compact = false }: Sear
           </div>
 
           {snippet ? (
-            <p className="line-clamp-2 text-[13px] leading-relaxed text-gray-500 transition-colors duration-150 group-hover:text-gray-600">
+            <p className="line-clamp-2 text-[13px] leading-relaxed text-gray-500 transition-colors duration-200 group-hover:text-gray-600 dark:text-slate-400 dark:group-hover:text-slate-300">
               {snippet}
             </p>
           ) : (
-            <p className="text-[16px] text-gray-500">{company.description?.trim() || ''}</p>
+            <p className="text-[16px] text-gray-500 transition-colors duration-200 dark:text-slate-400">
+              {company.description?.trim() || ''}
+            </p>
           )}
         </div>
       </div>
 
       <div
-        className={`relative z-20 flex items-center justify-between border-t border-gray-100 transition-colors duration-150 group-hover:border-gray-200 ${footerPadding}`}
+        className={`relative z-20 flex items-center justify-between border-t border-gray-100 transition-colors duration-200 group-hover:border-gray-200 dark:border-slate-800 dark:group-hover:border-slate-700 ${footerPadding}`}
       >
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400">
           <svg
             aria-hidden="true"
             viewBox="0 0 20 20"
             fill="currentColor"
-            className="mb-1 inline-block h-3 w-3 text-gray-400"
+            className="mb-1 inline-block h-3 w-3 text-gray-400 dark:text-slate-500"
           >
             <path d="M2.94 10.53a1 1 0 010-1.06C4.32 7.13 6.9 4.5 10 4.5s5.68 2.63 7.06 4.97a1 1 0 010 1.06C15.68 12.87 13.1 15.5 10 15.5s-5.68-2.63-7.06-4.97zM10 13a3 3 0 100-6 3 3 0 000 6zm0-1.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
           </svg>

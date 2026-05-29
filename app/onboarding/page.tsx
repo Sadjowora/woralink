@@ -172,7 +172,9 @@ export default function OnboardingPage() {
           role="status"
           aria-label="Chargement"
         />
-        <p className="text-sm text-gray-500">Vérification de votre compte…</p>
+        <p className="text-sm text-gray-500 transition-colors duration-200 dark:text-slate-300">
+          Vérification de votre compte…
+        </p>
       </div>
     );
   }
@@ -180,17 +182,17 @@ export default function OnboardingPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 md:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100 md:text-3xl">
           Créez votre fiche professionnelle
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+        <p className="mt-2 text-sm leading-relaxed text-gray-500 transition-colors duration-200 dark:text-slate-300">
           Ces informations seront visibles par vos futurs clients sur Woralink. Vous pouvez les
           modifier à tout moment depuis votre tableau de bord.
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-5">
+        <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-5 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
           {/* Nom */}
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-gray-500">
@@ -199,7 +201,7 @@ export default function OnboardingPage() {
             <input
               type="text"
               {...register('entityName', { required: 'Ce champ est requis' })}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
             />
             {errors.entityName && (
               <p className="mt-1 text-xs text-red-600">{String(errors.entityName.message)}</p>
@@ -214,7 +216,7 @@ export default function OnboardingPage() {
               </label>
               <select
                 {...register('profileType', { required: 'Ce champ est requis' })}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
               >
                 <option value="">Sélectionnez un type</option>
                 {PROFILE_TYPES.map((t) => (
@@ -234,7 +236,7 @@ export default function OnboardingPage() {
               </label>
               <select
                 {...register('sector', { required: 'Ce champ est requis' })}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
               >
                 <option value="">Sélectionnez un secteur</option>
                 {SECTORS.map((s) => (
@@ -257,7 +259,7 @@ export default function OnboardingPage() {
               </label>
               <select
                 {...register('city', { required: 'Ce champ est requis' })}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
               >
                 <option value="">Sélectionnez une ville</option>
                 {GUINEA_CITIES.map((city) => (
@@ -285,7 +287,7 @@ export default function OnboardingPage() {
                   },
                 })}
                 placeholder="+224XXXXXXXX"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-700 focus:bg-white focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:bg-slate-900"
               />
               {errors.whatsapp && (
                 <p className="mt-1 text-xs text-red-600">{String(errors.whatsapp.message)}</p>
@@ -295,11 +297,13 @@ export default function OnboardingPage() {
         </div>
 
         {/* Logo */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
           <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-gray-500">
             Logo de l&apos;entreprise (optionnel)
           </label>
-          <small className="mb-3 block text-xs text-gray-400">PNG, JPG, GIF — max 5 Mo</small>
+          <small className="mb-3 block text-xs text-gray-400 transition-colors duration-200 dark:text-slate-400">
+            PNG, JPG, GIF — max 5 Mo
+          </small>
           <ImageUpload
             key={logoUrl || 'empty-logo'}
             onUploadComplete={(url) => setLogoUrl(url)}

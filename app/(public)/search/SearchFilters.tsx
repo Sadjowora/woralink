@@ -78,8 +78,8 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
 
   return (
     <div className="space-y-3 md:sticky md:top-20">
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+      <section className="rounded-lg border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-gray-400 transition-colors duration-200 dark:text-slate-500">
           Quick Links
         </p>
         <div className="flex flex-wrap gap-2">
@@ -88,7 +88,7 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
               key={item}
               type="button"
               onClick={() => updateParam('q', item)}
-              className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:bg-gray-50"
+              className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-200 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               {item}
             </button>
@@ -96,14 +96,17 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
         </div>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+      <section className="rounded-lg border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-gray-400 transition-colors duration-200 dark:text-slate-500">
           Filtres
         </p>
 
         <div className="space-y-3">
           <div className="space-y-1">
-            <label htmlFor="city" className="block text-xs font-medium text-gray-600">
+            <label
+              htmlFor="city"
+              className="block text-xs font-medium text-gray-600 transition-colors duration-200 dark:text-slate-400"
+            >
               Ville
             </label>
             <select
@@ -111,7 +114,7 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
               name="city"
               value={city}
               onChange={(e) => updateParam('city', e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/20"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition-colors duration-200 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             >
               <option value="">Toutes les villes</option>
               {GUINEA_CITIES.map((item) => (
@@ -123,7 +126,10 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="sector" className="block text-xs font-medium text-gray-600">
+            <label
+              htmlFor="sector"
+              className="block text-xs font-medium text-gray-600 transition-colors duration-200 dark:text-slate-400"
+            >
               Secteur d&apos;activité
             </label>
             <select
@@ -131,7 +137,7 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
               name="sector"
               value={sector}
               onChange={(e) => updateParam('sector', e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/20"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition-colors duration-200 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             >
               <option value="">Tous les secteurs</option>
               {SECTORS.map((item) => (
@@ -143,7 +149,10 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="type" className="block text-xs font-medium text-gray-600">
+            <label
+              htmlFor="type"
+              className="block text-xs font-medium text-gray-600 transition-colors duration-200 dark:text-slate-400"
+            >
               Type de profil
             </label>
             <select
@@ -151,7 +160,7 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
               name="type"
               value={type}
               onChange={(e) => updateParam('type', e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/20"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition-colors duration-200 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             >
               <option value="">Tous les profils</option>
               {PROFILE_TYPES.map((item) => (
@@ -166,7 +175,7 @@ export default function SearchFilters({ city = '', sector = '', type = '' }: Sea
         <button
           type="button"
           onClick={clearAll}
-          className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white py-2 text-sm font-medium text-gray-500 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50"
+          className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white py-2 text-sm font-medium text-gray-500 transition-colors duration-200 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
         >
           Effacer les filtres
         </button>

@@ -35,7 +35,7 @@ function StatItem({
 
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-2xl font-bold tracking-tight text-gray-900">
+      <span className="text-2xl font-bold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100">
         {count}
         {suffix}
       </span>
@@ -60,24 +60,24 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="relative border-b border-gray-100 bg-white">
+    <section className="relative border-b border-gray-100 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto max-w-6xl px-4 pb-16 pt-20 text-center sm:px-6 sm:pt-28 md:pb-32 md:pt-36">
-        <span className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
+        <span className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 transition-colors duration-200 dark:border-slate-700 dark:text-slate-300">
           Plateforme locale de confiance
         </span>
 
-        <h1 className="mt-6 text-center text-4xl font-bold tracking-tight text-gray-900 sm:mt-8 md:text-5xl lg:text-6xl">
+        <h1 className="mt-6 text-center text-4xl font-bold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:mt-8 md:text-5xl lg:text-6xl">
           Le meilleur professionnel de Guinee{' '}
           <span className="text-green-700">est peut-etre à côté de chez vous</span>
         </h1>
 
-        <p className="mx-auto mt-4 max-w-xl text-center text-base leading-relaxed text-gray-500 md:text-lg">
+        <p className="mx-auto mt-4 max-w-xl text-center text-base leading-relaxed text-gray-500 transition-colors duration-200 dark:text-slate-400 md:text-lg">
           Decouvrez des PME, artisans et freelances verifiés partout en Guinee. Comparez, contactez,
           faites confiance.
         </p>
 
         <form action="/search" method="GET" className="mx-auto mt-10 w-full max-w-2xl">
-          <div className="flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all duration-150 focus-within:border-green-700 focus-within:ring-2 focus-within:ring-green-700/10">
+          <div className="flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all duration-150 focus-within:border-green-700 focus-within:ring-2 focus-within:ring-green-700/10 dark:border-slate-700 dark:bg-slate-900">
             <svg
               className="h-4 w-4 shrink-0 text-gray-400"
               fill="none"
@@ -97,7 +97,7 @@ export default function HeroSection() {
               type="text"
               name="q"
               placeholder={PLACEHOLDERS[placeholderIndex]}
-              className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+              className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
             />
 
             <button
@@ -118,7 +118,7 @@ export default function HeroSection() {
         <div className="mt-6 flex flex-col flex-wrap items-center justify-center gap-2 text-xs sm:mt-7 sm:flex-row sm:gap-3 sm:text-sm">
           <NextLink
             href="/search"
-            className="w-full rounded-md border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-100 sm:w-auto sm:py-2"
+            className="w-full rounded-md border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:w-auto sm:py-2"
           >
             Explorer tous les profils
           </NextLink>

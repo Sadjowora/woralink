@@ -254,15 +254,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50 transition-colors duration-200 dark:bg-slate-950">
       <Navbar />
 
       <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 transition-colors duration-200 dark:text-white md:text-3xl">
             Rechercher un professionnel
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 transition-colors duration-200 dark:text-slate-400">
             Trouvez des professionnels vérifiés partout en Guinée — PME, artisans, freelances et
             startups de confiance.
           </p>
@@ -293,8 +293,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </div>
           ) : (
             <div className="py-12 sm:py-16">
-              <div className="mx-auto max-w-2xl rounded-xl border border-gray-200 bg-white p-5 text-center sm:p-8">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-gray-500 sm:h-14 sm:w-14">
+              <div className="mx-auto max-w-2xl rounded-xl border border-gray-200 bg-white p-5 text-center transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition-colors duration-200 dark:bg-slate-800 dark:text-slate-400 sm:h-14 sm:w-14">
                   <svg
                     className="h-6 w-6 sm:h-7 sm:w-7"
                     fill="none"
@@ -310,10 +310,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     />
                   </svg>
                 </div>
-                <h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">
+                <h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-white sm:text-xl">
                   Aucun professionnel trouvé dans cette zone
                 </h2>
-                <p className="mb-6 text-sm text-gray-500">
+                <p className="mb-6 text-sm text-gray-500 transition-colors duration-200 dark:text-slate-400">
                   Vous êtes basé{cityFilter ? ` à ${cityFilter}` : ' en Guinée'} et vous proposez
                   des services ? Rejoignez Woralink pour être visible auprès de vos futurs clients.
                 </p>
@@ -321,19 +321,19 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
                   <Link
                     href={buildQuickHref({ city: 'Conakry' })}
-                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-200 hover:border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-green-700 dark:hover:bg-slate-700 dark:hover:text-green-400"
                   >
                     Conakry
                   </Link>
                   <Link
                     href={buildQuickHref({ sector: 'Construction & BTP' })}
-                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-200 hover:border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-green-700 dark:hover:bg-slate-700 dark:hover:text-green-400"
                   >
                     BTP
                   </Link>
                   <Link
                     href={buildQuickHref({ sector: 'Santé & Pharmacie' })}
-                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                    className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-200 hover:border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-green-700 dark:hover:bg-slate-700 dark:hover:text-green-400"
                   >
                     Santé
                   </Link>
