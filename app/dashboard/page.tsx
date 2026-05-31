@@ -2,12 +2,14 @@
 
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import SetupPage from './setup/page';
 
 type ProfileRole = 'company' | 'client' | 'visitor' | string;
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [canViewCompanyDashboard, setCanViewCompanyDashboard] = useState(false);
   const supabase = useMemo(
     () =>
       createBrowserClient(
@@ -51,20 +53,18 @@ export default function DashboardPage() {
       }
 
       if (role === 'company') {
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle<{ id: string }>();
+        if (!cancelled) setCanViewCompanyDashboard(true);
+        return;
+      }
 
-        if (companyError) {
-          if (!cancelled) router.push('/dashboard/setup');
-          return;
-        }
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle<{ id: string }>();
 
-        if (!cancelled) {
-          router.push(company?.id ? '/dashboard/profile' : '/dashboard/setup');
-        }
+      if (!companyError && company?.id) {
+        if (!cancelled) setCanViewCompanyDashboard(true);
         return;
       }
 
@@ -77,6 +77,10 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [router, supabase]);
+
+  if (canViewCompanyDashboard) {
+    return <SetupPage />;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4 transition-colors duration-200 dark:bg-slate-950">
