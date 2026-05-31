@@ -553,63 +553,69 @@ function SetupPageContent() {
             )}
 
             <div className="space-y-5 sm:space-y-6">
-              <div className="grid grid-cols-1 justify-items-center gap-3 md:grid-cols-4 md:justify-items-stretch md:gap-4">
-                <article className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:max-w-none">
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm text-gray-500 dark:text-slate-400">Vues du profil</p>
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4 md:gap-4">
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">
+                      Vues du profil
+                    </p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
                       <Eye className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </div>
-                  <p className="text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
                     17
                   </p>
-                  <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
                     Suivi en temps reel
                   </p>
                 </article>
 
-                <article className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:max-w-none">
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm text-gray-500 dark:text-slate-400">Statut de fiche</p>
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">
+                      Statut de fiche
+                    </p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
                       <Building2 className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </div>
-                  <p className="text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
                     Actif
                   </p>
-                  <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
                     Votre page publique est accessible
                   </p>
                 </article>
 
-                <article className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:max-w-none">
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm text-gray-500 dark:text-slate-400">Ville</p>
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">Ville</p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
                       <MapPin className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </div>
-                  <p className="text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
                     Conakry
                   </p>
-                  <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
                     Zone principale de visibilite
                   </p>
                 </article>
 
-                <article className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:max-w-none">
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm text-gray-500 dark:text-slate-400">Completion profil</p>
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">
+                      Completion profil
+                    </p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
                       <UserRound className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </div>
-                  <p className="text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
                     92%
                   </p>
-                  <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
                     Fiche bien optimisee
                   </p>
                 </article>
