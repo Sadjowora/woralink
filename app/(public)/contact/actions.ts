@@ -19,7 +19,10 @@
     for insert to anon with check (true);
 */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AdminClient = SupabaseClient<any>;
 
 export type ContactFormState =
   | { status: 'idle' }
@@ -73,8 +76,216 @@ function getAdminSupabaseClient() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  return { adminClient };
+  return { adminClient: adminClient as AdminClient };
 }
+
+type ChatRoomRow = { id: string };
+
+async function resolveCompanyProfileId(
+  adminClient: AdminClient,
+  receiverId: string,
+): Promise<string | null> {
+  const normalizedReceiverId = receiverId.trim();
+  if (!normalizedReceiverId) return null;
+
+  const { data: companyById, error: companyByIdError } = await adminClient
+    .from('companies')
+    .select('user_id')
+    .eq('id', normalizedReceiverId)
+    .maybeSingle<{ user_id?: string | null }>();
+
+  if (companyByIdError && !/column .* does not exist|user_id/i.test(companyByIdError.message)) {
+    console.error('[chat] company user_id lookup error:', companyByIdError.message);
+    return null;
+  }
+
+  if (typeof companyById?.user_id === 'string' && companyById.user_id.trim()) {
+    return companyById.user_id.trim();
+  }
+
+  const { data: companyByOwnerId, error: companyByOwnerIdError } = await adminClient
+    .from('companies')
+    .select('owner_id')
+    .eq('id', normalizedReceiverId)
+    .maybeSingle<{ owner_id?: string | null }>();
+
+  if (
+    companyByOwnerIdError &&
+    !/column .* does not exist|owner_id/i.test(companyByOwnerIdError.message)
+  ) {
+    console.error('[chat] company owner_id lookup error:', companyByOwnerIdError.message);
+    return null;
+  }
+
+  if (typeof companyByOwnerId?.owner_id === 'string' && companyByOwnerId.owner_id.trim()) {
+    return companyByOwnerId.owner_id.trim();
+  }
+
+  const { data: profileById, error: profileByIdError } = await adminClient
+    .from('profiles')
+    .select('id')
+    .eq('id', normalizedReceiverId)
+    .maybeSingle<{ id: string }>();
+
+  if (profileByIdError) {
+    console.error('[chat] profile lookup error:', profileByIdError.message);
+    return null;
+  }
+
+  return profileById?.id ?? null;
+}
+
+async function getOrCreateChatRoom(
+  adminClient: AdminClient,
+  companyId: string,
+  clientId: string,
+): Promise<string> {
+  const { data: existingRoom, error: roomLookupError } = await adminClient
+    .from('chat_rooms')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+
+  if (roomLookupError) {
+    throw roomLookupError;
+  }
+
+  if (existingRoom?.id) {
+    return existingRoom.id;
+  }
+
+  const { data: createdRoom, error: roomCreateError } = await adminClient
+    .from('chat_rooms')
+    .insert({
+      participant_a: companyId,
+      participant_b: clientId,
+      company_id: companyId,
+      client_id: clientId,
+      created_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+
+  if (roomCreateError) {
+    const { data: fallbackRoom, error: fallbackLookupError } = await adminClient
+      .from('chat_rooms')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('client_id', clientId)
+      .maybeSingle();
+
+    if (fallbackLookupError) {
+      throw fallbackLookupError;
+    }
+
+    if (fallbackRoom?.id) {
+      return fallbackRoom.id;
+    }
+
+    throw roomCreateError;
+  }
+
+  if (!createdRoom?.id) {
+    throw new Error('Impossible de créer la room de messagerie.');
+  }
+
+  return createdRoom.id;
+}
+
+// ─── startChatRoom ────────────────────────────────────────────────────────────
+
+export type StartChatRoomResult = { roomId: string; created: boolean } | { error: string };
+
+/**
+ * Initialise ou retrouve un salon de chat entre deux utilisateurs.
+ * La vérification est bidirectionnelle : (A,B) et (B,A) désignent le même salon.
+ * Sûr contre les race conditions via un fallback re-lecture sur unique_violation.
+ */
+export async function startChatRoom(
+  senderId: string,
+  receiverId: string,
+): Promise<StartChatRoomResult> {
+  const a = senderId.trim();
+  const b = receiverId.trim();
+
+  if (!a || !b) {
+    return { error: 'Identifiants manquants pour ouvrir la discussion.' };
+  }
+  if (a === b) {
+    return { error: 'Vous ne pouvez pas démarrer une discussion avec vous-même.' };
+  }
+
+  const { adminClient, error: configError } = getAdminSupabaseClient();
+  if (configError) {
+    return { error: configError };
+  }
+
+  const profileCompanyId = await resolveCompanyProfileId(adminClient, b);
+  if (!profileCompanyId) {
+    return { error: 'Professionnel destinataire introuvable.' };
+  }
+
+  if (a === profileCompanyId) {
+    return { error: 'Vous ne pouvez pas démarrer une discussion avec vous-même.' };
+  }
+
+  // 2. Vérifier si un salon existe déjà pour ce client + cette entreprise
+  const { data: existingRoom, error: lookupError } = await adminClient
+    .from('chat_rooms')
+    .select('id')
+    .eq('client_id', a)
+    .eq('company_id', profileCompanyId)
+    .maybeSingle<ChatRoomRow>();
+
+  if (lookupError) {
+    console.error('[startChatRoom] lookup error:', lookupError.message);
+    return { error: 'Erreur lors de la vérification du salon existant.' };
+  }
+
+  if (existingRoom?.id) {
+    return { roomId: existingRoom.id, created: false };
+  }
+
+  // 3. Créer le salon
+  const { data: createdRoom, error: createError } = await adminClient
+    .from('chat_rooms')
+    .insert({
+      participant_a: profileCompanyId,
+      participant_b: a,
+      client_id: a,
+      company_id: profileCompanyId,
+    })
+    .select('id')
+    .single<ChatRoomRow>();
+
+  if (createError) {
+    // Race condition : un autre thread a créé la room en parallèle
+    if (createError.code === '23505' || /unique/i.test(createError.message)) {
+      const { data: fallback } = await adminClient
+        .from('chat_rooms')
+        .select('id')
+        .eq('client_id', a)
+        .eq('company_id', profileCompanyId)
+        .maybeSingle<ChatRoomRow>();
+
+      if (fallback?.id) {
+        return { roomId: fallback.id, created: false };
+      }
+    }
+
+    console.error('[startChatRoom] create error:', createError.message);
+    return { error: 'Impossible de créer le salon de discussion.' };
+  }
+
+  if (!createdRoom?.id) {
+    return { error: 'Salon créé mais identifiant manquant.' };
+  }
+
+  return { roomId: createdRoom.id, created: true };
+}
+
+// ─── sendContactMessage ───────────────────────────────────────────────────────
 
 export async function sendContactMessage(
   senderId: string,
@@ -154,6 +365,33 @@ export async function sendContactMessage(
       status: 'error',
       message: translateContactError(insertError.message),
     };
+  }
+
+  try {
+    const profileCompanyId = await resolveCompanyProfileId(adminClient, normalizedCompanyId);
+    if (!profileCompanyId) {
+      throw new Error('Entreprise destinataire sans profil propriétaire valide.');
+    }
+
+    const roomId = await getOrCreateChatRoom(adminClient, profileCompanyId, normalizedSenderId);
+
+    const chatBody = [subject.trim(), body.trim()].filter(Boolean).join('\n\n');
+
+    const { error: chatMessageError } = await adminClient.from('chat_messages').insert({
+      room_id: roomId,
+      sender_id: normalizedSenderId,
+      message: chatBody,
+      created_at: new Date().toISOString(),
+    });
+
+    if (chatMessageError) {
+      console.warn('[contact/actions] chat_messages seed error:', chatMessageError.message);
+    }
+  } catch (chatError) {
+    console.warn(
+      '[contact/actions] chat room creation skipped:',
+      chatError instanceof Error ? chatError.message : String(chatError),
+    );
   }
 
   return {

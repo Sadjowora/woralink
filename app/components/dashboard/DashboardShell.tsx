@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Building2,
+  CircleHelp,
   ImageIcon,
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquareText,
   QrCode,
   Search,
   Settings,
@@ -50,6 +51,12 @@ const navItems = [
     match: (pathname: string) => pathname === '/dashboard/media',
   },
   {
+    label: 'Messagerie',
+    href: '/dashboard/messages',
+    icon: MessageSquareText,
+    match: (pathname: string) => pathname === '/dashboard/messages',
+  },
+  {
     label: 'Configuration',
     href: '/dashboard/setup',
     icon: Settings,
@@ -72,6 +79,9 @@ export default function DashboardShell({
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [entityName, setEntityName] = useState('Woralink');
+  const [entityMeta, setEntityMeta] = useState('Dashboard');
+  const [entityLogoUrl, setEntityLogoUrl] = useState('');
 
   const activeNav = useMemo(
     () => navItems.find((item) => item.match(pathname))?.label ?? 'Apercu',
@@ -84,6 +94,36 @@ export default function DashboardShell({
     router.push('/');
     router.refresh();
   };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadEntityIdentity = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!mounted || !user) return;
+
+      const { data } = await supabase
+        .from('companies')
+        .select('name, sector, logo_url')
+        .eq('user_id', user.id)
+        .maybeSingle<{ name: string | null; sector: string | null; logo_url: string | null }>();
+
+      if (!mounted || !data) return;
+
+      setEntityName((data.name || 'Woralink').trim() || 'Woralink');
+      setEntityMeta((data.sector || 'Dashboard').trim() || 'Dashboard');
+      setEntityLogoUrl(data.logo_url || '');
+    };
+
+    void loadEntityIdentity();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-600 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-300">
@@ -98,15 +138,30 @@ export default function DashboardShell({
       >
         <div className="flex h-16 items-center justify-between border-b border-gray-100 px-5">
           <Link href="/" className="flex items-center gap-3 text-gray-900 dark:text-slate-100">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-sm font-semibold text-green-700">
-              W
+            <span
+              className={`inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg text-sm font-semibold ${
+                entityLogoUrl
+                  ? 'border border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'
+                  : 'bg-green-50 text-green-700'
+              }`}
+              style={
+                entityLogoUrl
+                  ? {
+                      backgroundImage: `url(${entityLogoUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }
+                  : undefined
+              }
+            >
+              {!entityLogoUrl ? (entityName.charAt(0) || 'W').toUpperCase() : null}
             </span>
             <div>
               <p className="text-lg font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-slate-100">
-                Woralink
+                {entityName}
               </p>
               <p className="text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                Dashboard
+                {entityMeta}
               </p>
             </div>
           </Link>
@@ -145,21 +200,25 @@ export default function DashboardShell({
           </nav>
 
           <div className="space-y-4 border-t border-gray-100 pt-5 dark:border-slate-800">
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+            <Link
+              href="/comment-ca-marche"
+              onClick={() => setIsSidebarOpen(false)}
+              className="block rounded-xl border border-gray-200 bg-gray-50 p-4 transition-colors duration-200 hover:border-gray-300 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+            >
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-sm font-semibold text-green-700">
-                  <Building2 className="h-5 w-5" aria-hidden="true" />
+                  <CircleHelp className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100">
-                    Espace professionnel
+                    Aide ?
                   </p>
                   <p className="truncate text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                    Navigation unifiee
+                    Voir comment ca marche
                   </p>
                 </div>
               </div>
-            </div>
+            </Link>
 
             <button
               type="button"

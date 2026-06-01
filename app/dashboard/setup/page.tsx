@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
+import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from '../../../lib/supabase';
 import DashboardShell from '../../components/dashboard/DashboardShell';
+import ShareProfile from '../../components/ShareProfile';
 import ImageUpload from '../../components/ImageUpload';
-import Image from 'next/image';
+import { ArrowRight, Building2, Eye, Globe2, MapPin, UserRound } from 'lucide-react';
 
 const sectors = [
   'Commerce & Distribution',
@@ -74,6 +76,20 @@ type Company = {
   founder_message?: string | null;
   address?: string | null;
   website_url?: string | null;
+  bigup?: number | null;
+};
+
+type FeaturedAnalyticsRow = {
+  slot: 'company_of_day' | 'champion_of_week' | 'pme_of_month';
+  company_id: string;
+  company_name: string;
+  city: string | null;
+  sector: string | null;
+  slug: string;
+  views_24h: number | null;
+  bravos_7d: number | null;
+  views_30d: number | null;
+  bravos_30d: number | null;
 };
 
 type GallerySlot = {
@@ -108,9 +124,20 @@ function SetupPageContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('');
-  const [galleryUrls, setGalleryUrls] = useState<Array<string | null>>(Array(5).fill(null));
+  const [, setGalleryUrls] = useState<Array<string | null>>(Array(5).fill(null));
   const [galleryError, setGalleryError] = useState('');
+  const [showQrPreview, setShowQrPreview] = useState(false);
+  const [woralinkPerformance, setWoralinkPerformance] = useState<{
+    title: string;
+    detail: string;
+    level: 'win' | 'progress';
+  }>({
+    title: 'Performance Woralink',
+    detail: 'Continuez a gagner des bravo pour monter dans le classement.',
+    level: 'progress',
+  });
   const initialShortcutHandledRef = useRef(false);
+  const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const {
     register,
@@ -136,6 +163,21 @@ function SetupPageContent() {
   });
   const companyStoryValue = watch('companyStory') || '';
   const companyStoryCharacterCount = companyStoryValue.length;
+  const profileUrl =
+    company && typeof window !== 'undefined' ? `${window.location.origin}/pme/${company.slug}` : '';
+
+  const downloadQrCode = useCallback(() => {
+    const canvas = qrCanvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.download = `${company?.slug || 'woralink'}-qr.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, [company?.slug]);
 
   const checkExistingCompany = useCallback(async () => {
     try {
@@ -218,6 +260,90 @@ function SetupPageContent() {
 
     fetchGalleryPhotos();
   }, [company?.id]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const resolveFeaturedPerformance = async () => {
+      if (!company?.id) {
+        if (!mounted) return;
+        setWoralinkPerformance({
+          title: 'Performance Woralink',
+          detail: 'Ajoutez votre profil pour commencer a obtenir des distinctions.',
+          level: 'progress',
+        });
+        return;
+      }
+
+      const { data, error: featuredError } = await supabase.rpc('get_featured_companies_analytics');
+
+      if (featuredError || !Array.isArray(data)) {
+        if (!mounted) return;
+        const bravos = Math.max(0, Number(company.bigup ?? 0) || 0);
+        setWoralinkPerformance({
+          title: 'Performance Woralink',
+          detail: `${bravos} bravo cumules. Continuez pour viser le podium hebdomadaire.`,
+          level: 'progress',
+        });
+        return;
+      }
+
+      const rows = data as FeaturedAnalyticsRow[];
+      const weekWinner = rows.find((row) => row.slot === 'champion_of_week');
+      const monthWinner = rows.find((row) => row.slot === 'pme_of_month');
+      const dayWinner = rows.find((row) => row.slot === 'company_of_day');
+
+      const isWeekWinner = weekWinner?.company_id === company.id;
+      const isMonthWinner = monthWinner?.company_id === company.id;
+      const isDayWinner = dayWinner?.company_id === company.id;
+
+      if (!mounted) return;
+
+      if (isMonthWinner) {
+        const monthViews = Math.max(0, Number(monthWinner?.views_30d ?? 0) || 0);
+        const monthBravos = Math.max(0, Number(monthWinner?.bravos_30d ?? 0) || 0);
+        setWoralinkPerformance({
+          title: 'Entreprise du mois',
+          detail: `${monthViews} vues et ${monthBravos} bravo sur 30 jours.`,
+          level: 'win',
+        });
+        return;
+      }
+
+      if (isWeekWinner) {
+        const weekBravos = Math.max(0, Number(weekWinner?.bravos_7d ?? 0) || 0);
+        setWoralinkPerformance({
+          title: 'Entreprise de la semaine',
+          detail: `${weekBravos} bravo en 7 jours. Continuez votre dynamique.`,
+          level: 'win',
+        });
+        return;
+      }
+
+      if (isDayWinner) {
+        const dayViews = Math.max(0, Number(dayWinner?.views_24h ?? 0) || 0);
+        setWoralinkPerformance({
+          title: 'Entreprise du jour',
+          detail: `${dayViews} vues sur 24h. Votre profil attire l'attention.`,
+          level: 'win',
+        });
+        return;
+      }
+
+      const bravos = Math.max(0, Number(company.bigup ?? 0) || 0);
+      setWoralinkPerformance({
+        title: 'Performance Woralink',
+        detail: `${bravos} bravo cumules. Continuez pour viser le classement du mois.`,
+        level: 'progress',
+      });
+    };
+
+    void resolveFeaturedPerformance();
+
+    return () => {
+      mounted = false;
+    };
+  }, [company?.id, company?.bigup]);
 
   const openEditor = useCallback(() => {
     if (!company) return;
@@ -369,275 +495,421 @@ function SetupPageContent() {
 
   return (
     <DashboardShell
-      title={editing ? 'Modifier le profil' : 'Configuration'}
-      subtitle="Mettez a jour vos informations, votre logo et votre contenu public."
+      title={
+        company && !editing ? 'Tableau de bord' : editing ? 'Modifier le profil' : 'Configuration'
+      }
+      subtitle={
+        company && !editing
+          ? "Vue d'ensemble de votre presence professionnelle sur Woralink."
+          : 'Mettez a jour vos informations, votre logo et votre contenu public.'
+      }
       actions={
-        <>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-          >
-            Retour dashboard
-          </Link>
-          <Link
-            href="/dashboard/gallery"
-            className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
-          >
-            Gerer la galerie
-          </Link>
-        </>
+        company && !editing ? (
+          <>
+            <Link
+              href={`/pme/${company.slug}`}
+              className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+            >
+              Voir ma fiche
+            </Link>
+            <button
+              type="button"
+              onClick={() => openEditor()}
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-emerald-800"
+            >
+              Modifier le profil
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+            >
+              Retour dashboard
+            </Link>
+            <Link
+              href="/dashboard/gallery"
+              className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
+            >
+              Gerer la galerie
+            </Link>
+          </>
+        )
       }
     >
-      <div className="w-full rounded-xl border border-gray-200 bg-white p-5 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
+      <div className="w-full rounded-xl border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-5">
         {company && !editing ? (
           <>
-            <div className="mb-6 flex flex-col gap-3 border-b border-gray-100 pb-4 sm:mb-8 sm:gap-4 sm:pb-6 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
-                  Votre entreprise
-                </p>
-                <h2 className="mt-2 text-xl font-bold tracking-tighter text-primary sm:text-2xl md:text-3xl">
-                  Tableau de bord Woralink
-                </h2>
-                <p className="mt-2 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
-                  Retrouvez les informations essentielles de votre fiche et accedez aux actions
-                  rapides.
-                </p>
-              </div>
-
-              <div className="flex flex-col flex-wrap gap-2 sm:flex-row sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => openEditor()}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg bg-green-700 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-green-800 sm:px-5 sm:py-3 sm:text-sm"
-                >
-                  Modifier mon profil
-                </button>
-                <Link
-                  href={`/pme/${company.slug}`}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
-                >
-                  Voir ma page publique
-                </Link>
-                <Link
-                  href="/dashboard/gallery"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
-                >
-                  Gérer la galerie
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
-                >
-                  Retour au dashboard
-                </Link>
-                <Link
-                  href="/dashboard/media"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:px-5 sm:py-3 sm:text-sm"
-                >
-                  Aperçu des médias
-                </Link>
-              </div>
-            </div>
-
-            {error && <div className="mb-4 rounded bg-red-100 p-3 text-red-700">{error}</div>}
-            {success && (
-              <div className="mb-4 rounded bg-green-100 p-3 text-green-700">
-                Profil mis à jour avec succès !
+            {error && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-300">
+                {error}
               </div>
             )}
-            <div className="mb-4 rounded-md border border-primary/15 bg-primary/5 p-4 sm:mb-6 sm:p-5">
-              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-primary sm:text-xs">
-                Image professionnelle
-              </p>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-700 transition-colors duration-200 dark:text-slate-200 sm:text-base">
-                Un profil à jour inspire davantage confiance, valorise votre savoir-faire et
-                renforce immédiatement votre image professionnelle. Prenez quelques minutes pour
-                affiner votre fiche, enrichir vos informations et montrer aux visiteurs une
-                entreprise sérieuse, active et prête à être contactée.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-              <section className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-                <div className="mb-4 flex items-center justify-between gap-2 sm:mb-5">
-                  <div>
-                    <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
-                      Resume
-                    </p>
-                    <h3 className="mt-2 text-lg font-semibold text-black sm:text-xl">
-                      Votre fiche entreprise
-                    </h3>
-                    <p className="mt-1 text-xs text-gray-600 transition-colors duration-200 dark:text-slate-300 sm:text-sm">
-                      Les informations visibles par vos visiteurs sur Woralink.
-                    </p>
-                  </div>
-                  <span className="whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-700 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:px-3 sm:py-1 sm:text-xs">
-                    En ligne
-                  </span>
-                </div>
+            {success && (
+              <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700 dark:border-green-900/30 dark:bg-green-950/20 dark:text-green-300">
+                Profil mis a jour avec succes !
+              </div>
+            )}
 
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
-                    <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
-                      Statut
+            <div className="space-y-5 sm:space-y-6">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4 md:gap-4">
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">
+                      Vues du profil
                     </p>
-                    <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
-                      En ligne
-                    </p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
+                      <Eye className="h-4 w-4" aria-hidden="true" />
+                    </span>
                   </div>
-                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
-                    <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
-                      Ville
-                    </p>
-                    <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
-                      {company.city}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
-                    <p className="text-[9px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
-                      Secteur
-                    </p>
-                    <p className="mt-2 text-2xl font-medium tracking-tighter text-black sm:text-3xl">
-                      {company.sector}
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-                <p className="text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
-                  Details
-                </p>
-                <h3 className="mt-2 text-lg font-semibold text-black sm:text-xl">
-                  Fiche detaillee
-                </h3>
-                <div className="mt-5 overflow-hidden rounded-md border border-gray-200">
-                  <ul className="tabular-nums">
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Nom de l&apos;entité
-                      </span>
-                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.name}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Type de profil
-                      </span>
-                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.profile_type}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Secteur d&apos;activité
-                      </span>
-                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.sector}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Ville
-                      </span>
-                      <span className="text-right text-xs font-medium text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.city}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Numéro WhatsApp
-                      </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.whatsapp}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Années d&apos;expérience
-                      </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.years_experience ?? 'À renseigner'}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Projets terminés
-                      </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.completed_projects ?? 'À renseigner'}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between gap-4 border-t border-gray-100 px-4 py-3 hover:bg-gray-50">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                        Nombre d&apos;employés
-                      </span>
-                      <span className="text-right text-xs font-medium tabular-nums text-gray-900 transition-colors duration-200 dark:text-slate-100 sm:text-sm">
-                        {company.employee_count ?? 'À renseigner'}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="mt-3 space-y-2 rounded-md border border-gray-200 p-3 sm:mt-4 sm:space-y-3 sm:p-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                      Histoire de l&apos;entreprise
-                    </p>
-                    <p className="mt-1 text-xs text-gray-700 transition-colors duration-200 dark:text-slate-200 sm:text-sm">
-                      {company.company_story || 'À renseigner'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-xs">
-                      Message de l&apos;entreprise
-                    </p>
-                    <p className="mt-1 text-xs text-gray-700 transition-colors duration-200 dark:text-slate-200 sm:text-sm">
-                      {company.founder_message || 'À renseigner'}
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              {company.logo_url && (
-                <div className="rounded-md border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-                  <label className="mb-1 block text-[9px] font-medium uppercase tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300 sm:text-[10px]">
-                    Logo
-                  </label>
-                  <Image
-                    src={company.logo_url}
-                    alt="Logo de l'entreprise"
-                    width={80}
-                    height={80}
-                    className="rounded-lg border object-cover"
-                  />
-                </div>
-              )}
-
-              <div className="rounded-md border border-gray-200 bg-white p-6 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 lg:col-span-2">
-                <label className="mb-1 block text-[10px] font-medium uppercase tabular-nums tracking-widest text-gray-500 transition-colors duration-200 dark:text-slate-300">
-                  Galerie ({galleryUrls.filter(Boolean).length}/5)
-                </label>
-                {galleryUrls.some(Boolean) ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {galleryUrls
-                      .filter((url): url is string => Boolean(url))
-                      .map((url, index) => (
-                        <Image
-                          key={`${url}-${index}`}
-                          src={url}
-                          alt={`Photo galerie ${index + 1}`}
-                          width={80}
-                          height={80}
-                          className="rounded-lg border object-cover"
-                        />
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 transition-colors duration-200 dark:text-slate-300">
-                    Aucune photo de galerie.
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
+                    17
                   </p>
-                )}
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
+                    Suivi en temps reel
+                  </p>
+                </article>
+
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">
+                      Statut de fiche
+                    </p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
+                      <Building2 className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
+                    Actif
+                  </p>
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
+                    Votre page publique est accessible
+                  </p>
+                </article>
+
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">Ville</p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
+                      <MapPin className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
+                    Conakry
+                  </p>
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
+                    Zone principale de visibilite
+                  </p>
+                </article>
+
+                <article className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between sm:mb-3">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 sm:text-sm">
+                      Completion profil
+                    </p>
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 sm:h-8 sm:w-8">
+                      <UserRound className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100 sm:text-4xl">
+                    92%
+                  </p>
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300 sm:text-sm">
+                    Fiche bien optimisee
+                  </p>
+                </article>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="space-y-6 lg:col-span-2">
+                  <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <header className="border-b border-gray-100 px-4 py-4 dark:border-slate-800 sm:px-5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        FICHE ENTREPRISE
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                          Woralink
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                            Actif
+                          </span>
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                            Verifie
+                          </span>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
+                        Votre vitrine est prete a recevoir du trafic local. Gardez vos informations
+                        a jour pour inspirer confiance.
+                      </p>
+                    </header>
+
+                    <div className="px-4 py-4 sm:px-5">
+                      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        INFORMATIONS PRINCIPALES
+                      </p>
+
+                      <dl className="divide-y divide-gray-100 text-sm dark:divide-slate-800">
+                        <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-3">
+                          <dt className="text-gray-500 dark:text-slate-400">Nom</dt>
+                          <dd className="text-right font-medium text-gray-900 dark:text-slate-100">
+                            Woralink
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-3">
+                          <dt className="text-gray-500 dark:text-slate-400">Type</dt>
+                          <dd className="text-right font-medium text-gray-900 dark:text-slate-100">
+                            PME
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-3">
+                          <dt className="text-gray-500 dark:text-slate-400">Ville</dt>
+                          <dd className="text-right font-medium text-gray-900 dark:text-slate-100">
+                            Conakry
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-3">
+                          <dt className="text-gray-500 dark:text-slate-400">Secteur</dt>
+                          <dd className="text-right font-medium text-gray-900 dark:text-slate-100">
+                            Tech & Numerique
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-3">
+                          <dt className="text-gray-500 dark:text-slate-400">Adresse</dt>
+                          <dd className="text-right font-medium text-gray-900 dark:text-slate-100">
+                            {company.address || 'Commune de Tombolia, Qrtie de Tombolia Plateau 2'}
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-3">
+                          <dt className="text-gray-500 dark:text-slate-400">Site web</dt>
+                          <dd className="text-right font-medium">
+                            <a
+                              href={company.website_url || 'https://woralink.com'}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800 hover:underline dark:text-emerald-300 dark:hover:text-emerald-200"
+                            >
+                              <Globe2 className="h-4 w-4" aria-hidden="true" />
+                              Ouvrir le site
+                            </a>
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </section>
+
+                  <ShareProfile
+                    companyName={company.name}
+                    profileUrl={profileUrl}
+                    message="Partagez votre profil Woralink sur WhatsApp, Facebook ou LinkedIn."
+                  />
+
+                  <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <header className="border-b border-gray-100 px-4 py-4 dark:border-slate-800 sm:px-5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        QR CODE
+                      </p>
+                      <h3 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                        Impression et diffusion locale
+                      </h3>
+                    </header>
+
+                    <div className="p-4 sm:p-5">
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                              Code de partage
+                            </p>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                              Affichez-le sur vos supports pour rediriger vos visiteurs vers votre
+                              vitrine.
+                            </p>
+                          </div>
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                            <Building2 className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowQrPreview((current) => !current)}
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                          >
+                            {showQrPreview ? 'Masquer le QR Code' : 'Voir le QR Code'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={downloadQrCode}
+                            className="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
+                          >
+                            Telecharger
+                          </button>
+                        </div>
+
+                        {showQrPreview && profileUrl ? (
+                          <div className="mt-4 flex flex-col items-center rounded-xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                            <QRCodeCanvas
+                              ref={qrCanvasRef}
+                              value={profileUrl}
+                              size={180}
+                              level="M"
+                              includeMargin
+                              className="w-45 h-auto rounded-lg"
+                            />
+                            <p className="mt-3 max-w-xs text-center text-xs text-gray-500 dark:text-slate-400">
+                              {profileUrl}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="space-y-6">
+                  <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <header className="border-b border-gray-100 px-4 py-4 dark:border-slate-800 sm:px-5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        ACTIONS RAPIDES
+                      </p>
+                      <h3 className="mt-1 text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                        Gerer ma presence
+                      </h3>
+                    </header>
+
+                    <div className="divide-y divide-gray-100 dark:divide-slate-800">
+                      <Link
+                        href="/dashboard/setup?mode=edit"
+                        className="flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/50 sm:px-5"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                            Modifier mon profil
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-slate-400">
+                            Mettez a jour vos informations
+                          </p>
+                        </div>
+                        <ArrowRight
+                          className="h-4 w-4 text-gray-400 dark:text-slate-500"
+                          aria-hidden="true"
+                        />
+                      </Link>
+
+                      <Link
+                        href={`/pme/${company.slug}`}
+                        className="flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/50 sm:px-5"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                            Voir ma page publique
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-slate-400">
+                            Controlez le rendu visible
+                          </p>
+                        </div>
+                        <ArrowRight
+                          className="h-4 w-4 text-gray-400 dark:text-slate-500"
+                          aria-hidden="true"
+                        />
+                      </Link>
+
+                      <Link
+                        href="/dashboard/gallery"
+                        className="flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/50 sm:px-5"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                            Gerer la galerie
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-slate-400">
+                            Ajoutez des photos a votre vitrine
+                          </p>
+                        </div>
+                        <ArrowRight
+                          className="h-4 w-4 text-gray-400 dark:text-slate-500"
+                          aria-hidden="true"
+                        />
+                      </Link>
+
+                      <Link
+                        href="/dashboard/setup"
+                        className="flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/50 sm:px-5"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
+                            Finaliser la configuration
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-slate-400">
+                            Ajustez vos informations essentielles
+                          </p>
+                        </div>
+                        <ArrowRight
+                          className="h-4 w-4 text-gray-400 dark:text-slate-500"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    </div>
+                  </section>
+
+                  <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Bravo recus</p>
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                        👏
+                      </span>
+                    </div>
+                    <p className="text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                      {Math.max(0, Number(company.bigup ?? 0) || 0)}
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                      Nombre total de bravo recus depuis les recherches.
+                    </p>
+                  </section>
+
+                  <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm text-gray-500 dark:text-slate-400">
+                        Performance Woralink
+                      </p>
+                      <span
+                        className={`inline-flex h-8 items-center justify-center rounded-full px-2 text-xs font-medium ${
+                          woralinkPerformance.level === 'win'
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                            : 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-300'
+                        }`}
+                      >
+                        {woralinkPerformance.level === 'win' ? 'TOP' : 'PROGRESSION'}
+                      </span>
+                    </div>
+                    <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                      {woralinkPerformance.title}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">
+                      {woralinkPerformance.detail}
+                    </p>
+                  </section>
+
+                  <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Performance</p>
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                        <Eye className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    </div>
+                    <p className="text-4xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                      17
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                      Continuez a enrichir votre profil pour accelerer la decouverte.
+                    </p>
+                  </section>
+                </div>
               </div>
             </div>
           </>

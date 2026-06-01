@@ -2,17 +2,29 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { HeartHandshake, Mail, MapPin, MessageSquareText, Sparkles } from 'lucide-react';
+import {
+  HeartHandshake,
+  Loader2,
+  Mail,
+  MapPin,
+  MessageCircle,
+  MessageSquareText,
+  Send,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import SkeletonHome from '../../components/dashboard/SkeletonHome';
 import SearchListItem from '../../(public)/search/SearchListItem';
+import { startChatRoom } from '../../(public)/contact/actions';
 import { supabase } from '@/lib/supabase';
 
 type Company = {
   id: string;
+  user_id?: string | null;
   name: string;
   profile_type: string;
   sector: string;
@@ -41,6 +53,25 @@ type ContactMessage = {
   subject: string;
   body: string;
   created_at: string;
+};
+
+type ChatMessage = {
+  id: string;
+  room_id: string;
+  company_id?: string | null;
+  client_id?: string | null;
+  sender_id: string;
+  message: string;
+  created_at: string;
+};
+
+type Conversation = {
+  company_id: string;
+  company_name: string;
+  company_slug: string | null;
+  company_logo_url: string | null;
+  last_message: string;
+  last_at: string;
 };
 
 type Profile = {
@@ -83,24 +114,15 @@ function formatFeedDate(createdAt: string): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function formatMessageDateTime(createdAt: string): string {
-  const parsedDate = new Date(createdAt);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return 'Date inconnue';
-  }
-
-  return parsedDate.toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function formatChatTime(createdAt: string): string {
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function ClientDashboardPage() {
+function ClientDashboardPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -109,6 +131,63 @@ export default function ClientDashboardPage() {
   const [fullName, setFullName] = useState('');
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [activeSector, setActiveSector] = useState('Tous');
+
+  // Chat state
+  const [selectedChatCompanyId, setSelectedChatCompanyId] = useState<string | null>(null);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const [chatRoomLoading, setChatRoomLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [conversationList, setConversationList] = useState<Conversation[]>([]);
+  const [freshConversationIds, setFreshConversationIds] = useState<string[]>([]);
+  const [favoriteChatStartingId, setFavoriteChatStartingId] = useState<string | null>(null);
+  const [chatToast, setChatToast] = useState('');
+  const [currentUserId, setCurrentUserId] = useState('');
+  const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const freshBadgeTimersRef = useRef<Record<string, number>>({});
+  const urlTab = searchParams.get('tab');
+  const companyParam = searchParams.get('company');
+  const urlCompanyId = companyParam;
+  const activeChatCompanyId = urlCompanyId ?? selectedChatCompanyId;
+  const effectiveActiveTab: ActiveTab =
+    urlTab === 'messages' || Boolean(urlCompanyId) ? 'messages' : activeTab;
+
+  const markConversationAsNew = useCallback((companyId: string) => {
+    if (!companyId) return;
+
+    setFreshConversationIds((prev) => {
+      if (prev.includes(companyId)) return prev;
+      return [...prev, companyId];
+    });
+
+    const existingTimer = freshBadgeTimersRef.current[companyId];
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+
+    freshBadgeTimersRef.current[companyId] = window.setTimeout(() => {
+      setFreshConversationIds((prev) => prev.filter((id) => id !== companyId));
+      delete freshBadgeTimersRef.current[companyId];
+    }, 8000);
+  }, []);
+
+  useEffect(() => {
+    const timers = freshBadgeTimersRef.current;
+
+    return () => {
+      Object.values(timers).forEach((timerId) => {
+        window.clearTimeout(timerId);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!chatToast) return;
+    const timer = window.setTimeout(() => setChatToast(''), 3200);
+    return () => window.clearTimeout(timer);
+  }, [chatToast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +209,7 @@ export default function ClientDashboardPage() {
       }
 
       const userId = session.user.id;
+      if (!cancelled) setCurrentUserId(userId);
       const [
         { data: profile },
         { data: votesData, error: votesError },
@@ -337,6 +417,205 @@ export default function ClientDashboardPage() {
     };
   }, [router]);
 
+  // Résout le room_id du duo (client + company) à partir de l'URL/conversation active.
+  useEffect(() => {
+    const targetCompanyId = companyParam ?? activeChatCompanyId;
+    if (!targetCompanyId || !currentUserId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const resolveRoomId = async () => {
+      setChatRoomLoading(true);
+      const startResult = await startChatRoom(currentUserId, targetCompanyId);
+      if (!cancelled) {
+        if ('error' in startResult) {
+          setChatToast(startResult.error);
+          setActiveRoomId(null);
+          setChatRoomLoading(false);
+          return;
+        }
+
+        console.log('🎯 Salon actif trouvé et connecté :', startResult.roomId);
+        setActiveRoomId(startResult.roomId);
+        setChatRoomLoading(false);
+      }
+    };
+
+    void resolveRoomId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyParam, activeChatCompanyId, currentUserId]);
+
+  // Charge l'historique des messages à partir du room_id actif.
+  useEffect(() => {
+    if (!activeRoomId) return;
+
+    let cancelled = false;
+
+    const fetchMessages = async () => {
+      setChatLoading(true);
+      setChatMessages([]);
+
+      const { data, error: historyError } = await supabase
+        .from('chat_messages')
+        .select('id, room_id, sender_id, message, created_at')
+        .eq('room_id', activeRoomId)
+        .order('created_at', { ascending: true });
+
+      if (!cancelled) {
+        if (historyError) {
+          setChatToast('Impossible de charger les messages.');
+          setChatMessages([]);
+        } else {
+          setChatMessages((data as ChatMessage[] | null) ?? []);
+        }
+        setChatLoading(false);
+      }
+    };
+
+    void fetchMessages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRoomId]);
+
+  // Realtime: écoute des inserts sur le room_id actif.
+  useEffect(() => {
+    if (!activeRoomId) return;
+
+    const channel = supabase
+      .channel(`chat-room-${activeRoomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `room_id=eq.${activeRoomId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as ChatMessage;
+          setChatMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+
+          if (activeChatCompanyId) {
+            markConversationAsNew(activeChatCompanyId);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [activeRoomId, activeChatCompanyId, markConversationAsNew]);
+
+  // Auto-scroll to bottom when messages arrive
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || chatSending) {
+      return;
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    const currentUser = authData?.user ?? null;
+
+    if (authError || !currentUser?.id) {
+      console.error(
+        "❌ Utilisateur non authentifié pour l'envoi:",
+        authError?.message ?? 'missing user',
+      );
+      setChatToast('Session invalide. Veuillez vous reconnecter.');
+      return;
+    }
+
+    let roomIdToUse = activeRoomId;
+    if (!roomIdToUse) {
+      const targetCompanyId = companyParam ?? activeChatCompanyId;
+      if (!targetCompanyId) {
+        console.error('❌ Aucun room_id actif et aucune entreprise sélectionnée.');
+        return;
+      }
+
+      const startResult = await startChatRoom(currentUser.id, targetCompanyId);
+      if ('error' in startResult) {
+        console.error('❌ Impossible de résoudre le salon avant envoi:', startResult.error);
+        setChatToast(startResult.error);
+        return;
+      }
+
+      roomIdToUse = startResult.roomId;
+      setActiveRoomId(roomIdToUse);
+      console.log('🎯 Salon actif trouvé et connecté :', roomIdToUse);
+    }
+
+    const textToSend = newMessage;
+    setNewMessage('');
+    setChatSending(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          room_id: roomIdToUse,
+          sender_id: currentUser.id,
+          message: textToSend,
+        })
+        .select('id, room_id, sender_id, message, created_at')
+        .single<ChatMessage>();
+
+      if (error) {
+        console.error("❌ Erreur Supabase lors de l'envoi :", error.message);
+        setNewMessage(textToSend);
+        setChatToast("Impossible d'envoyer le message.");
+      } else {
+        setChatMessages((prev) => {
+          if (!data || prev.some((message) => message.id === data.id)) return prev;
+          return [...prev, data];
+        });
+
+        setConversationList((prev) => {
+          if (!activeChatCompanyId) return prev;
+
+          const fallbackCompany = companies.find((company) => company.id === activeChatCompanyId);
+          const nextConversation: Conversation = {
+            company_id: activeChatCompanyId,
+            company_name: fallbackCompany?.name ?? 'Entreprise',
+            company_slug: fallbackCompany?.slug ?? null,
+            company_logo_url: fallbackCompany?.logo_url ?? null,
+            last_message: textToSend,
+            last_at: data?.created_at ?? new Date().toISOString(),
+          };
+
+          const withoutSame = prev.filter((conversation) => {
+            return conversation.company_id !== nextConversation.company_id;
+          });
+
+          return [nextConversation, ...withoutSame];
+        });
+
+        if (activeChatCompanyId) {
+          markConversationAsNew(activeChatCompanyId);
+        }
+
+        console.log('✅ Message inséré avec succès :', data);
+      }
+    } finally {
+      setChatSending(false);
+    }
+  };
+
   const supportedCount = useMemo(() => companies.length, [companies]);
   const messageCount = useMemo(() => messages.length, [messages]);
 
@@ -354,8 +633,106 @@ export default function ClientDashboardPage() {
     return companies.filter((company) => company.sector === activeSector);
   }, [activeSector, companies]);
 
+  const handleRemoveFavorite = async (companyId: string) => {
+    if (!currentUserId) return;
+    await supabase
+      .from('company_votes')
+      .delete()
+      .eq('user_id', currentUserId)
+      .eq('company_id', companyId);
+    setCompanies((prev) => prev.filter((c) => c.id !== companyId));
+  };
+
+  const handleStartChatFromFavorite = async (company: Company) => {
+    if (!currentUserId || !company.id) return;
+    if (company.user_id && currentUserId === company.user_id) return;
+    setFavoriteChatStartingId(company.id);
+    setChatToast('');
+    const result = await startChatRoom(currentUserId, company.id);
+    setFavoriteChatStartingId(null);
+    if ('error' in result) {
+      setChatToast(result.error);
+      return;
+    }
+
+    setActiveTab('messages');
+    setSelectedChatCompanyId(company.id);
+    router.push(`/dashboard/client?tab=messages&company=${company.id}`);
+  };
+
+  // Deduplicated conversation list derived from contact_messages (one entry per company)
+  const conversations = useMemo<Conversation[]>(() => {
+    const seen = new Set<string>();
+    return messages
+      .filter((m) => {
+        if (!m.company_id || seen.has(m.company_id)) return false;
+        seen.add(m.company_id);
+        return true;
+      })
+      .map((m) => ({
+        company_id: m.company_id as string,
+        company_name: resolveCompanyName(m),
+        company_slug: m.company_slug ?? null,
+        company_logo_url: m.company_logo_url ?? null,
+        last_message: m.body,
+        last_at: m.created_at,
+      }));
+  }, [messages]);
+
+  useEffect(() => {
+    setConversationList((prev) => {
+      const byCompany = new Map<string, Conversation>();
+
+      for (const conversation of prev) {
+        byCompany.set(conversation.company_id, conversation);
+      }
+
+      for (const conversation of conversations) {
+        const existing = byCompany.get(conversation.company_id);
+        if (!existing) {
+          byCompany.set(conversation.company_id, conversation);
+          continue;
+        }
+
+        const existingTime = new Date(existing.last_at).getTime();
+        const nextTime = new Date(conversation.last_at).getTime();
+        if (Number.isNaN(existingTime) || nextTime >= existingTime) {
+          byCompany.set(conversation.company_id, conversation);
+        }
+      }
+
+      return Array.from(byCompany.values()).sort((a, b) => {
+        return new Date(b.last_at).getTime() - new Date(a.last_at).getTime();
+      });
+    });
+  }, [conversations]);
+
+  const activeConversation = useMemo(() => {
+    const fromMessages = conversationList.find((c) => c.company_id === activeChatCompanyId) ?? null;
+    if (fromMessages) return fromMessages;
+
+    if (!activeChatCompanyId) return null;
+    const fallbackCompany = companies.find((c) => c.id === activeChatCompanyId);
+    if (!fallbackCompany) return null;
+
+    return {
+      company_id: fallbackCompany.id,
+      company_name: fallbackCompany.name,
+      company_slug: fallbackCompany.slug,
+      company_logo_url: fallbackCompany.logo_url ?? null,
+      last_message: '',
+      last_at: new Date().toISOString(),
+    } satisfies Conversation;
+  }, [conversationList, activeChatCompanyId, companies]);
+
   return (
     <div className="min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-slate-950">
+      {chatToast && (
+        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 shadow-sm">
+          {chatToast}
+        </div>
+      )}
+
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <motion.header
@@ -440,9 +817,15 @@ export default function ClientDashboardPage() {
         >
           <button
             type="button"
-            onClick={() => setActiveTab('home')}
+            onClick={() => {
+              setActiveTab('home');
+              setSelectedChatCompanyId(null);
+              setActiveRoomId(null);
+              setChatMessages([]);
+              router.push('/dashboard/client');
+            }}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-              activeTab === 'home'
+              effectiveActiveTab === 'home'
                 ? 'bg-green-700 text-white'
                 : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
             }`}
@@ -451,9 +834,15 @@ export default function ClientDashboardPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('favorites')}
+            onClick={() => {
+              setActiveTab('favorites');
+              setSelectedChatCompanyId(null);
+              setActiveRoomId(null);
+              setChatMessages([]);
+              router.push('/dashboard/client');
+            }}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-              activeTab === 'favorites'
+              effectiveActiveTab === 'favorites'
                 ? 'bg-green-700 text-white'
                 : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
             }`}
@@ -462,9 +851,12 @@ export default function ClientDashboardPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('messages')}
+            onClick={() => {
+              setActiveTab('messages');
+              router.push('/dashboard/client?tab=messages');
+            }}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-              activeTab === 'messages'
+              effectiveActiveTab === 'messages'
                 ? 'bg-green-700 text-white'
                 : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
             }`}
@@ -480,7 +872,7 @@ export default function ClientDashboardPage() {
         )}
 
         <AnimatePresence mode="wait">
-          {activeTab === 'home' ? (
+          {effectiveActiveTab === 'home' ? (
             <motion.section
               key="home"
               initial={{ opacity: 0, y: 12 }}
@@ -627,7 +1019,7 @@ export default function ClientDashboardPage() {
                 )}
               </AnimatePresence>
             </motion.section>
-          ) : activeTab === 'favorites' ? (
+          ) : effectiveActiveTab === 'favorites' ? (
             <motion.section
               key="favorites"
               initial={{ opacity: 0, y: 12 }}
@@ -678,20 +1070,50 @@ export default function ClientDashboardPage() {
                   className="space-y-3 sm:space-y-4"
                 >
                   {filteredCompanies.map((company, index) => (
-                    <SearchListItem
-                      key={company.id}
-                      company={{
-                        ...company,
-                        logo_url: company.logo_url ?? undefined,
-                      }}
-                      index={index}
-                      compact
-                    />
+                    <div key={company.id}>
+                      <SearchListItem
+                        company={{
+                          ...company,
+                          logo_url: company.logo_url ?? undefined,
+                        }}
+                        index={index}
+                        compact
+                      />
+                      {/* Barre d'actions attachée à la card */}
+                      <div className="flex items-center justify-end gap-2 rounded-b-xl border border-t-0 border-gray-200 bg-white px-4 py-2 dark:border-slate-800 dark:bg-slate-900">
+                        {company.user_id && currentUserId && company.user_id !== currentUserId && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartChatFromFavorite(company)}
+                            disabled={favoriteChatStartingId === company.id}
+                            title="Contacter ce professionnel"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors duration-150 hover:border-green-700 hover:text-green-700 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-green-500 dark:hover:text-green-400"
+                          >
+                            {favoriteChatStartingId === company.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                            )}
+                            Contacter
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFavorite(company.id)}
+                          title="Retirer des favoris"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-red-300 hover:text-red-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-red-600 dark:hover:text-red-400"
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                          Retirer
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </motion.div>
               )}
             </motion.section>
           ) : (
+            /* ── Messages tab — Real-time Chat Interface ── */
             <motion.section
               key="messages"
               initial={{ opacity: 0, y: 12 }}
@@ -699,7 +1121,8 @@ export default function ClientDashboardPage() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.25 }}
             >
-              {messages.length === 0 ? (
+              {conversationList.length === 0 && !activeChatCompanyId ? (
+                /* Empty state */
                 <div className="rounded-xl border border-gray-200 bg-white p-10 text-center transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors duration-200 dark:bg-slate-800 dark:text-slate-500">
                     <MessageSquareText className="h-7 w-7" aria-hidden="true" />
@@ -717,95 +1140,317 @@ export default function ClientDashboardPage() {
                   </div>
                 </div>
               ) : (
-                <motion.div
-                  initial="hidden"
-                  animate="visible"
-                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
-                  className="space-y-4"
-                >
-                  {messages.map((message) =>
-                    (() => {
-                      const companySlug =
-                        typeof message.company_slug === 'string' && message.company_slug.trim()
-                          ? message.company_slug.trim()
-                          : null;
-                      const canOpenCompany = Boolean(message.company_id) && Boolean(companySlug);
+                /* Two-column chat layout */
+                <div className="lg:h-170 overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 lg:flex">
+                  {/* ── Left: Conversations list ── */}
+                  <aside
+                    className={`shrink-0 border-b border-gray-200 transition-colors duration-200 dark:border-slate-800 lg:w-72 lg:border-b-0 lg:border-r xl:w-80 ${
+                      activeChatCompanyId ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'
+                    }`}
+                  >
+                    <div className="border-b border-gray-100 px-4 py-4 dark:border-slate-800">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">
+                        Conversations recentes
+                      </p>
+                      <p className="mt-0.5 text-base font-semibold text-gray-900 dark:text-white">
+                        {conversationList.length} contact{conversationList.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
 
-                      return (
-                        <motion.article
-                          key={message.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.25 }}
-                          onClick={() => {
-                            if (canOpenCompany && companySlug) {
-                              router.push(`/pme/${companySlug}`);
-                            }
-                          }}
-                          className={`flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none ${
-                            canOpenCompany
-                              ? 'cursor-pointer hover:border-gray-300 hover:shadow-md dark:hover:border-slate-700 dark:hover:shadow-none'
-                              : ''
-                          }`}
-                        >
-                          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2.5">
-                            <div className="flex min-w-0 flex-1 items-center gap-2">
-                              <div className="h-8 w-8 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
-                                {message.company_logo_url ? (
+                    <ul className="flex-1 overflow-y-auto">
+                      {conversationList.map((conv) => {
+                        const isActive = activeChatCompanyId === conv.company_id;
+                        return (
+                          <li key={conv.company_id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab('messages');
+                                setSelectedChatCompanyId(conv.company_id);
+                                setFreshConversationIds((prev) => {
+                                  return prev.filter((id) => id !== conv.company_id);
+                                });
+                                router.push(
+                                  `/dashboard/client?tab=messages&company=${conv.company_id}`,
+                                );
+                              }}
+                              className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors duration-150 ${
+                                isActive
+                                  ? 'bg-green-50 dark:bg-green-950/30'
+                                  : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
+                              }`}
+                            >
+                              {/* Avatar */}
+                              <div
+                                className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-full border transition-colors duration-200 ${
+                                  isActive
+                                    ? 'border-green-300 dark:border-green-700'
+                                    : 'border-gray-200 dark:border-slate-700'
+                                }`}
+                              >
+                                {conv.company_logo_url ? (
                                   <Image
-                                    src={message.company_logo_url}
-                                    alt={`Logo ${resolveCompanyName(message)}`}
-                                    width={32}
-                                    height={32}
-                                    className="h-full w-full object-cover"
+                                    src={conv.company_logo_url}
+                                    alt={conv.company_name}
+                                    fill
+                                    sizes="40px"
+                                    className="object-cover"
                                   />
                                 ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                                    {resolveCompanyName(message).charAt(0)}
+                                  <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                                    {conv.company_name.charAt(0).toUpperCase()}
                                   </div>
                                 )}
+                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-slate-900" />
                               </div>
+
+                              {/* Info */}
                               <div className="min-w-0 flex-1">
-                                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                  <h3 className="truncate text-sm font-semibold text-gray-900 transition-colors duration-200 dark:text-white">
-                                    {resolveCompanyName(message)}
-                                  </h3>
-                                  <span className="text-xs text-gray-400 transition-colors duration-200 dark:text-slate-500">
-                                    •
-                                  </span>
-                                  <p className="truncate text-sm text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                                    {message.subject}
-                                  </p>
-                                </div>
+                                <p
+                                  className={`truncate text-sm font-semibold ${
+                                    isActive
+                                      ? 'text-green-700 dark:text-green-400'
+                                      : 'text-gray-900 dark:text-white'
+                                  }`}
+                                >
+                                  {conv.company_name}
+                                </p>
+                                <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
+                                  {conv.last_message.slice(0, 48)}
+                                  {conv.last_message.length > 48 ? '…' : ''}
+                                </p>
                               </div>
-                            </div>
+
+                              {/* Date */}
+                              <div className="shrink-0 text-right">
+                                {freshConversationIds.includes(conv.company_id) && (
+                                  <span className="mb-1 inline-flex rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                    Nouveau
+                                  </span>
+                                )}
+                                <span className="block text-[10px] text-gray-400 dark:text-slate-500">
+                                  {formatFeedDate(conv.last_at)}
+                                </span>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </aside>
+
+                  {/* ── Right: Chat area ── */}
+                  <div
+                    className={`min-w-0 flex-1 flex-col ${
+                      activeChatCompanyId ? 'flex' : 'hidden lg:flex'
+                    }`}
+                  >
+                    {!activeChatCompanyId ? (
+                      /* Desktop placeholder when no conversation selected */
+                      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
+                          <MessageSquareText className="h-8 w-8 text-gray-400 dark:text-slate-500" />
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-slate-400">
+                          Sélectionnez une conversation pour afficher les messages.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Chat header */}
+                        <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5 transition-colors duration-200 dark:border-slate-800">
+                          {/* Back button (mobile) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedChatCompanyId(null);
+                              setActiveRoomId(null);
+                              router.push('/dashboard/client?tab=messages');
+                            }}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden"
+                            aria-label="Retour"
+                          >
+                            <svg
+                              viewBox="0 0 20 20"
+                              fill="none"
+                              className="h-5 w-5"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M12 4l-6 6 6 6"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+
+                          {/* Company avatar */}
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
+                            {activeConversation?.company_logo_url ? (
+                              <Image
+                                src={activeConversation.company_logo_url}
+                                alt={activeConversation.company_name}
+                                fill
+                                sizes="36px"
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                                {activeConversation?.company_name.charAt(0).toUpperCase() ?? '?'}
+                              </div>
+                            )}
                           </div>
 
-                          <p className="mt-1.5 text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400">
-                            {message.body}
-                          </p>
-                          <div className="mt-3 flex items-end justify-between gap-2">
-                            {canOpenCompany ? (
-                              <p className="text-xs font-medium text-green-700 transition-colors duration-200 dark:text-green-400">
-                                Voir la fiche entreprise
-                              </p>
-                            ) : (
-                              <span aria-hidden="true" />
-                            )}
-                            <span className="text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                              {formatMessageDateTime(message.created_at)}
-                            </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                              {activeConversation?.company_name ?? ''}
+                            </p>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                              Conversation en direct
+                            </p>
                           </div>
-                        </motion.article>
-                      );
-                    })(),
-                  )}
-                </motion.div>
+
+                          <span className="hidden rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-medium text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 sm:inline-flex">
+                            {chatRoomLoading
+                              ? 'Salon: chargement...'
+                              : activeRoomId
+                                ? `Salon: ${activeRoomId.slice(0, 8)}...`
+                                : 'Salon: non trouve'}
+                          </span>
+
+                          {activeConversation?.company_slug && (
+                            <Link
+                              href={`/pme/${activeConversation.company_slug}`}
+                              className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                            >
+                              Voir la fiche
+                            </Link>
+                          )}
+                        </div>
+
+                        {/* Messages area */}
+                        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                          {chatRoomLoading || chatLoading ? (
+                            <div className="flex h-full items-center justify-center">
+                              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-emerald-600 dark:border-slate-700 dark:border-t-emerald-500" />
+                            </div>
+                          ) : chatMessages.length === 0 ? (
+                            <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
+                                <MessageSquareText className="h-6 w-6 text-gray-400 dark:text-slate-500" />
+                              </div>
+                              <p className="text-sm text-gray-500 dark:text-slate-400">
+                                Aucun message pour l&apos;instant. Commencez la conversation !
+                              </p>
+                            </div>
+                          ) : (
+                            chatMessages.map((msg) => {
+                              const isMe = msg.sender_id === currentUserId;
+                              return (
+                                <div
+                                  key={msg.id}
+                                  className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                                >
+                                  {/* Company avatar (received side only) */}
+                                  {!isMe && (
+                                    <div className="mb-1 h-7 w-7 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
+                                      {activeConversation?.company_logo_url ? (
+                                        <Image
+                                          src={activeConversation.company_logo_url}
+                                          alt=""
+                                          width={28}
+                                          height={28}
+                                          className="h-full w-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                                          {activeConversation?.company_name
+                                            .charAt(0)
+                                            .toUpperCase() ?? '?'}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Bubble */}
+                                  <div
+                                    className={`flex max-w-[72%] flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}
+                                  >
+                                    <div
+                                      className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                                        isMe
+                                          ? 'rounded-br-sm bg-emerald-600 text-white'
+                                          : 'rounded-bl-sm bg-gray-100 text-gray-900 dark:bg-slate-800 dark:text-slate-100'
+                                      }`}
+                                    >
+                                      {msg.message}
+                                    </div>
+                                    <span
+                                      className={`px-1 text-[10px] text-gray-400 dark:text-slate-500 ${isMe ? 'text-right' : 'text-left'}`}
+                                    >
+                                      {formatChatTime(msg.created_at)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                          {/* Scroll anchor */}
+                          <div ref={chatBottomRef} />
+                        </div>
+
+                        {/* Input bar */}
+                        <div className="border-t border-gray-100 p-3 transition-colors duration-200 dark:border-slate-800">
+                          <form
+                            onSubmit={handleSendMessage}
+                            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors duration-200 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/15 dark:border-slate-700 dark:bg-slate-800"
+                          >
+                            <input
+                              type="text"
+                              value={newMessage}
+                              onChange={(e) => setNewMessage(e.target.value)}
+                              placeholder="Écrivez votre message…"
+                              className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-white dark:placeholder:text-slate-500"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!newMessage.trim() || chatSending || chatRoomLoading}
+                              className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-white transition-colors duration-150 hover:bg-emerald-700 disabled:opacity-40"
+                              aria-label={chatSending ? 'Envoi du message' : 'Envoyer'}
+                            >
+                              {chatSending ? (
+                                <>
+                                  <Loader2
+                                    className="h-3.5 w-3.5 animate-spin"
+                                    aria-hidden="true"
+                                  />
+                                  <span className="text-[11px] font-medium">Envoi...</span>
+                                </>
+                              ) : (
+                                <Send className="h-4 w-4" aria-hidden="true" />
+                              )}
+                            </button>
+                          </form>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
             </motion.section>
           )}
         </AnimatePresence>
       </main>
     </div>
+  );
+}
+
+export default function ClientDashboardPage() {
+  return (
+    <Suspense>
+      <ClientDashboardPageInner />
+    </Suspense>
   );
 }
