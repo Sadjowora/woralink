@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import SkeletonHome from '../../components/dashboard/SkeletonHome';
+import ScrollToTopButton from '../../components/dashboard/ScrollToTopButton';
 import SearchListItem from '../../(public)/search/SearchListItem';
 import { startChatRoom } from '../../(public)/contact/actions';
 import { supabase } from '@/lib/supabase';
@@ -907,7 +908,7 @@ function ClientDashboardPageInner() {
       )}
 
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-0 py-8 sm:px-6 sm:py-12 lg:px-8">
         <motion.header
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1616,6 +1617,7 @@ function ClientDashboardPageInner() {
           )}
         </AnimatePresence>
       </main>
+      <ScrollToTopButton />
     </div>
   );
 }
