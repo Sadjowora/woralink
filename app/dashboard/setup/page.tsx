@@ -538,7 +538,7 @@ function SetupPageContent() {
         )
       }
     >
-      <div className="w-full rounded-xl border border-gray-200 bg-white p-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+      <div className="w-full rounded-xl border border-gray-200 bg-white px-0 py-4 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:px-5 sm:py-5">
         {company && !editing ? (
           <>
             {error && (

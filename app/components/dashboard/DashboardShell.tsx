@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import ScrollToTopButton from './ScrollToTopButton';
 
 type DashboardShellProps = {
   title: string;
@@ -262,7 +263,8 @@ export default function DashboardShell({
           {actions ? <div className="hidden items-center gap-2 sm:flex">{actions}</div> : <div />}
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="px-0 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">{children}</main>
+        <ScrollToTopButton />
       </div>
     </div>
   );
