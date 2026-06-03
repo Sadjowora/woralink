@@ -17,9 +17,7 @@ type Company = {
 
 type ProfileRow = {
   full_name?: string | null;
-  avatar_url?: string | null;
-  avatar?: string | null;
-  phone?: string | null;
+  email?: string | null;
 };
 
 type ChatRoom = {
@@ -49,8 +47,7 @@ type ConversationPreview = {
 
 type RoomClient = {
   full_name: string;
-  avatar_url: string | null;
-  phone: string | null;
+  email: string | null;
 };
 
 function normalizeProfile(input: ProfileRow | ProfileRow[] | null | undefined): RoomClient {
@@ -60,19 +57,12 @@ function normalizeProfile(input: ProfileRow | ProfileRow[] | null | undefined): 
     typeof profile?.full_name === 'string' && profile.full_name.trim()
       ? profile.full_name.trim()
       : 'Client';
-  const avatarUrl =
-    typeof profile?.avatar_url === 'string' && profile.avatar_url.trim()
-      ? profile.avatar_url.trim()
-      : typeof profile?.avatar === 'string' && profile.avatar.trim()
-        ? profile.avatar.trim()
-        : null;
-  const phone =
-    typeof profile?.phone === 'string' && profile.phone.trim() ? profile.phone.trim() : null;
+  const email =
+    typeof profile?.email === 'string' && profile.email.trim() ? profile.email.trim() : null;
 
   return {
     full_name: fullName,
-    avatar_url: avatarUrl,
-    phone,
+    email,
   };
 }
 
@@ -240,7 +230,7 @@ function MessagesPageInner() {
       if (clientIds.length > 0) {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, avatar, phone')
+          .select('id, email, full_name')
           .in('id', clientIds);
 
         if (profileError) {
@@ -551,8 +541,7 @@ function MessagesPageInner() {
             Aucun client n’a encore ouvert de conversation
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400">
-            Dès qu’un client vous contacte, la conversation apparaîtra ici avec son nom, son avatar
-            et son numéro de téléphone.
+            Dès qu’un client vous contacte, la conversation apparaîtra ici avec son nom.
           </p>
           <div className="mt-6 flex justify-center">
             <Link
@@ -602,19 +591,9 @@ function MessagesPageInner() {
                       }`}
                     >
                       <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                        {conversation.client.avatar_url ? (
-                          <Image
-                            src={conversation.client.avatar_url}
-                            alt={conversation.client.full_name}
-                            fill
-                            sizes="44px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                            {getInitials(conversation.client.full_name)}
-                          </div>
-                        )}
+                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                          {getInitials(conversation.client.full_name)}
+                        </div>
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -624,10 +603,6 @@ function MessagesPageInner() {
                         {conversation.last_message ? (
                           <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
                             {conversation.last_message}
-                          </p>
-                        ) : conversation.client.phone ? (
-                          <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
-                            {conversation.client.phone}
                           </p>
                         ) : (
                           <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">
@@ -679,19 +654,9 @@ function MessagesPageInner() {
                   </button>
 
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                    {activeClient.avatar_url ? (
-                      <Image
-                        src={activeClient.avatar_url}
-                        alt={activeClient.full_name}
-                        fill
-                        sizes="40px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                        {getInitials(activeClient.full_name)}
-                      </div>
-                    )}
+                    <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                      {getInitials(activeClient.full_name)}
+                    </div>
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -702,12 +667,6 @@ function MessagesPageInner() {
                       Messagerie client en direct
                     </p>
                   </div>
-
-                  {activeClient.phone ? (
-                    <span className="hidden rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 dark:border-slate-700 dark:text-slate-300 sm:inline-flex">
-                      {activeClient.phone}
-                    </span>
-                  ) : null}
                 </div>
 
                 <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 lg:min-h-0">
@@ -748,14 +707,6 @@ function MessagesPageInner() {
                                   W
                                 </div>
                               )
-                            ) : activeClient.avatar_url ? (
-                              <Image
-                                src={activeClient.avatar_url}
-                                alt={activeClient.full_name}
-                                width={28}
-                                height={28}
-                                className="h-full w-full object-cover"
-                              />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                                 {getInitials(activeClient.full_name)}
