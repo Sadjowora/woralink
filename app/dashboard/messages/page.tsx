@@ -17,9 +17,7 @@ type Company = {
 
 type ProfileRow = {
   full_name?: string | null;
-  avatar_url?: string | null;
-  avatar?: string | null;
-  phone?: string | null;
+  email?: string | null;
 };
 
 type ChatRoom = {
@@ -49,8 +47,6 @@ type ConversationPreview = {
 
 type RoomClient = {
   full_name: string;
-  avatar_url: string | null;
-  phone: string | null;
 };
 
 function normalizeProfile(input: ProfileRow | ProfileRow[] | null | undefined): RoomClient {
@@ -60,19 +56,9 @@ function normalizeProfile(input: ProfileRow | ProfileRow[] | null | undefined): 
     typeof profile?.full_name === 'string' && profile.full_name.trim()
       ? profile.full_name.trim()
       : 'Client';
-  const avatarUrl =
-    typeof profile?.avatar_url === 'string' && profile.avatar_url.trim()
-      ? profile.avatar_url.trim()
-      : typeof profile?.avatar === 'string' && profile.avatar.trim()
-        ? profile.avatar.trim()
-        : null;
-  const phone =
-    typeof profile?.phone === 'string' && profile.phone.trim() ? profile.phone.trim() : null;
 
   return {
     full_name: fullName,
-    avatar_url: avatarUrl,
-    phone,
   };
 }
 
@@ -236,28 +222,102 @@ function MessagesPageInner() {
       );
 
       let profilesById = new Map<string, ProfileRow>();
+      const fallbackProfilesByRoom = new Map<string, ProfileRow>();
+
+      const fetchProfilesByIds = async (ids: string[]) => {
+        if (ids.length === 0) {
+          return [] as Array<ProfileRow & { id: string }>;
+        }
+
+        const attemptProfiles = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', ids);
+
+        if (!attemptProfiles.error) {
+          return (attemptProfiles.data as Array<ProfileRow & { id: string }> | null) ?? [];
+        }
+
+        throw attemptProfiles.error;
+      };
 
       if (clientIds.length > 0) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url, avatar, phone')
-          .in('id', clientIds);
-
-        if (profileError) {
-          console.warn('[dashboard/messages] profiles lookup skipped:', profileError.message);
-        } else {
-          profilesById = new Map(
-            ((profileData as Array<ProfileRow & { id: string }> | null) ?? []).map((profile) => [
-              profile.id,
-              profile,
-            ]),
+        try {
+          const profileData = await fetchProfilesByIds(clientIds);
+          profilesById = new Map(profileData.map((profile) => [profile.id, profile]));
+        } catch (profileError) {
+          console.warn(
+            '[dashboard/messages] profiles lookup skipped:',
+            profileError instanceof Error ? profileError.message : String(profileError),
           );
+        }
+      }
+
+      const roomsWithoutDirectProfile = baseRooms
+        .filter((room) => !profilesById.has(room.client_id))
+        .map((room) => room.id);
+
+      if (roomsWithoutDirectProfile.length > 0) {
+        const { data: messageData, error: messageError } = await supabase
+          .from('chat_messages')
+          .select('room_id, sender_id, created_at')
+          .in('room_id', roomsWithoutDirectProfile)
+          .order('created_at', { ascending: false });
+
+        if (messageError) {
+          console.warn(
+            '[dashboard/messages] fallback sender lookup skipped:',
+            messageError.message,
+          );
+        } else {
+          const senderIdByRoom = new Map<string, string>();
+
+          for (const row of (messageData as Array<{
+            room_id?: string | null;
+            sender_id?: string | null;
+          }> | null) ?? []) {
+            const roomId = String(row.room_id ?? '');
+            const senderId = String(row.sender_id ?? '');
+
+            if (!roomId || !senderId || senderId === userId) {
+              continue;
+            }
+
+            if (!senderIdByRoom.has(roomId)) {
+              senderIdByRoom.set(roomId, senderId);
+            }
+          }
+
+          const senderIds = Array.from(new Set(senderIdByRoom.values()));
+
+          if (senderIds.length > 0) {
+            try {
+              const fallbackProfileData = await fetchProfilesByIds(senderIds);
+              const fallbackProfilesById = new Map(
+                fallbackProfileData.map((profile) => [profile.id, profile]),
+              );
+
+              for (const [roomId, senderId] of senderIdByRoom) {
+                const profile = fallbackProfilesById.get(senderId);
+                if (profile) {
+                  fallbackProfilesByRoom.set(roomId, profile);
+                }
+              }
+            } catch (fallbackProfileError) {
+              console.warn(
+                '[dashboard/messages] fallback profiles lookup skipped:',
+                fallbackProfileError instanceof Error
+                  ? fallbackProfileError.message
+                  : String(fallbackProfileError),
+              );
+            }
+          }
         }
       }
 
       const mappedRooms = baseRooms.map((room) => ({
         ...room,
-        profiles: profilesById.get(room.client_id) ?? null,
+        profiles: profilesById.get(room.client_id) ?? fallbackProfilesByRoom.get(room.id) ?? null,
       }));
 
       if (!cancelled) {
@@ -403,6 +463,12 @@ function MessagesPageInner() {
   );
 
   const roomCount = rooms.length;
+  const conversationTitle = activeRoom
+    ? `Conversation avec ${activeClient.full_name}`
+    : 'Messagerie';
+  const conversationSubtitle = activeRoom
+    ? `Discutez avec ${activeClient.full_name} en temps réel.`
+    : 'Répondez aux clients en temps réel depuis votre espace professionnel.';
 
   const roomIds = useMemo(() => rooms.map((room) => room.id), [rooms]);
 
@@ -521,8 +587,8 @@ function MessagesPageInner() {
 
   return (
     <DashboardShell
-      title="Messagerie"
-      subtitle="Répondez aux clients en temps réel depuis votre espace professionnel."
+      title={conversationTitle}
+      subtitle={conversationSubtitle}
       actions={
         <Link
           href="/dashboard/setup"
@@ -602,19 +668,9 @@ function MessagesPageInner() {
                       }`}
                     >
                       <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                        {conversation.client.avatar_url ? (
-                          <Image
-                            src={conversation.client.avatar_url}
-                            alt={conversation.client.full_name}
-                            fill
-                            sizes="44px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                            {getInitials(conversation.client.full_name)}
-                          </div>
-                        )}
+                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                          {getInitials(conversation.client.full_name)}
+                        </div>
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -624,10 +680,6 @@ function MessagesPageInner() {
                         {conversation.last_message ? (
                           <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
                             {conversation.last_message}
-                          </p>
-                        ) : conversation.client.phone ? (
-                          <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
-                            {conversation.client.phone}
                           </p>
                         ) : (
                           <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">
@@ -679,19 +731,9 @@ function MessagesPageInner() {
                   </button>
 
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                    {activeClient.avatar_url ? (
-                      <Image
-                        src={activeClient.avatar_url}
-                        alt={activeClient.full_name}
-                        fill
-                        sizes="40px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                        {getInitials(activeClient.full_name)}
-                      </div>
-                    )}
+                    <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                      {getInitials(activeClient.full_name)}
+                    </div>
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -699,15 +741,9 @@ function MessagesPageInner() {
                       {activeClient.full_name}
                     </p>
                     <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                      Messagerie client en direct
+                      Conversation en direct avec {activeClient.full_name}
                     </p>
                   </div>
-
-                  {activeClient.phone ? (
-                    <span className="hidden rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 dark:border-slate-700 dark:text-slate-300 sm:inline-flex">
-                      {activeClient.phone}
-                    </span>
-                  ) : null}
                 </div>
 
                 <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 lg:min-h-0">
@@ -748,14 +784,6 @@ function MessagesPageInner() {
                                   W
                                 </div>
                               )
-                            ) : activeClient.avatar_url ? (
-                              <Image
-                                src={activeClient.avatar_url}
-                                alt={activeClient.full_name}
-                                width={28}
-                                height={28}
-                                className="h-full w-full object-cover"
-                              />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                                 {getInitials(activeClient.full_name)}
