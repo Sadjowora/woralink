@@ -38,7 +38,7 @@ type Company = {
   profile_type: string;
   sector: string;
   city: string;
-  whatsapp: string;
+  whatsapp: string | null;
   slug: string;
   logo_url?: string;
   description?: string;
@@ -61,6 +61,7 @@ type CompanyProfileProps = {
     caption: string;
     uploadedAt: string | null;
   }>;
+  whatsappHidden?: boolean;
 };
 
 type ProfileRole = 'company' | 'client' | 'visitor' | string;
@@ -91,7 +92,11 @@ function extractViewsCount(payload: unknown): number | null {
   return null;
 }
 
-export default function CompanyProfile({ company, photos }: CompanyProfileProps) {
+export default function CompanyProfile({
+  company,
+  photos,
+  whatsappHidden = false,
+}: CompanyProfileProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [loadedGalleryImages, setLoadedGalleryImages] = useState<Record<string, boolean>>({});
   const [lightboxImageLoaded, setLightboxImageLoaded] = useState(false);
@@ -253,7 +258,9 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto]);
 
-  const whatsappUrl = `https://wa.me/${company.whatsapp.replace(/[^0-9]/g, '')}`;
+  const sanitizedWhatsapp = (company.whatsapp ?? '').replace(/[^0-9]/g, '');
+  const whatsappUrl = sanitizedWhatsapp ? `https://wa.me/${sanitizedWhatsapp}` : '';
+  const canShowWhatsapp = !whatsappHidden && Boolean(sanitizedWhatsapp);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || '';
   const profileUrl = `${siteUrl}/pme/${company.slug}`;
   const formattedViews = formatCompactViews(currentViews);
@@ -866,7 +873,7 @@ export default function CompanyProfile({ company, photos }: CompanyProfileProps)
       </motion.div>
 
       {/* Floating WhatsApp button */}
-      {company.whatsapp && (
+      {canShowWhatsapp && (
         <div className="fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6">
           <a
             href={whatsappUrl}

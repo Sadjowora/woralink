@@ -57,7 +57,6 @@ type Company = {
   logo_url?: string;
   is_verified?: boolean | null;
   views_count?: number | null;
-  whatsapp?: string | null;
   website_url?: string | null;
   description?: string | null;
   company_story?: string | null;
@@ -132,7 +131,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   let query = supabase
     .from('companies')
     .select(
-      'id, name, profile_type, sector, city, slug, logo_url, is_verified, views_count, whatsapp, website_url, description, company_story, founder_message, address, bigup',
+      'id, name, profile_type, sector, city, slug, logo_url, is_verified, views_count, website_url, description, company_story, founder_message, address, bigup',
     )
     .order('views_count', { ascending: false, nullsFirst: false });
   if (cityFilter) query = query.ilike('city', `%${escapeLikePattern(cityFilter)}%`);

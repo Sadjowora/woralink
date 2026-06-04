@@ -59,9 +59,10 @@ const navItems = [
   },
   {
     label: 'Configuration',
-    href: '/dashboard/setup',
+    href: '/dashboard/settings',
     icon: Settings,
-    match: (pathname: string) => pathname === '/dashboard/setup',
+    match: (pathname: string) =>
+      pathname === '/dashboard/settings' || pathname === '/dashboard/setup',
   },
   {
     label: 'Explorer',
