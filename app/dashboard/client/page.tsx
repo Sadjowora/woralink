@@ -21,6 +21,7 @@ import SkeletonHome from '../../components/dashboard/SkeletonHome';
 import ScrollToTopButton from '../../components/dashboard/ScrollToTopButton';
 import SearchListItem from '../../(public)/search/SearchListItem';
 import { startChatRoom } from '../../(public)/contact/actions';
+import { getLatestMessagesByRoom } from '@/lib/chat';
 import { supabase } from '@/lib/supabase';
 
 type Company = {
@@ -86,6 +87,7 @@ type Conversation = {
 
 type Profile = {
   full_name?: string | null;
+  role?: string | null;
 };
 
 type ActiveTab = 'home' | 'favorites' | 'messages';
@@ -138,6 +140,7 @@ function ClientDashboardPageInner() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [galleryFeed, setGalleryFeed] = useState<GalleryFeedItem[]>([]);
+  const [isGalleryLoading, setIsGalleryLoading] = useState(false);
   const [fullName, setFullName] = useState('');
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [activeSector, setActiveSector] = useState('Tous');
@@ -221,12 +224,12 @@ function ClientDashboardPageInner() {
       const userId = session.user.id;
       if (!cancelled) setCurrentUserId(userId);
       const [
-        { data: profile },
+        { data: profile, error: profileError },
         { data: votesData, error: votesError },
         { data: messagesData, error: messagesError },
         { data: roomData, error: roomsError },
       ] = await Promise.all([
-        supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle<Profile>(),
+        supabase.from('profiles').select('full_name, role').eq('id', userId).maybeSingle<Profile>(),
         supabase.from('company_votes').select('company_id, companies(*)').eq('user_id', userId),
         supabase
           .from('contact_messages')
@@ -246,7 +249,7 @@ function ClientDashboardPageInner() {
           .order('created_at', { ascending: false }),
       ]);
 
-      if (votesError || messagesError || roomsError) {
+      if (profileError || votesError || messagesError || roomsError) {
         if (!cancelled) {
           setError('Impossible de charger votre espace client pour le moment.');
           setCompanies([]);
@@ -256,9 +259,20 @@ function ClientDashboardPageInner() {
         return;
       }
 
+      const normalizedRole = String(profile?.role ?? '').toLowerCase();
+      if (normalizedRole === 'company') {
+        if (!cancelled) {
+          setIsLoading(false);
+          router.push('/dashboard');
+        }
+        return;
+      }
+
       const mappedCompanies = ((votesData as VoteRow[] | null) ?? [])
         .map(normalizeCompany)
         .filter((company): company is Company => Boolean(company));
+
+      const chatRooms = (roomData as ChatRoom[] | null) ?? [];
 
       const rawMessages = ((messagesData as Array<Record<string, unknown>> | null) ?? []).map(
         (row) => ({
@@ -270,12 +284,13 @@ function ClientDashboardPageInner() {
         }),
       );
 
-      const companyIds = Array.from(
-        new Set(
-          rawMessages
+      const relatedCompanyIds = Array.from(
+        new Set([
+          ...rawMessages
             .map((message) => message.company_id)
             .filter((id): id is string => Boolean(id)),
-        ),
+          ...chatRooms.map((room) => room.company_id).filter(Boolean),
+        ]),
       );
 
       let companiesMap = new Map<
@@ -283,37 +298,47 @@ function ClientDashboardPageInner() {
         { id: string; name?: string | null; slug?: string | null; logo_url?: string | null }
       >();
 
-      if (companyIds.length > 0) {
-        const { data: relatedCompanies } = await supabase
+      if (relatedCompanyIds.length > 0) {
+        const { data: relatedCompanies, error: relatedCompaniesError } = await supabase
           .from('companies')
           .select('id, name, slug, logo_url')
-          .in('id', companyIds);
+          .in('id', relatedCompanyIds);
 
-        companiesMap = new Map(
-          (
-            (relatedCompanies as Array<{
-              id: string;
-              name?: string | null;
-              slug?: string | null;
-              logo_url?: string | null;
-            }> | null) ?? []
-          ).map((company) => [
-            company.id,
-            {
-              id: company.id,
-              name: company.name ?? null,
-              slug: company.slug ?? null,
-              logo_url: company.logo_url ?? null,
-            },
-          ]),
-        );
+        if (relatedCompaniesError) {
+          console.warn('[ClientDashboard] companies lookup failed:', relatedCompaniesError.message);
+        } else {
+          companiesMap = new Map(
+            (
+              (relatedCompanies as Array<{
+                id: string;
+                name?: string | null;
+                slug?: string | null;
+                logo_url?: string | null;
+              }> | null) ?? []
+            ).map((company) => [
+              company.id,
+              {
+                id: company.id,
+                name: company.name ?? null,
+                slug: company.slug ?? null,
+                logo_url: company.logo_url ?? null,
+              },
+            ]),
+          );
+        }
+      }
+
+      const unresolvedCompanyIds = relatedCompanyIds.filter(
+        (companyId) => !companiesMap.has(companyId),
+      );
+      if (unresolvedCompanyIds.length > 0) {
+        console.warn('[ClientDashboard] unresolved company ids:', unresolvedCompanyIds);
       }
 
       const mappedMessages: ContactMessage[] = rawMessages.map((message) => {
         const relatedCompany = message.company_id
           ? companiesMap.get(message.company_id)
           : undefined;
-
         return {
           ...message,
           company_name: relatedCompany?.name ?? null,
@@ -322,138 +347,10 @@ function ClientDashboardPageInner() {
         };
       });
 
-      const chatRooms = (roomData as ChatRoom[] | null) ?? [];
-      const roomCompanyIds = Array.from(
-        new Set(chatRooms.map((room) => room.company_id).filter(Boolean)),
-      );
-      const missingCompanyIds = roomCompanyIds.filter((companyId) => !companiesMap.has(companyId));
-
-      if (missingCompanyIds.length > 0) {
-        const { data: missingCompanies, error: missingCompaniesError } = await supabase
-          .from('companies')
-          .select('id, name, slug, logo_url')
-          .in('id', missingCompanyIds);
-
-        if (missingCompaniesError) {
-          console.warn(
-            '[ClientDashboard] room companies lookup failed:',
-            missingCompaniesError.message,
-          );
-        } else {
-          for (const company of (missingCompanies as Array<{
-            id: string;
-            name?: string | null;
-            slug?: string | null;
-            logo_url?: string | null;
-          }> | null) ?? []) {
-            companiesMap.set(company.id, {
-              id: company.id,
-              name: company.name ?? null,
-              slug: company.slug ?? null,
-              logo_url: company.logo_url ?? null,
-            });
-          }
-        }
-      }
-
-      const unresolvedCompanyIds = missingCompanyIds.filter(
-        (companyId) => !companiesMap.has(companyId),
-      );
-
-      if (unresolvedCompanyIds.length > 0) {
-        const { data: companiesByUserId, error: companiesByUserIdError } = await supabase
-          .from('companies')
-          .select('id, user_id, name, slug, logo_url')
-          .in('user_id', unresolvedCompanyIds);
-
-        if (companiesByUserIdError) {
-          console.warn(
-            '[ClientDashboard] room companies user_id lookup failed:',
-            companiesByUserIdError.message,
-          );
-        } else {
-          for (const company of (companiesByUserId as Array<{
-            id: string;
-            user_id?: string | null;
-            name?: string | null;
-            slug?: string | null;
-            logo_url?: string | null;
-          }> | null) ?? []) {
-            if (typeof company.user_id === 'string' && company.user_id.trim()) {
-              companiesMap.set(company.user_id.trim(), {
-                id: company.id,
-                name: company.name ?? null,
-                slug: company.slug ?? null,
-                logo_url: company.logo_url ?? null,
-              });
-            }
-          }
-        }
-
-        const stillUnresolvedCompanyIds = unresolvedCompanyIds.filter(
-          (companyId) => !companiesMap.has(companyId),
-        );
-
-        if (stillUnresolvedCompanyIds.length > 0) {
-          const { data: companiesByOwnerId, error: companiesByOwnerIdError } = await supabase
-            .from('companies')
-            .select('id, owner_id, name, slug, logo_url')
-            .in('owner_id', stillUnresolvedCompanyIds);
-
-          if (
-            companiesByOwnerIdError &&
-            !/column .* does not exist|owner_id/i.test(companiesByOwnerIdError.message)
-          ) {
-            console.warn(
-              '[ClientDashboard] room companies owner_id lookup failed:',
-              companiesByOwnerIdError.message,
-            );
-          } else {
-            for (const company of (companiesByOwnerId as Array<{
-              id: string;
-              owner_id?: string | null;
-              name?: string | null;
-              slug?: string | null;
-              logo_url?: string | null;
-            }> | null) ?? []) {
-              if (typeof company.owner_id === 'string' && company.owner_id.trim()) {
-                companiesMap.set(company.owner_id.trim(), {
-                  id: company.id,
-                  name: company.name ?? null,
-                  slug: company.slug ?? null,
-                  logo_url: company.logo_url ?? null,
-                });
-              }
-            }
-          }
-        }
-      }
-
       const roomIds = chatRooms.map((room) => room.id);
-      const latestByRoom = new Map<string, { message: string; created_at: string }>();
-
-      if (roomIds.length > 0) {
-        const { data: latestMessagesData, error: latestMessagesError } = await supabase
-          .from('chat_messages')
-          .select('id, room_id, sender_id, message, created_at')
-          .in('room_id', roomIds)
-          .order('created_at', { ascending: false });
-
-        if (latestMessagesError) {
-          console.warn(
-            '[ClientDashboard] latest chat messages lookup failed:',
-            latestMessagesError.message,
-          );
-        } else {
-          for (const message of (latestMessagesData as ChatMessage[] | null) ?? []) {
-            if (!latestByRoom.has(message.room_id)) {
-              latestByRoom.set(message.room_id, {
-                message: message.message,
-                created_at: message.created_at,
-              });
-            }
-          }
-        }
+      const { latestByRoom, error: latestMessagesError } = await getLatestMessagesByRoom(roomIds);
+      if (latestMessagesError) {
+        console.warn('[ClientDashboard] latest chat messages lookup failed:', latestMessagesError);
       }
 
       const roomConversations: Conversation[] = chatRooms
@@ -472,8 +369,15 @@ function ClientDashboardPageInner() {
         })
         .sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime());
 
-      // Gallery feed — photos from all companies, newest first.
-      // We keep the query simple to avoid failing on implicit relation naming.
+      if (!cancelled) {
+        setFullName((profile?.full_name ?? '').trim());
+        setCompanies(mappedCompanies);
+        setMessages(mappedMessages);
+        setConversationList(roomConversations);
+        setIsLoading(false);
+        setIsGalleryLoading(true);
+      }
+
       const { data: photosData, error: photosError } = await supabase
         .from('company_photos')
         .select('id, url, caption, created_at, company_id')
@@ -482,10 +386,14 @@ function ClientDashboardPageInner() {
 
       if (photosError) {
         console.error('[ClientDashboard] gallery feed query failed:', photosError.message);
+        if (!cancelled) {
+          setGalleryFeed([]);
+          setIsGalleryLoading(false);
+        }
+        return;
       }
 
       const rawPhotos = (photosData as Array<Record<string, unknown>> | null) ?? [];
-
       const galleryCompanyIds = Array.from(
         new Set(rawPhotos.map((row) => String(row.company_id ?? '')).filter(Boolean)),
       );
@@ -534,7 +442,6 @@ function ClientDashboardPageInner() {
         }
       }
 
-      // Compute per-company totals from the fetched batch
       const perCompanyIds = new Map<string, string[]>();
       rawPhotos.forEach((row) => {
         const cid = String(row.company_id ?? '');
@@ -548,8 +455,6 @@ function ClientDashboardPageInner() {
           return typeof val === 'string' && val.trim();
         })
         .map((row) => {
-          const val = row.url;
-          const urlStr = String(val);
           const cid = String(row.company_id ?? '');
           const company = galleryCompaniesMap.get(cid);
           const ids = perCompanyIds.get(cid) ?? [];
@@ -557,7 +462,7 @@ function ClientDashboardPageInner() {
 
           return {
             id: String(row.id ?? ''),
-            url: urlStr,
+            url: String(row.url ?? ''),
             caption:
               typeof row.caption === 'string' && row.caption.trim() ? row.caption.trim() : null,
             created_at: String(row.created_at ?? ''),
@@ -572,15 +477,8 @@ function ClientDashboardPageInner() {
         });
 
       if (!cancelled) {
-        if (photosError) {
-          setError('Le fil accueil est indisponible temporairement. Reessayez dans un instant.');
-        }
-        setFullName((profile?.full_name ?? '').trim());
-        setCompanies(mappedCompanies);
-        setMessages(mappedMessages);
-        setConversationList(roomConversations);
         setGalleryFeed(feedItems);
-        setIsLoading(false);
+        setIsGalleryLoading(false);
       }
     };
 
@@ -1055,7 +953,7 @@ function ClientDashboardPageInner() {
               transition={{ duration: 0.25 }}
             >
               <AnimatePresence mode="wait" initial={false}>
-                {isLoading ? (
+                {isLoading || isGalleryLoading ? (
                   <motion.div
                     key="home-skeleton"
                     initial={{ opacity: 0 }}

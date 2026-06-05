@@ -26,6 +26,8 @@ export async function proxy(request: NextRequest) {
   } = await supabaseServer.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  const isDashboardRoute = pathname.startsWith('/dashboard');
+  const isOnboardingRoute = pathname.startsWith('/onboarding');
 
   // Not authenticated → /login (always)
   if (!user) {
@@ -35,8 +37,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated but accessing /dashboard without a company profile → /onboarding
-  if (pathname.startsWith('/dashboard')) {
+  if (isDashboardRoute || isOnboardingRoute) {
     const { data: profile } = await supabaseServer
       .from('profiles')
       .select('role')
@@ -46,7 +47,7 @@ export async function proxy(request: NextRequest) {
     const normalizedRole = String(profile?.role ?? '').toLowerCase();
 
     if (normalizedRole === 'client' || normalizedRole === 'visitor') {
-      if (!pathname.startsWith('/dashboard/client')) {
+      if (isOnboardingRoute || !pathname.startsWith('/dashboard/client')) {
         const clientDashboardUrl = request.nextUrl.clone();
         clientDashboardUrl.pathname = '/dashboard/client';
         clientDashboardUrl.search = '';
@@ -64,12 +65,47 @@ export async function proxy(request: NextRequest) {
         .maybeSingle();
 
       if (!company?.id) {
-        const onboardingUrl = request.nextUrl.clone();
-        onboardingUrl.pathname = '/onboarding';
-        onboardingUrl.search = '';
-        return NextResponse.redirect(onboardingUrl);
+        if (!isOnboardingRoute) {
+          const onboardingUrl = request.nextUrl.clone();
+          onboardingUrl.pathname = '/onboarding';
+          onboardingUrl.search = '';
+          return NextResponse.redirect(onboardingUrl);
+        }
+
+        return response;
       }
+
+      if (isOnboardingRoute) {
+        const companyDashboardUrl = request.nextUrl.clone();
+        companyDashboardUrl.pathname = '/dashboard';
+        companyDashboardUrl.search = '';
+        return NextResponse.redirect(companyDashboardUrl);
+      }
+
+      return response;
     }
+
+    const { data: fallbackCompany } = await supabaseServer
+      .from('companies')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (fallbackCompany?.id) {
+      if (isOnboardingRoute) {
+        const companyDashboardUrl = request.nextUrl.clone();
+        companyDashboardUrl.pathname = '/dashboard';
+        companyDashboardUrl.search = '';
+        return NextResponse.redirect(companyDashboardUrl);
+      }
+
+      return response;
+    }
+
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.search = '';
+    return NextResponse.redirect(loginUrl);
   }
 
   return response;

@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, MessageSquareText, Send, Sparkles } from 'lucide-react';
 import DashboardShell from '../../components/dashboard/DashboardShell';
+import { getLatestMessagesByRoom } from '../../../lib/chat';
 import { supabase } from '../../../lib/supabase';
 
 type Company = {
@@ -196,7 +197,6 @@ function MessagesPageInner() {
         .or(
           [
             `company_id.eq.${companyData.id}`,
-            `company_id.eq.${userId}`,
             `participant_a.eq.${userId}`,
             `participant_b.eq.${userId}`,
           ].join(','),
@@ -404,11 +404,7 @@ function MessagesPageInner() {
     let cancelled = false;
 
     const buildConversationList = async () => {
-      const { data: latestMessages, error: latestError } = await supabase
-        .from('chat_messages')
-        .select('id, room_id, sender_id, message, created_at')
-        .in('room_id', roomIds)
-        .order('created_at', { ascending: false });
+      const { latestByRoom, error: latestError } = await getLatestMessagesByRoom(roomIds);
 
       if (latestError) {
         if (!cancelled) {
@@ -422,16 +418,6 @@ function MessagesPageInner() {
           );
         }
         return;
-      }
-
-      const latestByRoom = new Map<string, { message: string; created_at: string }>();
-      for (const message of (latestMessages as ChatMessage[] | null) ?? []) {
-        if (!latestByRoom.has(message.room_id)) {
-          latestByRoom.set(message.room_id, {
-            message: message.message,
-            created_at: message.created_at,
-          });
-        }
       }
 
       if (!cancelled) {

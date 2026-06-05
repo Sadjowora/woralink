@@ -84,16 +84,6 @@ function getAdminSupabaseClient() {
   return { adminClient: adminClient as AdminClient };
 }
 
-type ChatRoomRow = { id: string };
-
-function isCompanyIdForeignKeyError(error: { code?: string | null; message?: string | null }) {
-  return (
-    error.code === '23503' &&
-    typeof error.message === 'string' &&
-    error.message.includes('chat_rooms_company_id_fkey')
-  );
-}
-
 async function resolveCompanyChatTarget(
   adminClient: AdminClient,
   receiverId: string,
@@ -223,30 +213,72 @@ async function resolveCompanyChatTarget(
   return null;
 }
 
+async function findExistingRoomByParticipants(
+  adminClient: AdminClient,
+  companyParticipantId: string,
+  clientId: string,
+): Promise<{ id: string; company_id?: string | null } | null> {
+  const { data, error } = await adminClient
+    .from('chat_rooms')
+    .select('id, company_id')
+    .or(
+      [
+        `and(participant_a.eq.${companyParticipantId},participant_b.eq.${clientId})`,
+        `and(participant_a.eq.${clientId},participant_b.eq.${companyParticipantId})`,
+      ].join(','),
+    )
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string; company_id?: string | null }>();
+
+  if (error) {
+    console.warn('[chat] participants lookup skipped:', error.message);
+    return null;
+  }
+
+  return data?.id ? data : null;
+}
+
 async function getOrCreateChatRoom(
   adminClient: AdminClient,
   companyId: string,
   companyParticipantId: string,
   clientId: string,
-  legacyCompanyId?: string | null,
-): Promise<string> {
-  const companyIdCandidates = Array.from(
-    new Set([companyId, legacyCompanyId].filter((value): value is string => Boolean(value))),
-  );
-
+): Promise<{ roomId: string; created: boolean }> {
   const { data: existingRoom, error: roomLookupError } = await adminClient
     .from('chat_rooms')
-    .select('id')
-    .in('company_id', companyIdCandidates)
+    .select('id, company_id')
+    .eq('company_id', companyId)
     .eq('client_id', clientId)
-    .maybeSingle();
+    .maybeSingle<{ id: string; company_id?: string | null }>();
 
   if (roomLookupError) {
     throw roomLookupError;
   }
 
   if (existingRoom?.id) {
-    return existingRoom.id;
+    return { roomId: existingRoom.id, created: false };
+  }
+
+  const participantRoom = await findExistingRoomByParticipants(
+    adminClient,
+    companyParticipantId,
+    clientId,
+  );
+
+  if (participantRoom?.id) {
+    if (participantRoom.company_id !== companyId) {
+      const { error: syncError } = await adminClient
+        .from('chat_rooms')
+        .update({ company_id: companyId })
+        .eq('id', participantRoom.id);
+
+      if (syncError) {
+        console.warn('[chat] room canonical sync skipped:', syncError.message);
+      }
+    }
+
+    return { roomId: participantRoom.id, created: false };
   }
 
   const { data: createdRoom, error: roomCreateError } = await adminClient
@@ -262,37 +294,21 @@ async function getOrCreateChatRoom(
     .single();
 
   if (roomCreateError) {
-    if (isCompanyIdForeignKeyError(roomCreateError) && legacyCompanyId) {
-      const { data: legacyRoom, error: legacyRoomError } = await adminClient
+    if (roomCreateError.code === '23505' || /unique/i.test(roomCreateError.message)) {
+      const { data: fallbackRoom, error: fallbackLookupError } = await adminClient
         .from('chat_rooms')
-        .insert({
-          participant_a: companyParticipantId,
-          participant_b: clientId,
-          company_id: legacyCompanyId,
-          client_id: clientId,
-          created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
+        .select('id, company_id')
+        .eq('company_id', companyId)
+        .eq('client_id', clientId)
+        .maybeSingle<{ id: string; company_id?: string | null }>();
 
-      if (!legacyRoomError && legacyRoom?.id) {
-        return legacyRoom.id;
+      if (fallbackLookupError) {
+        throw fallbackLookupError;
       }
-    }
 
-    const { data: fallbackRoom, error: fallbackLookupError } = await adminClient
-      .from('chat_rooms')
-      .select('id')
-      .in('company_id', companyIdCandidates)
-      .eq('client_id', clientId)
-      .maybeSingle();
-
-    if (fallbackLookupError) {
-      throw fallbackLookupError;
-    }
-
-    if (fallbackRoom?.id) {
-      return fallbackRoom.id;
+      if (fallbackRoom?.id) {
+        return { roomId: fallbackRoom.id, created: false };
+      }
     }
 
     throw roomCreateError;
@@ -302,7 +318,7 @@ async function getOrCreateChatRoom(
     throw new Error('Impossible de créer la room de messagerie.');
   }
 
-  return createdRoom.id;
+  return { roomId: createdRoom.id, created: true };
 }
 
 // ─── startChatRoom ────────────────────────────────────────────────────────────
@@ -350,68 +366,18 @@ export async function startChatRoom(
   }
 
   // 2. Vérifier si un salon existe déjà pour ce client + cette entreprise
-  const { data: existingRoom, error: lookupError } = await adminClient
-    .from('chat_rooms')
-    .select('id')
-    .eq('client_id', a)
-    .in('company_id', [companyTarget.companyId, companyTarget.ownerUserId])
-    .maybeSingle<ChatRoomRow>();
-
-  if (lookupError) {
-    console.error('[startChatRoom] lookup error:', lookupError.message);
-    return { error: 'Erreur lors de la vérification du salon existant.' };
-  }
-
-  if (existingRoom?.id) {
-    return { roomId: existingRoom.id, created: false };
-  }
-
-  // 3. Créer le salon
-  const { data: createdRoom, error: createError } = await adminClient
-    .from('chat_rooms')
-    .insert({
-      participant_a: companyTarget.ownerUserId,
-      participant_b: a,
-      client_id: a,
-      company_id: companyTarget.companyId,
-    })
-    .select('id')
-    .single<ChatRoomRow>();
-
-  if (createError) {
-    if (isCompanyIdForeignKeyError(createError)) {
-      const { data: legacyCreatedRoom, error: legacyCreateError } = await adminClient
-        .from('chat_rooms')
-        .insert({
-          participant_a: companyTarget.ownerUserId,
-          participant_b: a,
-          client_id: a,
-          company_id: companyTarget.ownerUserId,
-        })
-        .select('id')
-        .single<ChatRoomRow>();
-
-      if (!legacyCreateError && legacyCreatedRoom?.id) {
-        return { roomId: legacyCreatedRoom.id, created: true };
-      }
-    }
-
-    // Race condition : un autre thread a créé la room en parallèle
-    if (createError.code === '23505' || /unique/i.test(createError.message)) {
-      const { data: fallback } = await adminClient
-        .from('chat_rooms')
-        .select('id')
-        .eq('client_id', a)
-        .in('company_id', [companyTarget.companyId, companyTarget.ownerUserId])
-        .maybeSingle<ChatRoomRow>();
-
-      if (fallback?.id) {
-        return { roomId: fallback.id, created: false };
-      }
-    }
-
+  try {
+    const room = await getOrCreateChatRoom(
+      adminClient,
+      companyTarget.companyId,
+      companyTarget.ownerUserId,
+      a,
+    );
+    return room;
+  } catch (createError) {
+    const message = createError instanceof Error ? createError.message : String(createError);
     console.error('[startChatRoom] create error:', {
-      message: createError.message,
+      message,
       senderId: a,
       receiverId: b,
       companyId: companyTarget.companyId,
@@ -419,12 +385,6 @@ export async function startChatRoom(
     });
     return { error: 'Impossible de créer le salon de discussion.' };
   }
-
-  if (!createdRoom?.id) {
-    return { error: 'Salon créé mais identifiant manquant.' };
-  }
-
-  return { roomId: createdRoom.id, created: true };
 }
 
 // ─── sendContactMessage ───────────────────────────────────────────────────────
@@ -515,18 +475,17 @@ export async function sendContactMessage(
       throw new Error('Entreprise destinataire sans profil propriétaire valide.');
     }
 
-    const roomId = await getOrCreateChatRoom(
+    const room = await getOrCreateChatRoom(
       adminClient,
       companyTarget.companyId,
       companyTarget.ownerUserId,
       normalizedSenderId,
-      companyTarget.ownerUserId,
     );
 
     const chatBody = [subject.trim(), body.trim()].filter(Boolean).join('\n\n');
 
     const { error: chatMessageError } = await adminClient.from('chat_messages').insert({
-      room_id: roomId,
+      room_id: room.roomId,
       sender_id: normalizedSenderId,
       message: chatBody,
       created_at: new Date().toISOString(),

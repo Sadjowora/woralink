@@ -73,13 +73,11 @@ export default async function PmeProfilePage({ params }: PageProps) {
     notFound();
   }
 
-  const { data: companySettings } = await supabase
-    .from('company_settings')
-    .select('disable_whatsapp_access')
-    .eq('company_id', company.id)
-    .maybeSingle<{ disable_whatsapp_access: boolean | null }>();
+  const { data: whatsappHiddenValue } = await supabase.rpc('get_company_whatsapp_access', {
+    p_company_id: company.id,
+  });
 
-  const whatsappHidden = Boolean(companySettings?.disable_whatsapp_access);
+  const whatsappHidden = Boolean(whatsappHiddenValue);
 
   const { data: photosData } = await supabase
     .from('company_photos')

@@ -4,7 +4,27 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-async function resolveRedirectPath(userId: string): Promise<'/dashboard' | '/onboarding'> {
+type ProfileRole = 'company' | 'client' | 'visitor' | string;
+
+async function resolveRedirectPath(
+  userId: string,
+): Promise<'/dashboard' | '/dashboard/client' | '/onboarding'> {
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle<{ role: ProfileRole | null }>();
+
+  if (profileError) {
+    console.warn('[AuthCallback] profile role lookup error:', profileError.message);
+  }
+
+  const role = String(profile?.role ?? '').toLowerCase();
+
+  if (role === 'client' || role === 'visitor') {
+    return '/dashboard/client';
+  }
+
   const { data, error } = await supabase
     .from('companies')
     .select('id')
@@ -15,7 +35,11 @@ async function resolveRedirectPath(userId: string): Promise<'/dashboard' | '/onb
     console.warn('[AuthCallback] resolveRedirectPath error:', error.message);
   }
 
-  return data?.id ? '/dashboard' : '/onboarding';
+  if (data?.id) {
+    return '/dashboard';
+  }
+
+  return role === 'company' ? '/onboarding' : '/dashboard/client';
 }
 
 export default function AuthCallback() {
