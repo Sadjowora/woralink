@@ -191,9 +191,12 @@ function MessagesPageInner() {
       setCompany(companyData);
       setRoomsLoading(true);
 
+      // 🔥 CORRECTION ICI : On demande explicitement à Supabase de joindre la table 'profiles' via la clé étrangère
       const { data: roomData, error: roomsError } = await supabase
         .from('chat_rooms')
-        .select('id, company_id, client_id, created_at, participant_a, participant_b')
+        .select(
+          'id, company_id, client_id, created_at, participant_a, participant_b, profiles:client_id(id, email, full_name)',
+        )
         .or(
           [
             `company_id.eq.${companyData.id}`,
@@ -215,50 +218,16 @@ function MessagesPageInner() {
       }
 
       const baseRooms = (roomData as ChatRoom[] | null) ?? [];
-      const clientIds = Array.from(
-        new Set(
-          baseRooms
-            .map((room) => room.client_id)
-            .filter(
-              (clientId) => typeof clientId === 'string' && clientId.trim() && clientId !== userId,
-            ),
-        ),
-      );
-
-      let profilesById = new Map<string, ProfileRow>();
-
-      if (clientIds.length > 0) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .in('id', clientIds);
-
-        if (profileError) {
-          console.warn('[dashboard/messages] profiles lookup skipped:', profileError.message);
-        } else {
-          profilesById = new Map(
-            ((profileData as Array<ProfileRow & { id: string }> | null) ?? []).map((profile) => [
-              profile.id,
-              profile,
-            ]),
-          );
-        }
-      }
-
-      const mappedRooms = baseRooms.map((room) => ({
-        ...room,
-        profiles: profilesById.get(room.client_id) ?? null,
-      }));
 
       if (!cancelled) {
-        setRooms(mappedRooms);
+        setRooms(baseRooms);
         setConversationList([]);
         setActiveRoomId((current) => {
-          if (roomFromUrl && mappedRooms.some((room) => room.id === roomFromUrl)) {
+          if (roomFromUrl && baseRooms.some((room) => room.id === roomFromUrl)) {
             return roomFromUrl;
           }
 
-          return current ?? mappedRooms[0]?.id ?? null;
+          return current ?? baseRooms[0]?.id ?? null;
         });
         setRoomsLoading(false);
         setLoading(false);
@@ -543,7 +512,7 @@ function MessagesPageInner() {
           <aside className="shrink-0 border-b border-gray-200 transition-colors duration-200 dark:border-slate-800 lg:w-80 lg:border-b-0 lg:border-r">
             <div className="border-b border-gray-100 px-4 py-4 transition-colors duration-200 dark:border-slate-800">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">
-                Conversations recentes
+                Conversations récentes
               </p>
               <p className="mt-1 text-base font-semibold text-gray-900 dark:text-white">
                 {conversationList.length} conversation{conversationList.length > 1 ? 's' : ''}
@@ -592,7 +561,7 @@ function MessagesPageInner() {
                           </p>
                         ) : (
                           <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">
-                            Conversation demarree
+                            Conversation démarrée
                           </p>
                         )}
                       </div>
