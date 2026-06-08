@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Woralink
 
-## Getting Started
+Woralink est une application de promotion et de mise en relation dédiée aux **PME**, **artisans**, **startups**, **freelances** et à leurs **clients**.
 
-First, run the development server:
+## Présentation
+
+L’objectif de Woralink est d’aider les professionnels à améliorer leur visibilité, présenter leurs services et faciliter la prise de contact avec des clients potentiels à travers une interface web moderne.
+
+## Fonctionnalités principales
+
+- **Présentation d’activité** : mise en avant des profils professionnels, services ou produits.
+- **Mise en relation** : facilitation du contact entre prestataires et clients.
+- **Interface moderne** : application web construite avec **Next.js** et **TypeScript**.
+- **Base de données** : présence de scripts **PL/pgSQL**, suggérant une intégration avec PostgreSQL.
+
+## Stack technique
+
+- **Frontend** : Next.js
+- **Langage principal** : TypeScript
+- **Base de données / logique SQL** : PL/pgSQL
+
+## Lancer le projet en local
+
+Installez les dépendances puis démarrez le serveur de développement :
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ensuite, ouvrez [http://localhost:3000](http://localhost:3000) dans votre navigateur.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Structure du projet
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+La page principale peut généralement être modifiée depuis :
 
-## Learn More
+```bash
+app/page.tsx
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Objectif produit
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Woralink vise à :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- promouvoir les petites structures et indépendants ;
+- améliorer leur visibilité en ligne ;
+- simplifier la découverte de services par les clients ;
+- créer un pont direct entre offreurs de services et demandeurs.
 
-## Deploy on Vercel
+## Améliorations recommandées
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Pour compléter cette documentation, il serait utile d’ajouter :
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- les étapes complètes d’installation ;
+- les variables d’environnement requises ;
+- les scripts disponibles ;
+- l’architecture du projet ;
+- les instructions de déploiement ;
+- un guide de contribution.
