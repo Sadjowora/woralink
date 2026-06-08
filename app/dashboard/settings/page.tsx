@@ -269,7 +269,7 @@ export default function DashboardSettingsPage() {
     await persistSettings(settings, "Message d'absence enregistre.");
   };
 
-  const sendPasswordRecoveryEmail = async (event: FormEvent) => {
+  const handlePasswordUpdate = async (event: FormEvent) => {
     event.preventDefault();
 
     setSecurityNotice(null);
@@ -290,50 +290,24 @@ export default function DashboardSettingsPage() {
       return;
     }
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user?.email) {
-      setSecurityNotice({
-        type: 'error',
-        message: 'Session invalide. Veuillez vous reconnecter.',
-      });
-      return;
-    }
-
     setSecuritySending(true);
-
-    try {
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem('woralink:pending-new-password', newPassword);
-      }
-    } catch {
-      // Ignore sessionStorage unavailability, fallback will ask user to re-enter password.
-    }
-
-    const redirectTo =
-      typeof window !== 'undefined' ? `${window.location.origin}/auth/update-password` : undefined;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo,
-    });
-
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     setSecuritySending(false);
 
     if (error) {
       setSecurityNotice({
         type: 'error',
-        message: "Envoi de l'email de validation impossible. Reessayez.",
+        message: 'Impossible de mettre a jour le mot de passe. Reessayez.',
       });
       return;
     }
 
+    setNewPassword('');
+    setConfirmPassword('');
     setSecurityNotice({
       type: 'success',
       message:
-        'Email de validation envoye. Ouvrez le lien recu pour finaliser le changement de mot de passe.',
+        'Mot de passe mis a jour. Deconnectez-vous puis reconnectez-vous pour rendre le changement effectif.',
     });
   };
 
@@ -408,7 +382,7 @@ export default function DashboardSettingsPage() {
                       Securite du compte
                     </h2>
                     <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                      Le changement de mot de passe se fait apres validation par email.
+                      Mettez a jour votre mot de passe directement depuis cet espace securise.
                     </p>
                   </div>
                 </div>
@@ -425,7 +399,7 @@ export default function DashboardSettingsPage() {
                   </div>
                 ) : null}
 
-                <form onSubmit={sendPasswordRecoveryEmail} className="space-y-4">
+                <form onSubmit={handlePasswordUpdate} className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <label
@@ -473,7 +447,7 @@ export default function DashboardSettingsPage() {
                     {securitySending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                        Envoi de l&apos;email...
+                        Mise a jour en cours...
                       </>
                     ) : (
                       'Mettre a jour la securite'
