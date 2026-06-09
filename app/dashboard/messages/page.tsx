@@ -52,18 +52,18 @@ type RoomClient = {
 };
 
 function normalizeProfile(input: ProfileRow | ProfileRow[] | null | undefined): RoomClient {
-  const profile = Array.isArray(input) ? (input[0] ?? null) : (input ?? null);
-
-  const fullName =
-    typeof profile?.full_name === 'string' && profile.full_name.trim()
-      ? profile.full_name.trim()
-      : 'Client';
-  const email =
-    typeof profile?.email === 'string' && profile.email.trim() ? profile.email.trim() : null;
-
+  let profile: ProfileRow | null = null;
+  if (Array.isArray(input)) {
+    profile = input[0] ?? null;
+  } else if (input && typeof input === 'object') {
+    profile = input;
+  }
+  if (!profile || !profile.full_name) {
+    return { full_name: 'Client', email: null };
+  }
   return {
-    full_name: fullName,
-    email,
+    full_name: profile.full_name.trim(),
+    email: profile.email ? profile.email.trim() : null,
   };
 }
 
