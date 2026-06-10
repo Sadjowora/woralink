@@ -1,10 +1,19 @@
 'use client';
 
-import Image from 'next/image';
+//import Image from 'next/image';
 import Link from 'next/link';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Loader2, MessageSquareText, Send, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  MessageSquareText,
+  Send,
+  Sparkles,
+  MapPin,
+  Phone,
+  User,
+} from 'lucide-react';
 import DashboardShell from '../../components/dashboard/DashboardShell';
 import { getLatestMessagesByRoom } from '../../../lib/chat';
 import { supabase } from '../../../lib/supabase';
@@ -17,8 +26,12 @@ type Company = {
 };
 
 type ProfileRow = {
+  id: string;
   full_name?: string | null;
   email?: string | null;
+  phone_number?: string | null;
+  city?: string | null;
+  bio_or_preferences?: string | null;
 };
 
 type ChatRoom = {
@@ -47,50 +60,39 @@ type ConversationPreview = {
 };
 
 type RoomClient = {
+  id: string;
   full_name: string;
   email: string | null;
+  phone_number: string | null;
+  city: string | null;
+  bio_or_preferences: string | null;
 };
 
 function normalizeProfile(input: ProfileRow | ProfileRow[] | null | undefined): RoomClient {
-  let profile: ProfileRow | null = null;
-  if (Array.isArray(input)) {
-    profile = input[0] ?? null;
-  } else if (input && typeof input === 'object') {
-    profile = input;
-  }
-  if (!profile || !profile.full_name) {
-    return { full_name: 'Client', email: null };
-  }
+  const profile = Array.isArray(input) ? (input[0] ?? null) : (input ?? null);
+
   return {
-    full_name: profile.full_name.trim(),
-    email: profile.email ? profile.email.trim() : null,
+    id: profile?.id || '',
+    full_name: profile?.full_name?.trim() ? profile.full_name.trim() : 'Client Woralink',
+    email: profile?.email?.trim() ? profile.email.trim() : null,
+    phone_number: profile?.phone_number?.trim() ? profile.phone_number.trim() : null,
+    city: profile?.city?.trim() ? profile.city.trim() : null,
+    bio_or_preferences: profile?.bio_or_preferences?.trim()
+      ? profile.bio_or_preferences.trim()
+      : null,
   };
 }
 
 function formatChatTime(createdAt: string): string {
   const parsedDate = new Date(createdAt);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return '';
-  }
-
-  return parsedDate.toLocaleTimeString('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  if (Number.isNaN(parsedDate.getTime())) return '';
+  return parsedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatChatDate(createdAt: string): string {
   const parsedDate = new Date(createdAt);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return '';
-  }
-
-  return parsedDate.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-  });
+  if (Number.isNaN(parsedDate.getTime())) return '';
+  return parsedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 }
 
 function getInitials(name: string): string {
@@ -105,34 +107,32 @@ function MessagesPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomFromUrl = searchParams.get('room');
-  const [company, setCompany] = useState<Company | null>(null);
+
+  //const [company, setCompany] = useState<Company | null>(null);
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState('');
   const [newMessage, setNewMessage] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [chatSending, setChatSending] = useState(false);
+
   const [conversationList, setConversationList] = useState<ConversationPreview[]>([]);
   const [freshConversationIds, setFreshConversationIds] = useState<string[]>([]);
   const [error, setError] = useState('');
+
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const freshBadgeTimersRef = useRef<Record<string, number>>({});
 
   const markConversationAsNew = useCallback((roomId: string) => {
     if (!roomId) return;
-
-    setFreshConversationIds((prev) => {
-      if (prev.includes(roomId)) return prev;
-      return [...prev, roomId];
-    });
+    setFreshConversationIds((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
 
     const existingTimer = freshBadgeTimersRef.current[roomId];
-    if (existingTimer) {
-      window.clearTimeout(existingTimer);
-    }
+    if (existingTimer) window.clearTimeout(existingTimer);
 
     freshBadgeTimersRef.current[roomId] = window.setTimeout(() => {
       setFreshConversationIds((prev) => prev.filter((id) => id !== roomId));
@@ -142,12 +142,7 @@ function MessagesPageInner() {
 
   useEffect(() => {
     const timers = freshBadgeTimersRef.current;
-
-    return () => {
-      Object.values(timers).forEach((timerId) => {
-        window.clearTimeout(timerId);
-      });
-    };
+    return () => Object.values(timers).forEach(window.clearTimeout);
   }, []);
 
   useEffect(() => {
@@ -160,18 +155,13 @@ function MessagesPageInner() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-
       if (!session?.user) {
-        if (!cancelled) {
-          router.push('/login');
-        }
+        if (!cancelled) router.push('/login');
         return;
       }
 
       const userId = session.user.id;
-      if (!cancelled) {
-        setCurrentUserId(userId);
-      }
+      if (!cancelled) setCurrentUserId(userId);
 
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -188,14 +178,14 @@ function MessagesPageInner() {
       }
 
       if (cancelled) return;
-      setCompany(companyData);
+      //setCompany(companyData);
       setRoomsLoading(true);
 
-      // 🔥 CORRECTION ICI : On demande explicitement à Supabase de joindre la table 'profiles' via la clé étrangère
+      // Récupération explicite avec intégration des nouveaux champs profils CRM de test
       const { data: roomData, error: roomsError } = await supabase
         .from('chat_rooms')
         .select(
-          'id, company_id, client_id, created_at, participant_a, participant_b, profiles:client_id(id, email, full_name)',
+          'id, company_id, client_id, created_at, participant_a, participant_b, profiles:client_id(id, email, full_name, phone_number, city, bio_or_preferences)',
         )
         .or(
           [
@@ -217,16 +207,13 @@ function MessagesPageInner() {
         return;
       }
 
-      const baseRooms = (roomData as ChatRoom[] | null) ?? [];
+      const baseRooms = (roomData as unknown as ChatRoom[] | null) ?? [];
 
       if (!cancelled) {
         setRooms(baseRooms);
         setConversationList([]);
         setActiveRoomId((current) => {
-          if (roomFromUrl && baseRooms.some((room) => room.id === roomFromUrl)) {
-            return roomFromUrl;
-          }
-
+          if (roomFromUrl && baseRooms.some((r) => r.id === roomFromUrl)) return roomFromUrl;
           return current ?? baseRooms[0]?.id ?? null;
         });
         setRoomsLoading(false);
@@ -235,31 +222,22 @@ function MessagesPageInner() {
     };
 
     void loadDashboard();
-
     return () => {
       cancelled = true;
     };
   }, [router, roomFromUrl]);
 
   const resolvedActiveRoomId = useMemo(() => {
-    if (roomFromUrl && rooms.some((room) => room.id === roomFromUrl)) {
-      return roomFromUrl;
-    }
-
+    if (roomFromUrl && rooms.some((r) => r.id === roomFromUrl)) return roomFromUrl;
     return activeRoomId;
   }, [activeRoomId, roomFromUrl, rooms]);
 
   useEffect(() => {
-    if (!resolvedActiveRoomId) {
-      return;
-    }
-
+    if (!resolvedActiveRoomId) return;
     let cancelled = false;
 
     const loadMessages = async () => {
       setMessagesLoading(true);
-      setMessages([]);
-
       const { data, error: messagesError } = await supabase
         .from('chat_messages')
         .select('id, room_id, sender_id, message, created_at')
@@ -268,21 +246,19 @@ function MessagesPageInner() {
 
       if (messagesError) {
         if (!cancelled) {
-          setError('Impossible de charger les messages de cette conversation.');
-          setMessages([]);
+          setError('Impossible de charger les messages.');
           setMessagesLoading(false);
         }
         return;
       }
 
       if (!cancelled) {
-        setMessages((data as ChatMessage[] | null) ?? []);
+        setMessages((data as ChatMessage[]) ?? []);
         setMessagesLoading(false);
       }
     };
 
     void loadMessages();
-
     return () => {
       cancelled = true;
     };
@@ -290,49 +266,35 @@ function MessagesPageInner() {
 
   useEffect(() => {
     if (!rooms.length) return;
-
-    const knownRoomIds = new Set(rooms.map((room) => room.id));
+    const knownRoomIds = new Set(rooms.map((r) => r.id));
 
     const channel = supabase
-      .channel('company-messages-all-rooms')
+      .channel('company-messages-realtime')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-        },
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
           const nextMessage = payload.new as ChatMessage;
           if (!knownRoomIds.has(nextMessage.room_id)) return;
 
           if (nextMessage.room_id === resolvedActiveRoomId) {
-            setMessages((prev) => {
-              if (prev.some((message) => message.id === nextMessage.id)) {
-                return prev;
-              }
-              return [...prev, nextMessage];
-            });
+            setMessages((prev) =>
+              prev.some((m) => m.id === nextMessage.id) ? prev : [...prev, nextMessage],
+            );
           }
 
           setConversationList((prev) => {
-            const currentConversation = prev.find(
-              (conversation) => conversation.room_id === nextMessage.room_id,
-            );
-            const fallbackRoom = rooms.find((room) => room.id === nextMessage.room_id);
+            const currentConv = prev.find((c) => c.room_id === nextMessage.room_id);
+            const fallbackRoom = rooms.find((r) => r.id === nextMessage.room_id);
 
-            const nextConversation: ConversationPreview = {
+            const nextConv: ConversationPreview = {
               room_id: nextMessage.room_id,
-              client:
-                currentConversation?.client ?? normalizeProfile(fallbackRoom?.profiles ?? null),
+              client: currentConv?.client ?? normalizeProfile(fallbackRoom?.profiles),
               last_message: nextMessage.message,
               last_at: nextMessage.created_at,
             };
 
-            const filtered = prev.filter(
-              (conversation) => conversation.room_id !== nextMessage.room_id,
-            );
-            return [nextConversation, ...filtered];
+            return [nextConv, ...prev.filter((c) => c.room_id !== nextMessage.room_id)];
           });
 
           if (nextMessage.room_id !== resolvedActiveRoomId) {
@@ -352,53 +314,40 @@ function MessagesPageInner() {
   }, [messages]);
 
   const activeRoom = useMemo(
-    () => rooms.find((room) => room.id === resolvedActiveRoomId) ?? null,
+    () => rooms.find((r) => r.id === resolvedActiveRoomId) ?? null,
     [resolvedActiveRoomId, rooms],
   );
-
-  const activeClient = useMemo(
-    () => normalizeProfile(activeRoom?.profiles),
-    [activeRoom?.profiles],
-  );
-
-  const roomCount = rooms.length;
-
-  const roomIds = useMemo(() => rooms.map((room) => room.id), [rooms]);
+  const activeClient = useMemo(() => normalizeProfile(activeRoom?.profiles), [activeRoom]);
+  const roomIds = useMemo(() => rooms.map((r) => r.id), [rooms]);
 
   useEffect(() => {
-    if (!rooms.length) {
-      return;
-    }
-
+    if (!rooms.length || !roomIds.length) return;
     let cancelled = false;
 
     const buildConversationList = async () => {
       const { latestByRoom, error: latestError } = await getLatestMessagesByRoom(roomIds);
-
-      if (latestError) {
-        if (!cancelled) {
-          setConversationList(
-            rooms.map((room) => ({
-              room_id: room.id,
-              client: normalizeProfile(room.profiles),
-              last_message: '',
-              last_at: room.created_at,
-            })),
-          );
-        }
+      if (latestError && !cancelled) {
+        setConversationList(
+          rooms.map((r) => ({
+            room_id: r.id,
+            client: normalizeProfile(r.profiles),
+            last_message: '',
+            last_at: r.created_at,
+          })),
+        );
         return;
       }
 
       if (!cancelled) {
         const next = rooms
-          .map((room) => {
-            const latest = latestByRoom.get(room.id);
+          .map((r) => {
+            const latest = latestByRoom.get(r.id);
             return {
-              room_id: room.id,
-              client: normalizeProfile(room.profiles),
+              room_id: r.id,
+              client: normalizeProfile(r.profiles),
               last_message: latest?.message ?? '',
-              last_at: latest?.created_at ?? room.created_at,
-            } satisfies ConversationPreview;
+              last_at: latest?.created_at ?? r.created_at,
+            };
           })
           .sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime());
 
@@ -407,7 +356,6 @@ function MessagesPageInner() {
     };
 
     void buildConversationList();
-
     return () => {
       cancelled = true;
     };
@@ -415,166 +363,121 @@ function MessagesPageInner() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    const textToSend = newMessage.trim();
-
-    if (!textToSend || !resolvedActiveRoomId || !currentUserId || chatSending) return;
+    const text = newMessage.trim();
+    if (!text || !resolvedActiveRoomId || !currentUserId || chatSending) return;
 
     setNewMessage('');
     setChatSending(true);
 
     const { data, error: insertError } = await supabase
       .from('chat_messages')
-      .insert({
-        room_id: resolvedActiveRoomId,
-        sender_id: currentUserId,
-        message: textToSend,
-      })
-      .select('id, room_id, sender_id, message, created_at')
-      .single<ChatMessage>();
+      .insert({ room_id: resolvedActiveRoomId, sender_id: currentUserId, message: text })
+      .select('*')
+      .single();
 
     if (insertError) {
-      setError('Impossible d’envoyer votre message.');
-      setNewMessage(textToSend);
+      setError("Impossible d'envoyer votre message.");
+      setNewMessage(text);
       setChatSending(false);
       return;
     }
 
     if (data) {
-      setMessages((prev) =>
-        prev.some((message) => message.id === data.id) ? prev : [...prev, data],
-      );
+      const msg = data as ChatMessage;
+      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setConversationList((prev) => {
-        const currentConversation = rooms.find((room) => room.id === resolvedActiveRoomId);
-        const nextConversation: ConversationPreview = {
+        const nextConv: ConversationPreview = {
           room_id: resolvedActiveRoomId,
-          client: normalizeProfile(currentConversation?.profiles),
-          last_message: data.message,
-          last_at: data.created_at,
+          client: activeClient,
+          last_message: msg.message,
+          last_at: msg.created_at,
         };
-
-        const filtered = prev.filter(
-          (conversation) => conversation.room_id !== resolvedActiveRoomId,
-        );
-        return [nextConversation, ...filtered];
+        return [nextConv, ...prev.filter((c) => c.room_id !== resolvedActiveRoomId)];
       });
-
-      markConversationAsNew(resolvedActiveRoomId);
     }
-
     setChatSending(false);
   };
 
   return (
     <DashboardShell
-      title="Messagerie"
-      subtitle="Répondez aux clients en temps réel depuis votre espace professionnel."
+      title="Messagerie Clients"
+      subtitle="Répondez à vos prospects et clients en direct depuis votre espace professionnel."
       actions={
         <Link
           href="/dashboard/setup"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           Configuration
         </Link>
       }
     >
       {loading ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-8 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center text-sm text-gray-500 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-            Chargement de la messagerie...
-          </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-800 dark:bg-slate-900">
+          Chargement de l`&apos;`espace de messagerie...
         </div>
-      ) : error && roomCount === 0 ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-200">
+      ) : error && rooms.length === 0 ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-200">
           {error}
         </div>
-      ) : roomCount === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors duration-200 dark:bg-slate-800 dark:text-slate-500">
-            <MessageSquareText className="h-7 w-7" aria-hidden="true" />
-          </div>
-          <h2 className="text-lg font-semibold text-gray-900 transition-colors duration-200 dark:text-white">
-            Aucun client n’a encore ouvert de conversation
+      ) : rooms.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900">
+          <MessageSquareText className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Aucune conversation en cours
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400">
-            Dès qu’un client vous contacte, la conversation apparaîtra ici avec son nom.
+          <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+            Dès qu`&apos;`un client vous enverra un message depuis votre page publique, il
+            apparaîtra ici.
           </p>
-          <div className="mt-6 flex justify-center">
-            <Link
-              href="/search"
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-emerald-700"
-            >
-              Explorer la plateforme
-            </Link>
-          </div>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 lg:flex lg:h-[calc(100vh-13rem)]">
-          <aside className="shrink-0 border-b border-gray-200 transition-colors duration-200 dark:border-slate-800 lg:w-80 lg:border-b-0 lg:border-r">
-            <div className="border-b border-gray-100 px-4 py-4 transition-colors duration-200 dark:border-slate-800">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">
-                Conversations récentes
-              </p>
-              <p className="mt-1 text-base font-semibold text-gray-900 dark:text-white">
-                {conversationList.length} conversation{conversationList.length > 1 ? 's' : ''}
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex lg:h-[calc(100vh-14rem)]">
+          <aside className="flex shrink-0 flex-col border-b border-gray-200 dark:border-slate-800 lg:w-80 lg:border-b-0 lg:border-r">
+            <div className="border-b border-gray-100 bg-slate-50/50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/50">
+              <p className="text-xs font-semibold uppercase text-gray-400">Conversations</p>
+              <p className="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">
+                {conversationList.length} au total
               </p>
             </div>
-
-            <div className="max-h-95 overflow-y-auto lg:max-h-none lg:flex-1">
+            <div className="flex-1 overflow-y-auto">
               {roomsLoading ? (
-                <div className="flex h-full items-center justify-center px-4 py-10 text-sm text-gray-500 dark:text-slate-400">
-                  Chargement des clients...
-                </div>
+                <div className="p-4 text-center text-sm text-gray-400">Mise à jour...</div>
               ) : (
-                conversationList.map((conversation) => {
-                  const isActive = conversation.room_id === resolvedActiveRoomId;
-
+                conversationList.map((conv) => {
+                  const isActive = conv.room_id === resolvedActiveRoomId;
                   return (
                     <button
-                      key={conversation.room_id}
+                      key={conv.room_id}
                       type="button"
                       onClick={() => {
-                        setActiveRoomId(conversation.room_id);
-                        setFreshConversationIds((prev) => {
-                          return prev.filter((id) => id !== conversation.room_id);
-                        });
-                        router.push(`/dashboard/messages?room=${conversation.room_id}`);
+                        setActiveRoomId(conv.room_id);
+                        setFreshConversationIds((p) => p.filter((id) => id !== conv.room_id));
+                        router.push(`/dashboard/messages?room=${conv.room_id}`);
                       }}
-                      className={`flex w-full items-center gap-3 border-b border-gray-100 px-4 py-3.5 text-left transition-colors duration-150 last:border-b-0 dark:border-slate-800 ${
+                      className={`flex w-full items-center gap-3 border-b border-gray-100 px-4 py-3.5 text-left transition-colors dark:border-slate-800/60 ${
                         isActive
                           ? 'bg-emerald-50 dark:bg-emerald-950/25'
-                          : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
+                          : 'hover:bg-gray-50 dark:hover:bg-slate-800/40'
                       }`}
                     >
-                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                          {getInitials(conversation.client.full_name)}
-                        </div>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {getInitials(conv.client.full_name)}
                       </div>
-
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                          {conversation.client.full_name}
+                          {conv.client.full_name}
                         </p>
-                        {conversation.last_message ? (
-                          <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
-                            {conversation.last_message}
-                          </p>
-                        ) : (
-                          <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">
-                            Conversation démarrée
-                          </p>
-                        )}
+                        <p className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-400">
+                          {conv.last_message || 'Nouvelle conversation'}
+                        </p>
                       </div>
-
-                      <div className="shrink-0 text-right">
-                        {freshConversationIds.includes(conversation.room_id) && (
-                          <span className="mb-1 inline-flex rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      <div className="shrink-0 text-right text-[10px] text-gray-400">
+                        {freshConversationIds.includes(conv.room_id) && (
+                          <span className="mb-1 block rounded-full bg-green-100 px-1.5 py-0.5 text-center font-medium text-green-700 dark:bg-green-900/40">
                             Nouveau
                           </span>
                         )}
-                        <span className="block text-[10px] text-gray-400 dark:text-slate-500">
-                          {formatChatDate(conversation.last_at)}
-                        </span>
+                        <span>{formatChatDate(conv.last_at)}</span>
                       </div>
                     </button>
                   );
@@ -583,147 +486,146 @@ function MessagesPageInner() {
             </div>
           </aside>
 
-          <div className="min-w-0 flex-1 flex-col lg:flex">
+          <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
             {!activeRoom ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
-                  <Sparkles className="h-8 w-8 text-gray-400 dark:text-slate-500" />
-                </div>
-                <p className="max-w-md text-sm text-gray-500 dark:text-slate-400">
-                  Sélectionnez une conversation à gauche pour afficher les messages du client.
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 bg-slate-50/20 p-8 text-center">
+                <Sparkles className="h-8 w-8 text-gray-300" />
+                <p className="text-sm text-gray-500">
+                  Sélectionnez une discussion pour ouvrir la messagerie privée.
                 </p>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5 transition-colors duration-200 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveRoomId(null);
-                      router.push('/dashboard/messages');
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden"
-                    aria-label="Retour aux clients"
-                  >
-                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  </button>
-
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                    <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
+                <div className="flex flex-1 flex-col border-r border-gray-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveRoomId(null);
+                        router.push('/dashboard/messages');
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 lg:hidden"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-slate-100 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                       {getInitials(activeClient.full_name)}
                     </div>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                      {activeClient.full_name}
-                    </p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                      Messagerie client en direct
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 lg:min-h-0">
-                  {messagesLoading ? (
-                    <div className="flex h-full items-center justify-center text-sm text-gray-500 dark:text-slate-400">
-                      Chargement des messages...
-                    </div>
-                  ) : messages.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
-                        <MessageSquareText className="h-6 w-6 text-gray-400 dark:text-slate-500" />
-                      </div>
-                      <p className="max-w-sm text-sm text-gray-500 dark:text-slate-400">
-                        Aucun message dans cette conversation pour le moment.
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {activeClient.full_name}
+                      </p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        Discussion en direct
                       </p>
                     </div>
-                  ) : (
-                    messages.map((message) => {
-                      const isMe = message.sender_id === currentUserId;
+                  </div>
 
-                      return (
-                        <div
-                          key={message.id}
-                          className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
-                        >
-                          <div className="mb-1 h-7 w-7 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                            {isMe ? (
-                              company?.logo_url ? (
-                                <Image
-                                  src={company.logo_url}
-                                  alt={company.name}
-                                  width={28}
-                                  height={28}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                  W
-                                </div>
-                              )
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                                {getInitials(activeClient.full_name)}
-                              </div>
-                            )}
-                          </div>
-
+                  <div className="min-h-62.5 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                    {messagesLoading ? (
+                      <div className="p-4 text-center text-sm text-gray-400">
+                        Chargement des messages...
+                      </div>
+                    ) : (
+                      messages.map((message) => {
+                        const isMe = message.sender_id === currentUserId;
+                        return (
                           <div
-                            className={`flex max-w-[78%] flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}
+                            key={message.id}
+                            className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
                           >
                             <div
-                              className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                                 isMe
                                   ? 'rounded-br-sm bg-emerald-600 text-white'
                                   : 'rounded-bl-sm bg-gray-100 text-gray-900 dark:bg-slate-800 dark:text-slate-100'
                               }`}
                             >
-                              {message.message}
+                              <p>{message.message}</p>
+                              <span className="mt-1 block text-right text-[9px] opacity-75">
+                                {formatChatTime(message.created_at)}
+                              </span>
                             </div>
-                            <span
-                              className={`px-1 text-[10px] text-gray-400 dark:text-slate-500 ${isMe ? 'text-right' : 'text-left'}`}
-                            >
-                              {formatChatTime(message.created_at)}
-                            </span>
                           </div>
-                        </div>
-                      );
-                    })
-                  )}
-                  <div ref={bottomRef} />
+                        );
+                      })
+                    )}
+                    <div ref={bottomRef} />
+                  </div>
+
+                  <div className="border-t border-gray-100 p-3 dark:border-slate-800">
+                    <form
+                      onSubmit={handleSendMessage}
+                      className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-emerald-600 dark:border-slate-700 dark:bg-slate-800"
+                    >
+                      <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Écrire votre réponse..."
+                        className="flex-1 bg-transparent text-sm text-gray-900 focus:outline-none dark:text-white"
+                        disabled={chatSending}
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newMessage.trim() || chatSending}
+                        className="flex h-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 px-3 text-white hover:bg-emerald-700 disabled:opacity-40"
+                      >
+                        {chatSending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </button>
+                    </form>
+                  </div>
                 </div>
 
-                <div className="border-t border-gray-100 p-3 transition-colors duration-200 dark:border-slate-800">
-                  <form
-                    onSubmit={handleSendMessage}
-                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors duration-200 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/15 dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Écrire une réponse..."
-                      className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-white dark:placeholder:text-slate-500"
-                      disabled={chatSending}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!newMessage.trim() || chatSending}
-                      className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-white transition-colors duration-150 hover:bg-emerald-700 disabled:opacity-40"
-                      aria-label={chatSending ? 'Envoi du message' : 'Envoyer'}
-                    >
-                      {chatSending ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                          <span className="text-[11px] font-medium">Envoi...</span>
-                        </>
-                      ) : (
-                        <Send className="h-4 w-4" aria-hidden="true" />
-                      )}
-                    </button>
-                  </form>
-                </div>
+                {/* Volet CRM d'informations de droite sur les clients */}
+                <aside className="flex w-full shrink-0 flex-col gap-4 border-t border-gray-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/30 lg:w-64 lg:border-t-0">
+                  <div className="border-b border-gray-100 pb-2 text-center dark:border-slate-800">
+                    <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      {getInitials(activeClient.full_name)}
+                    </div>
+                    <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                      {activeClient.full_name}
+                    </h3>
+                    <p className="truncate text-xs text-gray-400">
+                      {activeClient.email || "Pas d'email renseigné"}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <span>
+                        Ville :{' '}
+                        <strong className="text-gray-900 dark:text-white">
+                          {activeClient.city || 'Non spécifiée'}
+                        </strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                      <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <span>
+                        Contact :{' '}
+                        <strong className="text-gray-900 dark:text-white">
+                          {activeClient.phone_number || 'Non renseigné'}
+                        </strong>
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-100 pt-2 dark:border-slate-800">
+                      <div className="mb-1 flex items-center gap-1.5 font-medium text-gray-700 dark:text-slate-400">
+                        <User className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Préférences & Besoins</span>
+                      </div>
+                      <p className="rounded-lg border border-gray-100 bg-white p-2 italic leading-relaxed text-gray-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-gray-400">
+                        {activeClient.bio_or_preferences ||
+                          'Aucune note additionnelle de profil pour ce client actuellement.'}
+                      </p>
+                    </div>
+                  </div>
+                </aside>
               </>
             )}
           </div>
@@ -735,7 +637,13 @@ function MessagesPageInner() {
 
 export default function CompanyMessagesPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-sm text-gray-500">
+          Initialisation de l&apos;espace...
+        </div>
+      }
+    >
       <MessagesPageInner />
     </Suspense>
   );

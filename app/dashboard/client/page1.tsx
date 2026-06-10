@@ -1,10 +1,11 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { HeartHandshake, Loader2, Mail, MessageCircle, Sparkles, Send } from 'lucide-react';
+import { HeartHandshake, Loader2, Mail, MessageCircle, Sparkles } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import SkeletonHome from '../../components/dashboard/SkeletonHome';
 import ScrollToTopButton from '../../components/dashboard/ScrollToTopButton';
@@ -20,13 +21,18 @@ type Company = {
   sector: string;
   city: string;
   slug: string;
-  logo_url?: string;
+  logo_url?: string | null;
   is_verified?: boolean | null;
   address?: string | null;
   description?: string | null;
   company_story?: string | null;
   views_count?: number | null;
   bigup?: number | null;
+};
+
+type VoteRow = {
+  company_id: string;
+  companies: Company | Company[] | null;
 };
 
 type ContactMessage = {
@@ -214,35 +220,19 @@ function ClientDashboardPageInner() {
 
       try {
         if (activeTab === 'bravos') {
-          // ÉTAPE 1 : Récupérer d'abord les votes sans faire de jointure automatique problématique
-          const { data: votesData, error: votesError } = await supabase
+          const { data, error } = await supabase
             .from('votes')
-            .select('company_id')
+            .select('company_id, companies(*)')
             .eq('user_id', currentUserId);
 
-          if (votesError) throw votesError;
+          if (error) throw error;
 
-          const companyIds = (votesData || []).map((v) => v.company_id).filter(Boolean);
+          const list = (data as unknown as VoteRow[] | null) ?? [];
+          const comps = list
+            .map((row) => (Array.isArray(row.companies) ? row.companies[0] : row.companies))
+            .filter((c): c is Company => c !== null);
 
-          if (companyIds.length === 0) {
-            if (isMounted) setVotedCompanies([]);
-          } else {
-            // ÉTAPE 2 : Aller chercher les détails des entreprises séparément
-            // On tente sur la table principale 'companies'
-            const { data: companiesData, error: companiesError } = await supabase
-              .from('companies')
-              .select('*')
-              .in('id', companyIds);
-
-            if (companiesError) throw companiesError;
-
-            const comps = (companiesData || []).map((c: any) => ({
-              ...c,
-              logo_url: c.logo_url === null ? undefined : c.logo_url,
-            })) as Company[];
-
-            if (isMounted) setVotedCompanies(comps);
-          }
+          if (isMounted) setVotedCompanies(comps);
         } else if (activeTab === 'contact') {
           const userEmail = (await supabase.auth.getUser()).data.user?.email || '';
           const { data, error } = await supabase
@@ -535,13 +525,13 @@ function ClientDashboardPageInner() {
                     <div className="rounded-xl border border-slate-200 bg-white p-6 py-12 text-center dark:border-slate-800 dark:bg-slate-900">
                       <HeartHandshake className="mx-auto mb-3 h-12 w-12 text-slate-400" />
                       <p className="text-slate-600 dark:text-slate-400">
-                        Vous n&apos;avez pas encore envoyé de Bravo à une entreprise.
+                        Vous n'avez pas encore envoyé de Bravo à une entreprise.
                       </p>
                     </div>
                   ) : (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                      {votedCompanies.map((company, index) => (
-                        <SearchListItem key={company.id} company={company} index={index} />
+                      {votedCompanies.map((company) => (
+                        <SearchListItem key={company.id} company={company} />
                       ))}
                     </div>
                   )}
@@ -688,7 +678,7 @@ function ClientDashboardPageInner() {
                           </div>
                         </div>
 
-                        <div className="min-h-75 flex-1 space-y-3 overflow-y-auto px-4 py-4 lg:min-h-0">
+                        <div className="min-h-[300px] flex-1 space-y-3 overflow-y-auto px-4 py-4 lg:min-h-0">
                           {chatMessagesLoading ? (
                             <div className="flex h-full items-center justify-center text-sm text-slate-400">
                               Chargement...
