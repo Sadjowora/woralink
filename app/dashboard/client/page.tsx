@@ -1,26 +1,14 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  HeartHandshake,
-  Loader2,
-  Mail,
-  MapPin,
-  MessageCircle,
-  MessageSquareText,
-  Send,
-  Sparkles,
-  X,
-} from 'lucide-react';
+import { HeartHandshake, Loader2, Mail, MessageCircle, Send, Sparkles } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import SkeletonHome from '../../components/dashboard/SkeletonHome';
 import ScrollToTopButton from '../../components/dashboard/ScrollToTopButton';
 import SearchListItem from '../../(public)/search/SearchListItem';
-import { startChatRoom } from '../../(public)/contact/actions';
 import { getLatestMessagesByRoom } from '@/lib/chat';
 import { supabase } from '@/lib/supabase';
 
@@ -41,30 +29,15 @@ type Company = {
   bigup?: number | null;
 };
 
-type VoteRow = {
-  company_id: string;
-  companies: Company | Company[] | null;
-};
-
 type ContactMessage = {
   id: string;
-  company_id?: string | null;
-  company_name?: string | null;
-  company_slug?: string | null;
-  company_logo_url?: string | null;
-  subject: string;
-  body: string;
   created_at: string;
-};
-
-type ChatMessage = {
-  id: string;
-  room_id: string;
   company_id?: string | null;
-  client_id?: string | null;
-  sender_id: string;
+  name?: string | null;
+  email?: string | null;
+  subject?: string | null;
   message: string;
-  created_at: string;
+  target_company_name?: string | null;
 };
 
 type ChatRoom = {
@@ -72,513 +45,324 @@ type ChatRoom = {
   company_id: string;
   client_id: string;
   created_at: string;
-  participant_a?: string | null;
-  participant_b?: string | null;
+  company?: RoomCompany | null;
 };
 
-type Conversation = {
-  company_id: string;
-  company_name: string;
-  company_slug: string | null;
-  company_logo_url: string | null;
+type ChatMessage = {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+};
+
+type ConversationPreview = {
+  room_id: string;
+  company: RoomCompany;
   last_message: string;
   last_at: string;
 };
 
-type Profile = {
-  full_name?: string | null;
-  role?: string | null;
+type RoomCompany = {
+  name: string;
+  logo_url: string | null;
 };
 
-type ActiveTab = 'home' | 'favorites' | 'messages';
-
-type GalleryFeedItem = {
-  id: string;
-  url: string;
-  caption: string | null;
-  created_at: string;
-  company_id: string;
-  company_name: string;
-  company_city: string;
-  company_logo_url: string | null;
-  company_slug: string;
-  indexInCompany: number;
-  totalInCompany: number;
-};
-
-function normalizeCompany(row: VoteRow): Company | null {
-  const related = Array.isArray(row.companies) ? (row.companies[0] ?? null) : row.companies;
-  if (!related?.id) return null;
-  return related;
-}
-
-function resolveCompanyName(message: ContactMessage): string {
-  if (typeof message.company_name === 'string' && message.company_name.trim()) {
-    return message.company_name.trim();
+function getRoomCompany(room?: ChatRoom | null): RoomCompany {
+  if (room?.company?.name) {
+    return {
+      name: room.company.name,
+      logo_url: room.company.logo_url ?? null,
+    };
   }
 
-  return 'Entreprise non précisée';
-}
-
-function formatFeedDate(createdAt: string): string {
-  const d = new Date(createdAt);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return {
+    name: 'Entreprise Woralink',
+    logo_url: null,
+  };
 }
 
 function formatChatTime(createdAt: string): string {
-  const d = new Date(createdAt);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const parsedDate = new Date(createdAt);
+  if (Number.isNaN(parsedDate.getTime())) return '';
+  return parsedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatChatDate(createdAt: string): string {
+  const parsedDate = new Date(createdAt);
+  if (Number.isNaN(parsedDate.getTime())) return '';
+  return parsedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+}
+
+function getInitials(name: string): string {
+  const parts = name.split(/\s+/).filter(Boolean);
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
 }
 
 function ClientDashboardPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [messages, setMessages] = useState<ContactMessage[]>([]);
-  const [galleryFeed, setGalleryFeed] = useState<GalleryFeedItem[]>([]);
-  const [isGalleryLoading, setIsGalleryLoading] = useState(false);
-  const [fullName, setFullName] = useState('');
-  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
-  const [activeSector, setActiveSector] = useState('Tous');
+  const activeTabFromUrl = searchParams.get('tab') || 'bravos';
+  const roomFromUrl = searchParams.get('room');
 
-  // Chat state
-  const [selectedChatCompanyId, setSelectedChatCompanyId] = useState<string | null>(null);
-  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(activeTabFromUrl);
+  const [votedCompanies, setVotedCompanies] = useState<Company[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [chatSending, setChatSending] = useState(false);
-  const [chatRoomLoading, setChatRoomLoading] = useState(false);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [conversationList, setConversationList] = useState<Conversation[]>([]);
-  const [freshConversationIds, setFreshConversationIds] = useState<string[]>([]);
-  const [favoriteChatStartingId, setFavoriteChatStartingId] = useState<string | null>(null);
-  const [chatToast, setChatToast] = useState('');
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(roomFromUrl);
   const [currentUserId, setCurrentUserId] = useState('');
-  const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+
+  const [globalLoading, setGlobalLoading] = useState(true);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [chatMessagesLoading, setChatMessagesLoading] = useState(false);
+  const [chatSending, setChatSending] = useState(false);
+
+  const [conversationList, setConversationList] = useState<ConversationPreview[]>([]);
+  const [freshConversationIds, setFreshConversationIds] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   const freshBadgeTimersRef = useRef<Record<string, number>>({});
-  const urlTab = searchParams.get('tab');
-  const companyParam = searchParams.get('company');
-  const urlCompanyId = companyParam;
-  const activeChatCompanyId = urlCompanyId ?? selectedChatCompanyId;
-  const effectiveActiveTab: ActiveTab =
-    urlTab === 'messages' || Boolean(urlCompanyId) ? 'messages' : activeTab;
 
-  const markConversationAsNew = useCallback((companyId: string) => {
-    if (!companyId) return;
+  const markConversationAsNew = useCallback((roomId: string) => {
+    if (!roomId) return;
+    setFreshConversationIds((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
 
-    setFreshConversationIds((prev) => {
-      if (prev.includes(companyId)) return prev;
-      return [...prev, companyId];
-    });
+    const existingTimer = freshBadgeTimersRef.current[roomId];
+    if (existingTimer) window.clearTimeout(existingTimer);
 
-    const existingTimer = freshBadgeTimersRef.current[companyId];
-    if (existingTimer) {
-      window.clearTimeout(existingTimer);
-    }
-
-    freshBadgeTimersRef.current[companyId] = window.setTimeout(() => {
-      setFreshConversationIds((prev) => prev.filter((id) => id !== companyId));
-      delete freshBadgeTimersRef.current[companyId];
+    freshBadgeTimersRef.current[roomId] = window.setTimeout(() => {
+      setFreshConversationIds((prev) => prev.filter((id) => id !== roomId));
+      delete freshBadgeTimersRef.current[roomId];
     }, 8000);
   }, []);
 
   useEffect(() => {
     const timers = freshBadgeTimersRef.current;
-
-    return () => {
-      Object.values(timers).forEach((timerId) => {
-        window.clearTimeout(timerId);
-      });
-    };
+    return () => Object.values(timers).forEach(window.clearTimeout);
   }, []);
 
   useEffect(() => {
-    if (!chatToast) return;
-    const timer = window.setTimeout(() => setChatToast(''), 3200);
-    return () => window.clearTimeout(timer);
-  }, [chatToast]);
+    if (activeTabFromUrl !== activeTab) {
+      setActiveTab(activeTabFromUrl);
+    }
+  }, [activeTabFromUrl, activeTab]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (roomFromUrl && roomFromUrl !== activeRoomId) {
+      setActiveRoomId(roomFromUrl);
+      setActiveTab('messages');
+    }
+  }, [roomFromUrl, activeRoomId]);
 
-    const loadClientDashboard = async () => {
-      setIsLoading(true);
-      setError('');
+  useEffect(() => {
+    let isMounted = true;
 
+    const loadUserData = async () => {
+      setGlobalLoading(true);
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (!session?.user) {
-        if (!cancelled) {
-          setIsLoading(false);
-          router.push('/login');
-        }
+        if (isMounted) router.push('/login');
         return;
       }
 
-      const userId = session.user.id;
-      if (!cancelled) setCurrentUserId(userId);
-      const [
-        { data: profile, error: profileError },
-        { data: votesData, error: votesError },
-        { data: messagesData, error: messagesError },
-        { data: roomData, error: roomsError },
-      ] = await Promise.all([
-        supabase.from('profiles').select('full_name, role').eq('id', userId).maybeSingle<Profile>(),
-        supabase.from('company_votes').select('company_id, companies(*)').eq('user_id', userId),
-        supabase
-          .from('contact_messages')
-          .select('id, company_id, subject, message, created_at')
-          .eq('sender_id', userId)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('chat_rooms')
-          .select('id, company_id, client_id, created_at, participant_a, participant_b')
-          .or(
-            [
-              `client_id.eq.${userId}`,
-              `participant_a.eq.${userId}`,
-              `participant_b.eq.${userId}`,
-            ].join(','),
-          )
-          .order('created_at', { ascending: false }),
-      ]);
-
-      if (profileError || votesError || messagesError || roomsError) {
-        if (!cancelled) {
-          setError('Impossible de charger votre espace client pour le moment.');
-          setCompanies([]);
-          setMessages([]);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      const normalizedRole = String(profile?.role ?? '').toLowerCase();
-      if (normalizedRole === 'company') {
-        if (!cancelled) {
-          setIsLoading(false);
-          router.push('/dashboard');
-        }
-        return;
-      }
-
-      const mappedCompanies = ((votesData as VoteRow[] | null) ?? [])
-        .map(normalizeCompany)
-        .filter((company): company is Company => Boolean(company));
-
-      const chatRooms = (roomData as ChatRoom[] | null) ?? [];
-
-      const rawMessages = ((messagesData as Array<Record<string, unknown>> | null) ?? []).map(
-        (row) => ({
-          id: String(row.id ?? ''),
-          company_id: typeof row.company_id === 'string' ? row.company_id : null,
-          subject: String(row.subject ?? ''),
-          body: String(row.message ?? ''),
-          created_at: String(row.created_at ?? ''),
-        }),
-      );
-
-      const relatedCompanyIds = Array.from(
-        new Set([
-          ...rawMessages
-            .map((message) => message.company_id)
-            .filter((id): id is string => Boolean(id)),
-          ...chatRooms.map((room) => room.company_id).filter(Boolean),
-        ]),
-      );
-
-      let companiesMap = new Map<
-        string,
-        { id: string; name?: string | null; slug?: string | null; logo_url?: string | null }
-      >();
-
-      if (relatedCompanyIds.length > 0) {
-        const { data: relatedCompanies, error: relatedCompaniesError } = await supabase
-          .from('companies')
-          .select('id, name, slug, logo_url')
-          .in('id', relatedCompanyIds);
-
-        if (relatedCompaniesError) {
-          console.warn('[ClientDashboard] companies lookup failed:', relatedCompaniesError.message);
-        } else {
-          companiesMap = new Map(
-            (
-              (relatedCompanies as Array<{
-                id: string;
-                name?: string | null;
-                slug?: string | null;
-                logo_url?: string | null;
-              }> | null) ?? []
-            ).map((company) => [
-              company.id,
-              {
-                id: company.id,
-                name: company.name ?? null,
-                slug: company.slug ?? null,
-                logo_url: company.logo_url ?? null,
-              },
-            ]),
-          );
-        }
-      }
-
-      const unresolvedCompanyIds = relatedCompanyIds.filter(
-        (companyId) => !companiesMap.has(companyId),
-      );
-      if (unresolvedCompanyIds.length > 0) {
-        console.warn('[ClientDashboard] unresolved company ids:', unresolvedCompanyIds);
-      }
-
-      const mappedMessages: ContactMessage[] = rawMessages.map((message) => {
-        const relatedCompany = message.company_id
-          ? companiesMap.get(message.company_id)
-          : undefined;
-        return {
-          ...message,
-          company_name: relatedCompany?.name ?? null,
-          company_slug: relatedCompany?.slug ?? null,
-          company_logo_url: relatedCompany?.logo_url ?? null,
-        };
-      });
-
-      const roomIds = chatRooms.map((room) => room.id);
-      const { latestByRoom, error: latestMessagesError } = await getLatestMessagesByRoom(roomIds);
-      if (latestMessagesError) {
-        console.warn('[ClientDashboard] latest chat messages lookup failed:', latestMessagesError);
-      }
-
-      const roomConversations: Conversation[] = chatRooms
-        .map((room) => {
-          const relatedCompany = companiesMap.get(room.company_id);
-          const latestMessage = latestByRoom.get(room.id);
-
-          return {
-            company_id: relatedCompany?.id ?? room.company_id,
-            company_name: relatedCompany?.name ?? 'Entreprise',
-            company_slug: relatedCompany?.slug ?? null,
-            company_logo_url: relatedCompany?.logo_url ?? null,
-            last_message: latestMessage?.message ?? '',
-            last_at: latestMessage?.created_at ?? room.created_at,
-          } satisfies Conversation;
-        })
-        .sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime());
-
-      if (!cancelled) {
-        setFullName((profile?.full_name ?? '').trim());
-        setCompanies(mappedCompanies);
-        setMessages(mappedMessages);
-        setConversationList(roomConversations);
-        setIsLoading(false);
-        setIsGalleryLoading(true);
-      }
-
-      const { data: photosData, error: photosError } = await supabase
-        .from('company_photos')
-        .select('id, url, caption, created_at, company_id')
-        .order('created_at', { ascending: false })
-        .limit(60);
-
-      if (photosError) {
-        console.error('[ClientDashboard] gallery feed query failed:', photosError.message);
-        if (!cancelled) {
-          setGalleryFeed([]);
-          setIsGalleryLoading(false);
-        }
-        return;
-      }
-
-      const rawPhotos = (photosData as Array<Record<string, unknown>> | null) ?? [];
-      const galleryCompanyIds = Array.from(
-        new Set(rawPhotos.map((row) => String(row.company_id ?? '')).filter(Boolean)),
-      );
-
-      let galleryCompaniesMap = new Map<
-        string,
-        {
-          name?: string | null;
-          city?: string | null;
-          logo_url?: string | null;
-          slug?: string | null;
-        }
-      >();
-
-      if (galleryCompanyIds.length > 0) {
-        const { data: galleryCompaniesData, error: galleryCompaniesError } = await supabase
-          .from('companies')
-          .select('id, name, city, logo_url, slug')
-          .in('id', galleryCompanyIds);
-
-        if (galleryCompaniesError) {
-          console.error(
-            '[ClientDashboard] gallery companies lookup failed:',
-            galleryCompaniesError.message,
-          );
-        } else {
-          galleryCompaniesMap = new Map(
-            (
-              (galleryCompaniesData as Array<{
-                id: string;
-                name?: string | null;
-                city?: string | null;
-                logo_url?: string | null;
-                slug?: string | null;
-              }> | null) ?? []
-            ).map((company) => [
-              company.id,
-              {
-                name: company.name ?? null,
-                city: company.city ?? null,
-                logo_url: company.logo_url ?? null,
-                slug: company.slug ?? null,
-              },
-            ]),
-          );
-        }
-      }
-
-      const perCompanyIds = new Map<string, string[]>();
-      rawPhotos.forEach((row) => {
-        const cid = String(row.company_id ?? '');
-        if (!perCompanyIds.has(cid)) perCompanyIds.set(cid, []);
-        perCompanyIds.get(cid)!.push(String(row.id ?? ''));
-      });
-
-      const feedItems: GalleryFeedItem[] = rawPhotos
-        .filter((row) => {
-          const val = row.url;
-          return typeof val === 'string' && val.trim();
-        })
-        .map((row) => {
-          const cid = String(row.company_id ?? '');
-          const company = galleryCompaniesMap.get(cid);
-          const ids = perCompanyIds.get(cid) ?? [];
-          const idx = ids.indexOf(String(row.id ?? ''));
-
-          return {
-            id: String(row.id ?? ''),
-            url: String(row.url ?? ''),
-            caption:
-              typeof row.caption === 'string' && row.caption.trim() ? row.caption.trim() : null,
-            created_at: String(row.created_at ?? ''),
-            company_id: cid,
-            company_name: typeof company?.name === 'string' ? company.name : 'Entreprise',
-            company_city: typeof company?.city === 'string' ? company.city : '',
-            company_logo_url: typeof company?.logo_url === 'string' ? company.logo_url : null,
-            company_slug: typeof company?.slug === 'string' ? company.slug : '',
-            indexInCompany: idx + 1,
-            totalInCompany: ids.length,
-          };
-        });
-
-      if (!cancelled) {
-        setGalleryFeed(feedItems);
-        setIsGalleryLoading(false);
+      if (isMounted) {
+        setCurrentUserId(session.user.id);
+        setGlobalLoading(false);
       }
     };
 
-    void loadClientDashboard();
-
+    void loadUserData();
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, [router]);
 
-  // Résout le room_id du duo (client + company) à partir de l'URL/conversation active.
   useEffect(() => {
-    const targetCompanyId = companyParam ?? activeChatCompanyId;
-    if (!targetCompanyId || !currentUserId) {
-      return;
-    }
+    if (!currentUserId) return;
+    let isMounted = true;
 
-    let cancelled = false;
+    const fetchTabData = async () => {
+      setContentLoading(true);
+      setErrorMessage('');
 
-    const resolveRoomId = async () => {
-      setChatRoomLoading(true);
-      const startResult = await startChatRoom(currentUserId, targetCompanyId);
-      if (!cancelled) {
-        if ('error' in startResult) {
-          setChatToast(startResult.error);
-          setActiveRoomId(null);
-          setChatRoomLoading(false);
-          return;
+      try {
+        if (activeTab === 'bravos') {
+          const { data: voteData, error: voteError } = await supabase
+            .from('company_votes')
+            .select('company_id')
+            .eq('user_id', currentUserId);
+
+          if (voteError) throw voteError;
+
+          const companyIds = ((voteData as Array<{ company_id: string }> | null) ?? [])
+            .map((row) => row.company_id)
+            .filter(Boolean);
+
+          if (companyIds.length === 0) {
+            if (isMounted) setVotedCompanies([]);
+            return;
+          }
+
+          const { data, error } = await supabase.from('companies').select('*').in('id', companyIds);
+
+          if (error) throw error;
+
+          const comps = ((data as Company[] | null) ?? []).map((company) => ({
+            ...company,
+            logo_url: company.logo_url ?? null,
+          }));
+
+          if (isMounted) setVotedCompanies(comps);
+        } else if (activeTab === 'contact') {
+          const { data, error } = await supabase
+            .from('contact_messages')
+            .select('*')
+            .eq('sender_id', currentUserId)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          if (isMounted) setContactMessages((data as ContactMessage[]) ?? []);
+        } else if (activeTab === 'messages') {
+          const { data: roomData, error: roomsError } = await supabase
+            .from('chat_rooms')
+            .select('id, company_id, client_id, created_at')
+            .eq('client_id', currentUserId)
+            .order('created_at', { ascending: false });
+
+          if (roomsError) throw roomsError;
+
+          const rawRooms = (roomData as ChatRoom[] | null) ?? [];
+          const companyIds = [...new Set(rawRooms.map((room) => room.company_id).filter(Boolean))];
+
+          const companiesById = new Map<string, RoomCompany>();
+          if (companyIds.length > 0) {
+            const { data: companiesData, error: companiesError } = await supabase
+              .from('companies')
+              .select('id, name, logo_url')
+              .in('id', companyIds);
+
+            if (companiesError) throw companiesError;
+
+            for (const company of (companiesData as Array<{
+              id: string;
+              name: string;
+              logo_url: string | null;
+            }> | null) ?? []) {
+              companiesById.set(company.id, {
+                name: company.name,
+                logo_url: company.logo_url ?? null,
+              });
+            }
+          }
+
+          const baseRooms = rawRooms.map((room) => ({
+            ...room,
+            company: companiesById.get(room.company_id) ?? {
+              name: 'Entreprise Woralink',
+              logo_url: null,
+            },
+          }));
+
+          if (isMounted) {
+            setChatRooms(baseRooms);
+            if (baseRooms.length > 0 && !activeRoomId) {
+              setActiveRoomId(baseRooms[0].id);
+            }
+          }
         }
-
-        console.log('🎯 Salon actif trouvé et connecté :', startResult.roomId);
-        setActiveRoomId(startResult.roomId);
-        setChatRoomLoading(false);
+      } catch (err) {
+        console.error('Error fetching tab data:', err);
+        if (isMounted)
+          setErrorMessage('Une erreur est survenue lors de la récupération des données.');
+      } finally {
+        if (isMounted) setContentLoading(false);
       }
     };
 
-    void resolveRoomId();
-
+    void fetchTabData();
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
-  }, [companyParam, activeChatCompanyId, currentUserId]);
+  }, [activeTab, currentUserId, activeRoomId]);
 
-  // Charge l'historique des messages à partir du room_id actif.
+  const resolvedActiveRoomId = useMemo(() => {
+    if (roomFromUrl && chatRooms.some((r) => r.id === roomFromUrl)) return roomFromUrl;
+    return activeRoomId;
+  }, [activeRoomId, roomFromUrl, chatRooms]);
+
   useEffect(() => {
-    if (!activeRoomId) return;
+    if (!resolvedActiveRoomId || activeTab !== 'messages') return;
+    let isMounted = true;
 
-    let cancelled = false;
+    const loadMessages = async () => {
+      setChatMessagesLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('chat_messages')
+          .select('id, room_id, sender_id, message, created_at')
+          .eq('room_id', resolvedActiveRoomId)
+          .order('created_at', { ascending: true });
 
-    const fetchMessages = async () => {
-      setChatLoading(true);
-      setChatMessages([]);
-
-      const { data, error: historyError } = await supabase
-        .from('chat_messages')
-        .select('id, room_id, sender_id, message, created_at')
-        .eq('room_id', activeRoomId)
-        .order('created_at', { ascending: true });
-
-      if (!cancelled) {
-        if (historyError) {
-          setChatToast('Impossible de charger les messages.');
-          setChatMessages([]);
-        } else {
-          setChatMessages((data as ChatMessage[] | null) ?? []);
-        }
-        setChatLoading(false);
+        if (error) throw error;
+        if (isMounted) setChatMessages((data as ChatMessage[]) ?? []);
+      } catch (err) {
+        console.error('Error loading chat messages:', err);
+      } finally {
+        if (isMounted) setChatMessagesLoading(false);
       }
     };
 
-    void fetchMessages();
-
+    void loadMessages();
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
-  }, [activeRoomId]);
+  }, [resolvedActiveRoomId, activeTab]);
 
-  // Realtime: écoute des inserts sur le room_id actif.
   useEffect(() => {
-    if (!activeRoomId) return;
+    if (!chatRooms.length || activeTab !== 'messages') return;
+    const knownRoomIds = new Set(chatRooms.map((r) => r.id));
 
     const channel = supabase
-      .channel(`chat-room-${activeRoomId}`)
+      .channel('client-messages-all-rooms')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `room_id=eq.${activeRoomId}`,
-        },
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
-          const newMsg = payload.new as ChatMessage;
-          setChatMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
+          const nextMessage = payload.new as ChatMessage;
+          if (!knownRoomIds.has(nextMessage.room_id)) return;
+
+          if (nextMessage.room_id === resolvedActiveRoomId) {
+            setChatMessages((prev) =>
+              prev.some((m) => m.id === nextMessage.id) ? prev : [...prev, nextMessage],
+            );
+          }
+
+          setConversationList((prev) => {
+            const currentConv = prev.find((c) => c.room_id === nextMessage.room_id);
+            const fallbackRoom = chatRooms.find((r) => r.id === nextMessage.room_id);
+
+            const nextConv: ConversationPreview = {
+              room_id: nextMessage.room_id,
+              company: currentConv?.company ?? getRoomCompany(fallbackRoom),
+              last_message: nextMessage.message,
+              last_at: nextMessage.created_at,
+            };
+
+            return [nextConv, ...prev.filter((c) => c.room_id !== nextMessage.room_id)];
           });
 
-          if (activeChatCompanyId) {
-            markConversationAsNew(activeChatCompanyId);
+          if (nextMessage.room_id !== resolvedActiveRoomId) {
+            markConversationAsNew(nextMessage.room_id);
           }
         },
       )
@@ -587,921 +371,392 @@ function ClientDashboardPageInner() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [activeRoomId, activeChatCompanyId, markConversationAsNew]);
+  }, [chatRooms, resolvedActiveRoomId, activeTab, markConversationAsNew]);
 
-  // Auto-scroll to bottom when messages arrive
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+    if (activeTab === 'messages') {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, activeTab]);
+
+  const roomIds = useMemo(() => chatRooms.map((r) => r.id), [chatRooms]);
+
+  useEffect(() => {
+    if (!chatRooms.length || !roomIds.length || activeTab !== 'messages') return;
+    let isMounted = true;
+
+    const buildConversationList = async () => {
+      const { latestByRoom, error } = await getLatestMessagesByRoom(roomIds);
+      if (error && isMounted) {
+        setConversationList(
+          chatRooms.map((r) => ({
+            room_id: r.id,
+            company: getRoomCompany(r),
+            last_message: '',
+            last_at: r.created_at,
+          })),
+        );
+        return;
+      }
+
+      if (isMounted) {
+        const next = chatRooms
+          .map((r) => {
+            const latest = latestByRoom.get(r.id);
+            return {
+              room_id: r.id,
+              company: getRoomCompany(r),
+              last_message: latest?.message ?? '',
+              last_at: latest?.created_at ?? r.created_at,
+            };
+          })
+          .sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime());
+
+        setConversationList(next);
+      }
+    };
+
+    void buildConversationList();
+    return () => {
+      isMounted = false;
+    };
+  }, [roomIds, chatRooms, activeTab]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || chatSending) {
-      return;
-    }
+    const text = newMessage.trim();
+    if (!text || !resolvedActiveRoomId || !currentUserId || chatSending) return;
 
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    const currentUser = authData?.user ?? null;
-
-    if (authError || !currentUser?.id) {
-      console.error(
-        "❌ Utilisateur non authentifié pour l'envoi:",
-        authError?.message ?? 'missing user',
-      );
-      setChatToast('Session invalide. Veuillez vous reconnecter.');
-      return;
-    }
-
-    let roomIdToUse = activeRoomId;
-    if (!roomIdToUse) {
-      const targetCompanyId = companyParam ?? activeChatCompanyId;
-      if (!targetCompanyId) {
-        console.error('❌ Aucun room_id actif et aucune entreprise sélectionnée.');
-        return;
-      }
-
-      const startResult = await startChatRoom(currentUser.id, targetCompanyId);
-      if ('error' in startResult) {
-        console.error('❌ Impossible de résoudre le salon avant envoi:', startResult.error);
-        setChatToast(startResult.error);
-        return;
-      }
-
-      roomIdToUse = startResult.roomId;
-      setActiveRoomId(roomIdToUse);
-      console.log('🎯 Salon actif trouvé et connecté :', roomIdToUse);
-    }
-
-    const textToSend = newMessage;
     setNewMessage('');
     setChatSending(true);
 
     try {
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert({
-          room_id: roomIdToUse,
-          sender_id: currentUser.id,
-          message: textToSend,
-        })
-        .select('id, room_id, sender_id, message, created_at')
-        .single<ChatMessage>();
+        .insert({ room_id: resolvedActiveRoomId, sender_id: currentUserId, message: text })
+        .select('*')
+        .single();
 
-      if (error) {
-        console.error("❌ Erreur Supabase lors de l'envoi :", error.message);
-        setNewMessage(textToSend);
-        setChatToast("Impossible d'envoyer le message.");
-      } else {
-        setChatMessages((prev) => {
-          if (!data || prev.some((message) => message.id === data.id)) return prev;
-          return [...prev, data];
-        });
+      if (error) throw error;
 
+      if (data) {
+        const msg = data as ChatMessage;
+        setChatMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         setConversationList((prev) => {
-          if (!activeChatCompanyId) return prev;
-
-          const fallbackCompany = companies.find((company) => company.id === activeChatCompanyId);
-          const nextConversation: Conversation = {
-            company_id: activeChatCompanyId,
-            company_name: fallbackCompany?.name ?? 'Entreprise',
-            company_slug: fallbackCompany?.slug ?? null,
-            company_logo_url: fallbackCompany?.logo_url ?? null,
-            last_message: textToSend,
-            last_at: data?.created_at ?? new Date().toISOString(),
+          const currentRoom = chatRooms.find((r) => r.id === resolvedActiveRoomId);
+          const nextConv: ConversationPreview = {
+            room_id: resolvedActiveRoomId,
+            company: getRoomCompany(currentRoom),
+            last_message: msg.message,
+            last_at: msg.created_at,
           };
-
-          const withoutSame = prev.filter((conversation) => {
-            return conversation.company_id !== nextConversation.company_id;
-          });
-
-          return [nextConversation, ...withoutSame];
+          return [nextConv, ...prev.filter((c) => c.room_id !== resolvedActiveRoomId)];
         });
-
-        if (activeChatCompanyId) {
-          markConversationAsNew(activeChatCompanyId);
-        }
-
-        console.log('✅ Message inséré avec succès :', data);
       }
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setErrorMessage("Impossible d'envoyer le message.");
     } finally {
       setChatSending(false);
     }
   };
 
-  const supportedCount = useMemo(() => companies.length, [companies]);
-  const messageCount = useMemo(() => messages.length, [messages]);
+  const activeRoom = useMemo(
+    () => chatRooms.find((r) => r.id === resolvedActiveRoomId) ?? null,
+    [resolvedActiveRoomId, chatRooms],
+  );
+  const activeCompany = useMemo(() => getRoomCompany(activeRoom), [activeRoom]);
 
-  const impactedRegions = useMemo(() => {
-    return new Set(companies.map((company) => company.city).filter(Boolean)).size;
-  }, [companies]);
-
-  const sectorFilters = useMemo(() => {
-    const sectors = Array.from(new Set(companies.map((company) => company.sector).filter(Boolean)));
-    return ['Tous', ...sectors];
-  }, [companies]);
-
-  const filteredCompanies = useMemo(() => {
-    if (activeSector === 'Tous') return companies;
-    return companies.filter((company) => company.sector === activeSector);
-  }, [activeSector, companies]);
-
-  const handleRemoveFavorite = async (companyId: string) => {
-    if (!currentUserId) return;
-    await supabase
-      .from('company_votes')
-      .delete()
-      .eq('user_id', currentUserId)
-      .eq('company_id', companyId);
-    setCompanies((prev) => prev.filter((c) => c.id !== companyId));
+  const handleTabChange = (tabName: string) => {
+    setActiveTab(tabName);
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', tabName);
+    if (tabName !== 'messages') params.delete('room');
+    router.push(`${window.location.pathname}?${params.toString()}`);
   };
 
-  const handleStartChatFromFavorite = async (company: Company) => {
-    if (!currentUserId || !company.id) return;
-    if (company.user_id && currentUserId === company.user_id) return;
-    setFavoriteChatStartingId(company.id);
-    setChatToast('');
-    const result = await startChatRoom(currentUserId, company.id);
-    setFavoriteChatStartingId(null);
-    if ('error' in result) {
-      setChatToast(result.error);
-      return;
-    }
-
-    setActiveTab('messages');
-    setSelectedChatCompanyId(company.id);
-    router.push(`/dashboard/client?tab=messages&company=${company.id}`);
-  };
-
-  // Deduplicated conversation list derived from contact_messages (one entry per company)
-  const conversations = useMemo<Conversation[]>(() => {
-    const seen = new Set<string>();
-    return messages
-      .filter((m) => {
-        if (!m.company_id || seen.has(m.company_id)) return false;
-        seen.add(m.company_id);
-        return true;
-      })
-      .map((m) => ({
-        company_id: m.company_id as string,
-        company_name: resolveCompanyName(m),
-        company_slug: m.company_slug ?? null,
-        company_logo_url: m.company_logo_url ?? null,
-        last_message: m.body,
-        last_at: m.created_at,
-      }));
-  }, [messages]);
-
-  useEffect(() => {
-    setConversationList((prev) => {
-      const byCompany = new Map<string, Conversation>();
-
-      for (const conversation of prev) {
-        byCompany.set(conversation.company_id, conversation);
-      }
-
-      for (const conversation of conversations) {
-        const existing = byCompany.get(conversation.company_id);
-        if (!existing) {
-          byCompany.set(conversation.company_id, conversation);
-          continue;
-        }
-
-        const existingTime = new Date(existing.last_at).getTime();
-        const nextTime = new Date(conversation.last_at).getTime();
-        if (Number.isNaN(existingTime) || nextTime >= existingTime) {
-          byCompany.set(conversation.company_id, conversation);
-        }
-      }
-
-      return Array.from(byCompany.values()).sort((a, b) => {
-        return new Date(b.last_at).getTime() - new Date(a.last_at).getTime();
-      });
-    });
-  }, [conversations]);
-
-  const activeConversation = useMemo(() => {
-    const fromMessages = conversationList.find((c) => c.company_id === activeChatCompanyId) ?? null;
-    if (fromMessages) return fromMessages;
-
-    if (!activeChatCompanyId) return null;
-    const fallbackCompany = companies.find((c) => c.id === activeChatCompanyId);
-    if (!fallbackCompany) return null;
-
-    return {
-      company_id: fallbackCompany.id,
-      company_name: fallbackCompany.name,
-      company_slug: fallbackCompany.slug,
-      company_logo_url: fallbackCompany.logo_url ?? null,
-      last_message: '',
-      last_at: new Date().toISOString(),
-    } satisfies Conversation;
-  }, [conversationList, activeChatCompanyId, companies]);
+  if (globalLoading) {
+    return <SkeletonHome />;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-slate-950">
-      {chatToast && (
-        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 shadow-sm">
-          {chatToast}
-        </div>
-      )}
-
+    <div className="min-h-screen bg-slate-50 transition-colors duration-300 dark:bg-slate-950">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-0 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <motion.header
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="mb-8 rounded-xl border border-gray-200 bg-white p-6 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 sm:p-8"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                Bienvenue
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 transition-colors duration-200 dark:text-white md:text-4xl">
-                {fullName || 'Utilisateur'}
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400 sm:text-base">
-                Retrouvez ici vos professionnels favoris et vos messages. Découvrez les dernières
-                photos publiées par les entreprises de votre région.
-              </p>
-            </div>
-          </div>
-        </motion.header>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <header className="mb-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Mon Espace Client
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            Suivez vos interactions, vos avis donnés et vos conversations privées avec les PME.
+          </p>
+        </header>
 
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="mb-6 grid grid-cols-3 gap-2 sm:mb-8 sm:gap-4"
-        >
-          <article className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none sm:rounded-xl sm:p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-medium leading-tight text-gray-500 transition-colors duration-200 dark:text-slate-400 sm:text-sm sm:font-normal">
-                <span className="sm:hidden">Bravos</span>
-                <span className="hidden sm:inline">Bravos Distribués</span>
-              </p>
-              <span className="rounded-lg bg-green-50 p-1.5 text-green-700 sm:p-2">
-                <HeartHandshake className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-              </span>
-            </div>
-            <p className="mt-2 text-lg font-bold tracking-tight text-gray-900 transition-colors duration-200 dark:text-white sm:mt-3 sm:text-2xl">
-              {supportedCount}
-            </p>
-          </article>
+        <div className="mb-6 flex border-b border-slate-200 dark:border-slate-800">
+          {[
+            { id: 'bravos', label: 'Mes Bravos', icon: HeartHandshake },
+            { id: 'contact', label: 'Demandes de Contact', icon: Mail },
+            { id: 'messages', label: 'Messagerie Directe', icon: MessageCircle },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  isSelected
+                    ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-          <article className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none sm:rounded-xl sm:p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-medium leading-tight text-gray-500 transition-colors duration-200 dark:text-slate-400 sm:text-sm sm:font-normal">
-                <span className="sm:hidden">Messages</span>
-                <span className="hidden sm:inline">Messages Envoyés</span>
-              </p>
-              <span className="rounded-lg bg-blue-50 p-1.5 text-blue-700 sm:p-2">
-                <Mail className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-              </span>
-            </div>
-            <p className="mt-2 text-lg font-bold tracking-tight text-gray-900 transition-colors duration-200 dark:text-white sm:mt-3 sm:text-2xl">
-              {messageCount}
-            </p>
-          </article>
-
-          <article className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none sm:rounded-xl sm:p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-medium leading-tight text-gray-500 transition-colors duration-200 dark:text-slate-400 sm:text-sm sm:font-normal">
-                <span className="sm:hidden">Impact</span>
-                <span className="hidden sm:inline">Impact Local</span>
-              </p>
-              <span className="rounded-lg bg-amber-50 p-1.5 text-amber-700 sm:p-2">
-                <MapPin className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-              </span>
-            </div>
-            <p className="mt-2 text-lg font-bold tracking-tight text-gray-900 transition-colors duration-200 dark:text-white sm:mt-3 sm:text-2xl">
-              {impactedRegions}
-            </p>
-          </article>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-2 transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900"
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('home');
-              setSelectedChatCompanyId(null);
-              setActiveRoomId(null);
-              setChatMessages([]);
-              router.push('/dashboard/client');
-            }}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-              effectiveActiveTab === 'home'
-                ? 'bg-green-700 text-white'
-                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
-            }`}
-          >
-            Accueil
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('favorites');
-              setSelectedChatCompanyId(null);
-              setActiveRoomId(null);
-              setChatMessages([]);
-              router.push('/dashboard/client');
-            }}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-              effectiveActiveTab === 'favorites'
-                ? 'bg-green-700 text-white'
-                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
-            }`}
-          >
-            Mes Favoris
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('messages');
-              router.push('/dashboard/client?tab=messages');
-            }}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-              effectiveActiveTab === 'messages'
-                ? 'bg-green-700 text-white'
-                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
-            }`}
-          >
-            Mes Messages
-          </button>
-        </motion.section>
-
-        {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
+        {errorMessage && (
+          <div className="mb-6 rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+            {errorMessage}
           </div>
         )}
 
         <AnimatePresence mode="wait">
-          {effectiveActiveTab === 'home' ? (
-            <motion.section
-              key="home"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {isLoading || isGalleryLoading ? (
-                  <motion.div
-                    key="home-skeleton"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <SkeletonHome />
-                  </motion.div>
-                ) : galleryFeed.length === 0 ? (
-                  <motion.div
-                    key="home-empty"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="rounded-xl border border-gray-200 bg-white p-10 text-center transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900"
-                  >
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors duration-200 dark:bg-slate-800 dark:text-slate-500">
-                      <Sparkles className="h-7 w-7" aria-hidden="true" />
-                    </div>
-                    <p className="mx-auto max-w-2xl text-base leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400">
-                      Aucune photo publiée pour l&apos;instant. Les professionnels de Woralink
-                      alimenteront ce fil au fur et à mesure.
-                    </p>
-                    <div className="mt-6">
-                      <Link
-                        href="/search"
-                        className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
-                      >
-                        Explorer les professionnels
-                      </Link>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="home-feed"
-                    className="columns-1 gap-6 space-y-6 sm:columns-2 lg:columns-3"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                  >
-                    {galleryFeed.map((item) => (
-                      <motion.div
-                        key={item.id}
-                        className="mb-6 break-inside-avoid"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25 }}
-                        whileHover={{ y: -2 }}
-                      >
-                        <div
-                          className="cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:border-gray-300 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:shadow-none"
-                          onClick={() =>
-                            item.company_slug && router.push(`/pme/${item.company_slug}`)
-                          }
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if ((e.key === 'Enter' || e.key === ' ') && item.company_slug) {
-                              router.push(`/pme/${item.company_slug}`);
-                            }
-                          }}
-                        >
-                          {/* Header */}
-                          <div className="flex items-center justify-between px-4 py-3">
-                            <div className="flex min-w-0 items-center gap-2.5">
-                              <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-50 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
-                                {item.company_logo_url ? (
-                                  <Image
-                                    src={item.company_logo_url}
-                                    alt={item.company_name}
-                                    width={32}
-                                    height={32}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                                    {item.company_name.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-gray-900 transition-colors duration-200 dark:text-white">
-                                  {item.company_name}
-                                </p>
-                                {item.company_city ? (
-                                  <p className="truncate text-xs text-gray-500 transition-colors duration-200 dark:text-slate-400">
-                                    {item.company_city}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
-                            <div className="flex shrink-0 flex-col items-end gap-1">
-                              <span className="text-xs text-gray-400 transition-colors duration-200 dark:text-slate-500">
-                                {formatFeedDate(item.created_at)}
-                              </span>
-                              <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-                                {item.indexInCompany}/{item.totalInCompany}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Image */}
-                          <div className="relative w-full overflow-hidden">
-                            <span className="absolute right-2 top-2 z-10 inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-gray-600 backdrop-blur-sm transition-colors duration-200 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
-                              {item.indexInCompany}/{item.totalInCompany}
-                            </span>
-                            <Image
-                              src={item.url}
-                              alt={item.caption ?? item.company_name}
-                              width={600}
-                              height={400}
-                              className="w-full object-cover"
-                              style={{ height: 'auto' }}
-                            />
-                          </div>
-
-                          {/* Footer */}
-                          {item.caption ? (
-                            <div className="border-t border-gray-100 px-4 py-3 transition-colors duration-200 dark:border-slate-800">
-                              <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400 transition-colors duration-200 dark:text-slate-500">
-                                Légende
-                              </p>
-                              <p className="text-sm leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400">
-                                {item.caption}
-                              </p>
-                            </div>
-                          ) : null}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.section>
-          ) : effectiveActiveTab === 'favorites' ? (
-            <motion.section
-              key="favorites"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
-            >
-              <div className="mb-6 flex flex-wrap gap-2">
-                {sectorFilters.map((sector) => (
-                  <button
-                    key={sector}
-                    type="button"
-                    onClick={() => setActiveSector(sector)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-200 ${
-                      activeSector === sector
-                        ? 'border-green-700 bg-green-700 text-white'
-                        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    {sector}
-                  </button>
-                ))}
-              </div>
-
-              {filteredCompanies.length === 0 ? (
-                <div className="rounded-xl border border-gray-200 bg-white p-10 text-center transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors duration-200 dark:bg-slate-800 dark:text-slate-500">
-                    <Sparkles className="h-7 w-7" aria-hidden="true" />
-                  </div>
-                  <p className="mx-auto max-w-2xl text-base leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400">
-                    Vous n&apos;avez pas encore distribué de Bravos. Parcourez l&apos;Explorer pour
-                    soutenir des PME guinéennes !
-                  </p>
-                  <div className="mt-6">
-                    <Link
-                      href="/search"
-                      className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
-                    >
-                      Explorer les professionnels
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <motion.div
-                  initial="hidden"
-                  animate="visible"
-                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
-                  className="space-y-3 sm:space-y-4"
-                >
-                  {filteredCompanies.map((company, index) => (
-                    <div key={company.id}>
-                      <SearchListItem
-                        company={{
-                          ...company,
-                          logo_url: company.logo_url ?? undefined,
-                        }}
-                        index={index}
-                        compact
-                      />
-                      {/* Barre d'actions attachée à la card */}
-                      <div className="flex items-center justify-end gap-2 rounded-b-xl border border-t-0 border-gray-200 bg-white px-4 py-2 dark:border-slate-800 dark:bg-slate-900">
-                        {company.user_id && currentUserId && company.user_id !== currentUserId && (
-                          <button
-                            type="button"
-                            onClick={() => handleStartChatFromFavorite(company)}
-                            disabled={favoriteChatStartingId === company.id}
-                            title="Contacter ce professionnel"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors duration-150 hover:border-green-700 hover:text-green-700 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-green-500 dark:hover:text-green-400"
-                          >
-                            {favoriteChatStartingId === company.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                            ) : (
-                              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                            )}
-                            Contacter
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFavorite(company.id)}
-                          title="Retirer des favoris"
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors duration-150 hover:border-red-300 hover:text-red-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-red-600 dark:hover:text-red-400"
-                        >
-                          <X className="h-3.5 w-3.5" aria-hidden="true" />
-                          Retirer
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </motion.section>
+          {contentLoading ? (
+            <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+            </div>
           ) : (
-            /* ── Messages tab — Real-time Chat Interface ── */
             <motion.section
-              key="messages"
-              initial={{ opacity: 0, y: 12 }}
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
             >
-              {conversationList.length === 0 && !activeChatCompanyId ? (
-                /* Empty state */
-                <div className="rounded-xl border border-gray-200 bg-white p-10 text-center transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors duration-200 dark:bg-slate-800 dark:text-slate-500">
-                    <MessageSquareText className="h-7 w-7" aria-hidden="true" />
-                  </div>
-                  <p className="mx-auto max-w-2xl text-base leading-relaxed text-gray-600 transition-colors duration-200 dark:text-slate-400">
-                    Vous n&apos;avez pas encore envoyé de message aux professionnels.
-                  </p>
-                  <div className="mt-6">
-                    <Link
-                      href="/search"
-                      className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-green-800"
-                    >
-                      Explorer les professionnels
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                /* Two-column chat layout */
-                <div className="lg:h-170 overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 lg:flex">
-                  {/* ── Left: Conversations list ── */}
-                  <aside
-                    className={`shrink-0 border-b border-gray-200 transition-colors duration-200 dark:border-slate-800 lg:w-72 lg:border-b-0 lg:border-r xl:w-80 ${
-                      activeChatCompanyId ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'
-                    }`}
-                  >
-                    <div className="border-b border-gray-100 px-4 py-4 dark:border-slate-800">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">
-                        Conversations recentes
+              {activeTab === 'bravos' && (
+                <div className="space-y-4">
+                  {votedCompanies.length === 0 ? (
+                    <div className="rounded-xl border border-slate-200 bg-white p-6 py-12 text-center dark:border-slate-800 dark:bg-slate-900">
+                      <HeartHandshake className="mx-auto mb-3 h-12 w-12 text-slate-400" />
+                      <p className="text-slate-600 dark:text-slate-400">
+                        Vous n&apos;avez pas encore envoyé de Bravo à une entreprise.
                       </p>
-                      <p className="mt-0.5 text-base font-semibold text-gray-900 dark:text-white">
-                        {conversationList.length} contact{conversationList.length > 1 ? 's' : ''}
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {votedCompanies.map((company, index) => (
+                        <SearchListItem
+                          key={company.id}
+                          index={index}
+                          company={{ ...company, logo_url: company.logo_url ?? undefined }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'contact' && (
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+                  {contactMessages.length === 0 ? (
+                    <div className="p-6 py-12 text-center">
+                      <Mail className="mx-auto mb-3 h-12 w-12 text-slate-400" />
+                      <p className="text-slate-600 dark:text-slate-400">
+                        Aucun message de contact envoyé.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {contactMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className="p-6 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="font-semibold text-slate-900 dark:text-white">
+                                Formulaire soumis
+                              </h3>
+                              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                Date : {formatChatDate(msg.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+                            {msg.message}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'messages' && (
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900 lg:flex lg:h-[calc(100vh-20rem)]">
+                  <aside className="shrink-0 border-b border-slate-200 dark:border-slate-800 lg:w-80 lg:border-b-0 lg:border-r">
+                    <div className="border-b border-slate-100 px-4 py-4 dark:border-slate-800">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                        Vos échanges
+                      </p>
+                      <p className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+                        {conversationList.length} conversation
+                        {conversationList.length > 1 ? 's' : ''}
                       </p>
                     </div>
 
-                    <ul className="flex-1 overflow-y-auto">
+                    <div className="max-h-96 overflow-y-auto lg:max-h-none lg:flex-1">
                       {conversationList.map((conv) => {
-                        const isActive = activeChatCompanyId === conv.company_id;
+                        const isCurrent = conv.room_id === resolvedActiveRoomId;
                         return (
-                          <li key={conv.company_id}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab('messages');
-                                setSelectedChatCompanyId(conv.company_id);
-                                setFreshConversationIds((prev) => {
-                                  return prev.filter((id) => id !== conv.company_id);
-                                });
-                                router.push(
-                                  `/dashboard/client?tab=messages&company=${conv.company_id}`,
-                                );
-                              }}
-                              className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors duration-150 ${
-                                isActive
-                                  ? 'bg-green-50 dark:bg-green-950/30'
-                                  : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
-                              }`}
-                            >
-                              {/* Avatar */}
-                              <div
-                                className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-full border transition-colors duration-200 ${
-                                  isActive
-                                    ? 'border-green-300 dark:border-green-700'
-                                    : 'border-gray-200 dark:border-slate-700'
-                                }`}
-                              >
-                                {conv.company_logo_url ? (
-                                  <Image
-                                    src={conv.company_logo_url}
-                                    alt={conv.company_name}
-                                    fill
-                                    sizes="40px"
-                                    className="object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                                    {conv.company_name.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-slate-900" />
-                              </div>
-
-                              {/* Info */}
-                              <div className="min-w-0 flex-1">
-                                <p
-                                  className={`truncate text-sm font-semibold ${
-                                    isActive
-                                      ? 'text-green-700 dark:text-green-400'
-                                      : 'text-gray-900 dark:text-white'
-                                  }`}
-                                >
-                                  {conv.company_name}
-                                </p>
-                                <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
-                                  {conv.last_message.slice(0, 48)}
-                                  {conv.last_message.length > 48 ? '…' : ''}
-                                </p>
-                              </div>
-
-                              {/* Date */}
-                              <div className="shrink-0 text-right">
-                                {freshConversationIds.includes(conv.company_id) && (
-                                  <span className="mb-1 inline-flex rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                    Nouveau
-                                  </span>
-                                )}
-                                <span className="block text-[10px] text-gray-400 dark:text-slate-500">
-                                  {formatFeedDate(conv.last_at)}
+                          <button
+                            key={conv.room_id}
+                            type="button"
+                            onClick={() => {
+                              setActiveRoomId(conv.room_id);
+                              setFreshConversationIds((p) => p.filter((id) => id !== conv.room_id));
+                              router.push(`/dashboard/client?tab=messages&room=${conv.room_id}`);
+                            }}
+                            className={`flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3.5 text-left transition-colors dark:border-slate-800 ${
+                              isCurrent
+                                ? 'bg-emerald-50 dark:bg-emerald-950/25'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                              {conv.company.logo_url ? (
+                                <Image
+                                  src={conv.company.logo_url}
+                                  alt={conv.company.name}
+                                  width={44}
+                                  height={44}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                                  {getInitials(conv.company.name)}
                                 </span>
-                              </div>
-                            </button>
-                          </li>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                                {conv.company.name}
+                              </p>
+                              <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                                {conv.last_message || 'Discussion entamée'}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right text-[10px] text-slate-400">
+                              {freshConversationIds.includes(conv.room_id) && (
+                                <span className="mb-1 block rounded-full bg-green-100 px-1.5 py-0.5 text-center font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                                  Nouveau
+                                </span>
+                              )}
+                              <span>{formatChatDate(conv.last_at)}</span>
+                            </div>
+                          </button>
                         );
                       })}
-                    </ul>
+                    </div>
                   </aside>
 
-                  {/* ── Right: Chat area ── */}
-                  <div
-                    className={`min-w-0 flex-1 flex-col ${
-                      activeChatCompanyId ? 'flex' : 'hidden lg:flex'
-                    }`}
-                  >
-                    {!activeChatCompanyId ? (
-                      /* Desktop placeholder when no conversation selected */
-                      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
-                          <MessageSquareText className="h-8 w-8 text-gray-400 dark:text-slate-500" />
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-slate-400">
-                          Sélectionnez une conversation pour afficher les messages.
+                  <div className="min-w-0 flex-1 flex-col lg:flex">
+                    {!activeRoom ? (
+                      <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+                        <Sparkles className="h-8 w-8 text-slate-400" />
+                        <p className="text-sm text-slate-500">
+                          Sélectionnez une discussion à gauche pour communiquer avec une entreprise.
                         </p>
                       </div>
                     ) : (
                       <>
-                        {/* Chat header */}
-                        <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5 transition-colors duration-200 dark:border-slate-800">
-                          {/* Back button (mobile) */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedChatCompanyId(null);
-                              setActiveRoomId(null);
-                              router.push('/dashboard/client?tab=messages');
-                            }}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden"
-                            aria-label="Retour"
-                          >
-                            <svg
-                              viewBox="0 0 20 20"
-                              fill="none"
-                              className="h-5 w-5"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M12 4l-6 6 6 6"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-
-                          {/* Company avatar */}
-                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                            {activeConversation?.company_logo_url ? (
+                        <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 dark:border-slate-800">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                            {activeCompany.logo_url ? (
                               <Image
-                                src={activeConversation.company_logo_url}
-                                alt={activeConversation.company_name}
-                                fill
-                                sizes="36px"
-                                className="object-cover"
+                                src={activeCompany.logo_url}
+                                alt={activeCompany.name}
+                                width={40}
+                                height={40}
+                                className="h-full w-full object-cover"
                               />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                                {activeConversation?.company_name.charAt(0).toUpperCase() ?? '?'}
-                              </div>
+                              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                                {getInitials(activeCompany.name)}
+                              </span>
                             )}
                           </div>
-
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                              {activeConversation?.company_name ?? ''}
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {activeCompany.name}
                             </p>
                             <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                              Conversation en direct
+                              Support pro en ligne
                             </p>
                           </div>
-
-                          <span className="hidden rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-medium text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 sm:inline-flex">
-                            {chatRoomLoading
-                              ? 'Salon: chargement...'
-                              : activeRoomId
-                                ? `Salon: ${activeRoomId.slice(0, 8)}...`
-                                : 'Salon: non trouve'}
-                          </span>
-
-                          {activeConversation?.company_slug && (
-                            <Link
-                              href={`/pme/${activeConversation.company_slug}`}
-                              className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                            >
-                              Voir la fiche
-                            </Link>
-                          )}
                         </div>
 
-                        {/* Messages area */}
-                        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-                          {chatRoomLoading || chatLoading ? (
-                            <div className="flex h-full items-center justify-center">
-                              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-emerald-600 dark:border-slate-700 dark:border-t-emerald-500" />
+                        <div className="min-h-75 flex-1 space-y-3 overflow-y-auto px-4 py-4 lg:min-h-0">
+                          {chatMessagesLoading ? (
+                            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                              Chargement...
                             </div>
                           ) : chatMessages.length === 0 ? (
-                            <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
-                                <MessageSquareText className="h-6 w-6 text-gray-400 dark:text-slate-500" />
-                              </div>
-                              <p className="text-sm text-gray-500 dark:text-slate-400">
-                                Aucun message pour l&apos;instant. Commencez la conversation !
-                              </p>
+                            <div className="py-8 text-center text-sm text-slate-400">
+                              Aucun message. Envoyez votre première demande !
                             </div>
                           ) : (
-                            chatMessages.map((msg) => {
-                              const isMe = msg.sender_id === currentUserId;
+                            chatMessages.map((message) => {
+                              const isMe = message.sender_id === currentUserId;
                               return (
                                 <div
-                                  key={msg.id}
+                                  key={message.id}
                                   className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
                                 >
-                                  {/* Company avatar (received side only) */}
-                                  {!isMe && (
-                                    <div className="mb-1 h-7 w-7 shrink-0 overflow-hidden rounded-full border border-gray-200 dark:border-slate-700">
-                                      {activeConversation?.company_logo_url ? (
-                                        <Image
-                                          src={activeConversation.company_logo_url}
-                                          alt=""
-                                          width={28}
-                                          height={28}
-                                          className="h-full w-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
-                                          {activeConversation?.company_name
-                                            .charAt(0)
-                                            .toUpperCase() ?? '?'}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Bubble */}
                                   <div
-                                    className={`flex max-w-[72%] flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}
+                                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                                      isMe
+                                        ? 'rounded-br-sm bg-emerald-600 text-white'
+                                        : 'rounded-bl-sm bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100'
+                                    }`}
                                   >
-                                    <div
-                                      className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
-                                        isMe
-                                          ? 'rounded-br-sm bg-emerald-600 text-white'
-                                          : 'rounded-bl-sm bg-gray-100 text-gray-900 dark:bg-slate-800 dark:text-slate-100'
-                                      }`}
-                                    >
-                                      {msg.message}
-                                    </div>
-                                    <span
-                                      className={`px-1 text-[10px] text-gray-400 dark:text-slate-500 ${isMe ? 'text-right' : 'text-left'}`}
-                                    >
-                                      {formatChatTime(msg.created_at)}
+                                    <p>{message.message}</p>
+                                    <span className="mt-1 block text-right text-[9px] opacity-75">
+                                      {formatChatTime(message.created_at)}
                                     </span>
                                   </div>
                                 </div>
                               );
                             })
                           )}
-                          {/* Scroll anchor */}
-                          <div ref={chatBottomRef} />
+                          <div ref={bottomRef} />
                         </div>
 
-                        {/* Input bar */}
-                        <div className="border-t border-gray-100 p-3 transition-colors duration-200 dark:border-slate-800">
+                        <div className="border-t border-slate-100 p-3 dark:border-slate-800">
                           <form
                             onSubmit={handleSendMessage}
-                            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 transition-colors duration-200 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/15 dark:border-slate-700 dark:bg-slate-800"
+                            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-emerald-600 dark:border-slate-700 dark:bg-slate-800"
                           >
                             <input
                               type="text"
                               value={newMessage}
                               onChange={(e) => setNewMessage(e.target.value)}
-                              placeholder="Écrivez votre message…"
-                              className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-white dark:placeholder:text-slate-500"
+                              placeholder="Écrire votre message à l'entreprise..."
+                              className="flex-1 bg-transparent text-sm text-slate-900 focus:outline-none dark:text-white"
+                              disabled={chatSending}
                             />
                             <button
                               type="submit"
-                              disabled={!newMessage.trim() || chatSending || chatRoomLoading}
+                              disabled={!newMessage.trim() || chatSending}
                               className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-white transition-colors duration-150 hover:bg-emerald-700 disabled:opacity-40"
-                              aria-label={chatSending ? 'Envoi du message' : 'Envoyer'}
                             >
                               {chatSending ? (
-                                <>
-                                  <Loader2
-                                    className="h-3.5 w-3.5 animate-spin"
-                                    aria-hidden="true"
-                                  />
-                                  <span className="text-[11px] font-medium">Envoi...</span>
-                                </>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               ) : (
-                                <Send className="h-4 w-4" aria-hidden="true" />
+                                <Send className="h-4 w-4" />
                               )}
                             </button>
                           </form>
@@ -1522,7 +777,7 @@ function ClientDashboardPageInner() {
 
 export default function ClientDashboardPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<SkeletonHome />}>
       <ClientDashboardPageInner />
     </Suspense>
   );
