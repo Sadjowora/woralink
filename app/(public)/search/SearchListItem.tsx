@@ -10,7 +10,7 @@ type SearchListItemProps = {
     sector: string;
     city: string;
     slug: string;
-    logo_url?: string;
+    logo_url?: string | undefined;
     is_verified?: boolean | null;
     address?: string | null;
     description?: string | null;

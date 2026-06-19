@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { HeartHandshake, Loader2, Mail, MessageCircle, Sparkles, Send } from 'lucide-react';
+import { HeartHandshake, Loader2, Mail, MessageCircle, Send, Sparkles } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import SkeletonHome from '../../components/dashboard/SkeletonHome';
 import ScrollToTopButton from '../../components/dashboard/ScrollToTopButton';
@@ -20,7 +20,7 @@ type Company = {
   sector: string;
   city: string;
   slug: string;
-  logo_url?: string;
+  logo_url?: string | null;
   is_verified?: boolean | null;
   address?: string | null;
   description?: string | null;
@@ -32,25 +32,12 @@ type Company = {
 type ContactMessage = {
   id: string;
   created_at: string;
-  company_id: string;
-  sender_name: string;
-  sender_email: string;
-  message_text: string;
-};
-
-type ProfileRow = {
-  full_name?: string | null;
+  company_id?: string | null;
+  name?: string | null;
   email?: string | null;
-  companies?:
-    | {
-        name: string;
-        logo_url: string | null;
-      }
-    | {
-        name: string;
-        logo_url: string | null;
-      }[]
-    | null;
+  subject?: string | null;
+  message: string;
+  target_company_name?: string | null;
 };
 
 type ChatRoom = {
@@ -58,7 +45,7 @@ type ChatRoom = {
   company_id: string;
   client_id: string;
   created_at: string;
-  profiles?: ProfileRow | ProfileRow[] | null;
+  company?: RoomCompany | null;
 };
 
 type ChatMessage = {
@@ -81,21 +68,16 @@ type RoomCompany = {
   logo_url: string | null;
 };
 
-function normalizeCompanyProfile(input: ProfileRow | ProfileRow[] | null | undefined): RoomCompany {
-  const profile = Array.isArray(input) ? (input[0] ?? null) : (input ?? null);
-
-  if (profile?.companies) {
-    const comp = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
-    if (comp && 'name' in comp && typeof comp.name === 'string') {
-      return {
-        name: comp.name,
-        logo_url: 'logo_url' in comp && typeof comp.logo_url === 'string' ? comp.logo_url : null,
-      };
-    }
+function getRoomCompany(room?: ChatRoom | null): RoomCompany {
+  if (room?.company?.name) {
+    return {
+      name: room.company.name,
+      logo_url: room.company.logo_url ?? null,
+    };
   }
 
   return {
-    name: profile?.full_name || 'Entreprise Woralink',
+    name: 'Entreprise Woralink',
     logo_url: null,
   };
 }
@@ -214,41 +196,37 @@ function ClientDashboardPageInner() {
 
       try {
         if (activeTab === 'bravos') {
-          // ÉTAPE 1 : Récupérer d'abord les votes sans faire de jointure automatique problématique
-          const { data: votesData, error: votesError } = await supabase
-            .from('votes')
+          const { data: voteData, error: voteError } = await supabase
+            .from('company_votes')
             .select('company_id')
             .eq('user_id', currentUserId);
 
-          if (votesError) throw votesError;
+          if (voteError) throw voteError;
 
-          const companyIds = (votesData || []).map((v) => v.company_id).filter(Boolean);
+          const companyIds = ((voteData as Array<{ company_id: string }> | null) ?? [])
+            .map((row) => row.company_id)
+            .filter(Boolean);
 
           if (companyIds.length === 0) {
             if (isMounted) setVotedCompanies([]);
-          } else {
-            // ÉTAPE 2 : Aller chercher les détails des entreprises séparément
-            // On tente sur la table principale 'companies'
-            const { data: companiesData, error: companiesError } = await supabase
-              .from('companies')
-              .select('*')
-              .in('id', companyIds);
-
-            if (companiesError) throw companiesError;
-
-            const comps = (companiesData || []).map((c: any) => ({
-              ...c,
-              logo_url: c.logo_url === null ? undefined : c.logo_url,
-            })) as Company[];
-
-            if (isMounted) setVotedCompanies(comps);
+            return;
           }
+
+          const { data, error } = await supabase.from('companies').select('*').in('id', companyIds);
+
+          if (error) throw error;
+
+          const comps = ((data as Company[] | null) ?? []).map((company) => ({
+            ...company,
+            logo_url: company.logo_url ?? null,
+          }));
+
+          if (isMounted) setVotedCompanies(comps);
         } else if (activeTab === 'contact') {
-          const userEmail = (await supabase.auth.getUser()).data.user?.email || '';
           const { data, error } = await supabase
             .from('contact_messages')
             .select('*')
-            .eq('sender_email', userEmail)
+            .eq('sender_id', currentUserId)
             .order('created_at', { ascending: false });
 
           if (error) throw error;
@@ -257,15 +235,44 @@ function ClientDashboardPageInner() {
         } else if (activeTab === 'messages') {
           const { data: roomData, error: roomsError } = await supabase
             .from('chat_rooms')
-            .select(
-              'id, company_id, client_id, created_at, profiles:company_id(id, email, full_name, companies(name, logo_url))',
-            )
+            .select('id, company_id, client_id, created_at')
             .eq('client_id', currentUserId)
             .order('created_at', { ascending: false });
 
           if (roomsError) throw roomsError;
 
-          const baseRooms = (roomData as unknown as ChatRoom[] | null) ?? [];
+          const rawRooms = (roomData as ChatRoom[] | null) ?? [];
+          const companyIds = [...new Set(rawRooms.map((room) => room.company_id).filter(Boolean))];
+
+          const companiesById = new Map<string, RoomCompany>();
+          if (companyIds.length > 0) {
+            const { data: companiesData, error: companiesError } = await supabase
+              .from('companies')
+              .select('id, name, logo_url')
+              .in('id', companyIds);
+
+            if (companiesError) throw companiesError;
+
+            for (const company of (companiesData as Array<{
+              id: string;
+              name: string;
+              logo_url: string | null;
+            }> | null) ?? []) {
+              companiesById.set(company.id, {
+                name: company.name,
+                logo_url: company.logo_url ?? null,
+              });
+            }
+          }
+
+          const baseRooms = rawRooms.map((room) => ({
+            ...room,
+            company: companiesById.get(room.company_id) ?? {
+              name: 'Entreprise Woralink',
+              logo_url: null,
+            },
+          }));
+
           if (isMounted) {
             setChatRooms(baseRooms);
             if (baseRooms.length > 0 && !activeRoomId) {
@@ -346,7 +353,7 @@ function ClientDashboardPageInner() {
 
             const nextConv: ConversationPreview = {
               room_id: nextMessage.room_id,
-              company: currentConv?.company ?? normalizeCompanyProfile(fallbackRoom?.profiles),
+              company: currentConv?.company ?? getRoomCompany(fallbackRoom),
               last_message: nextMessage.message,
               last_at: nextMessage.created_at,
             };
@@ -384,7 +391,7 @@ function ClientDashboardPageInner() {
         setConversationList(
           chatRooms.map((r) => ({
             room_id: r.id,
-            company: normalizeCompanyProfile(r.profiles),
+            company: getRoomCompany(r),
             last_message: '',
             last_at: r.created_at,
           })),
@@ -398,7 +405,7 @@ function ClientDashboardPageInner() {
             const latest = latestByRoom.get(r.id);
             return {
               room_id: r.id,
-              company: normalizeCompanyProfile(r.profiles),
+              company: getRoomCompany(r),
               last_message: latest?.message ?? '',
               last_at: latest?.created_at ?? r.created_at,
             };
@@ -439,7 +446,7 @@ function ClientDashboardPageInner() {
           const currentRoom = chatRooms.find((r) => r.id === resolvedActiveRoomId);
           const nextConv: ConversationPreview = {
             room_id: resolvedActiveRoomId,
-            company: normalizeCompanyProfile(currentRoom?.profiles),
+            company: getRoomCompany(currentRoom),
             last_message: msg.message,
             last_at: msg.created_at,
           };
@@ -458,7 +465,7 @@ function ClientDashboardPageInner() {
     () => chatRooms.find((r) => r.id === resolvedActiveRoomId) ?? null,
     [resolvedActiveRoomId, chatRooms],
   );
-  const activeCompany = useMemo(() => normalizeCompanyProfile(activeRoom?.profiles), [activeRoom]);
+  const activeCompany = useMemo(() => getRoomCompany(activeRoom), [activeRoom]);
 
   const handleTabChange = (tabName: string) => {
     setActiveTab(tabName);
@@ -541,7 +548,11 @@ function ClientDashboardPageInner() {
                   ) : (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                       {votedCompanies.map((company, index) => (
-                        <SearchListItem key={company.id} company={company} index={index} />
+                        <SearchListItem
+                          key={company.id}
+                          index={index}
+                          company={{ ...company, logo_url: company.logo_url ?? undefined }}
+                        />
                       ))}
                     </div>
                   )}
@@ -575,7 +586,7 @@ function ClientDashboardPageInner() {
                             </div>
                           </div>
                           <p className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
-                            {msg.message_text}
+                            {msg.message}
                           </p>
                         </div>
                       ))}

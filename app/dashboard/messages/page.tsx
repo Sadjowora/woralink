@@ -41,6 +41,7 @@ type ChatRoom = {
   created_at: string;
   participant_a?: string | null;
   participant_b?: string | null;
+  client_profile?: ProfileRow | ProfileRow[] | null;
   profiles?: ProfileRow | ProfileRow[] | null;
 };
 
@@ -152,72 +153,125 @@ function MessagesPageInner() {
       setLoading(true);
       setError('');
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) {
-        if (!cancelled) router.push('/login');
-        return;
-      }
-
-      const userId = session.user.id;
-      if (!cancelled) setCurrentUserId(userId);
-
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('id, name, slug, logo_url')
-        .eq('user_id', userId)
-        .maybeSingle<Company>();
-
-      if (companyError || !companyData) {
-        if (!cancelled) {
-          setError('Impossible de charger votre espace messagerie pour le moment.');
-          setLoading(false);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.user) {
+          if (!cancelled) router.push('/login');
+          return;
         }
-        return;
-      }
 
-      if (cancelled) return;
-      //setCompany(companyData);
-      setRoomsLoading(true);
+        const userId = session.user.id;
+        if (!cancelled) setCurrentUserId(userId);
 
-      // Récupération explicite avec intégration des nouveaux champs profils CRM de test
-      const { data: roomData, error: roomsError } = await supabase
-        .from('chat_rooms')
-        .select(
-          'id, company_id, client_id, created_at, participant_a, participant_b, profiles:client_id(id, email, full_name, phone_number, city, bio_or_preferences)',
-        )
-        .or(
-          [
-            `company_id.eq.${companyData.id}`,
-            `participant_a.eq.${userId}`,
-            `participant_b.eq.${userId}`,
-          ].join(','),
-        )
-        .order('created_at', { ascending: false });
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('id, name, slug, logo_url')
+          .eq('user_id', userId)
+          .maybeSingle<Company>();
 
-      if (roomsError) {
+        if (companyError || !companyData) {
+          if (!cancelled) {
+            setError('Impossible de charger votre espace messagerie pour le moment.');
+          }
+          return;
+        }
+
+        if (cancelled) return;
+        //setCompany(companyData);
+        setRoomsLoading(true);
+
+        // Récupération explicite avec intégration des nouveaux champs profils CRM de test
+        const { data: roomData, error: roomsError } = await supabase
+          .from('chat_rooms')
+          .select(
+            'id, company_id, client_id, created_at, participant_a, participant_b, client_profile:profiles!chat_rooms_client_id_fkey(id, email, full_name, phone_number, city, bio_or_preferences)',
+          )
+          .or(
+            [
+              `company_id.eq.${companyData.id}`,
+              `participant_a.eq.${userId}`,
+              `participant_b.eq.${userId}`,
+            ].join(','),
+          )
+          .order('created_at', { ascending: false });
+
+        if (roomsError) {
+          if (!cancelled) {
+            setError('Impossible de charger les conversations clients.');
+            setRooms([]);
+            setActiveRoomId(null);
+          }
+          return;
+        }
+
+        const baseRooms = (roomData as unknown as ChatRoom[] | null) ?? [];
+
+        const clientIds = [
+          ...new Set(
+            baseRooms
+              .flatMap((room) => [room.client_id, room.participant_a, room.participant_b])
+              .filter((id): id is string => Boolean(id)),
+          ),
+        ];
+        let enrichedRooms = baseRooms;
+
+        if (clientIds.length > 0) {
+          const byProfileId = new Map<string, ProfileRow>();
+
+          const { data: profilesById, error: profilesByIdError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, phone_number, city, bio_or_preferences')
+            .in('id', clientIds);
+
+          if (profilesByIdError) {
+            console.warn('[messages] profiles by id lookup failed:', profilesByIdError.message);
+          } else {
+            for (const profile of (profilesById as ProfileRow[] | null) ?? []) {
+              byProfileId.set(profile.id, profile);
+            }
+          }
+
+          enrichedRooms = baseRooms.map((room) => {
+            const profileIdCandidate = [
+              room.client_id,
+              room.participant_a,
+              room.participant_b,
+            ].find((id) => Boolean(id) && id !== userId && byProfileId.has(id as string));
+
+            return {
+              ...room,
+              profiles:
+                (profileIdCandidate ? byProfileId.get(profileIdCandidate) : null) ??
+                byProfileId.get(room.client_id) ??
+                room.client_profile ??
+                room.profiles ??
+                null,
+            };
+          });
+        }
+
         if (!cancelled) {
-          setError('Impossible de charger les conversations clients.');
+          setRooms(enrichedRooms);
+          setConversationList([]);
+          setActiveRoomId((current) => {
+            if (roomFromUrl && enrichedRooms.some((r) => r.id === roomFromUrl)) return roomFromUrl;
+            return current ?? enrichedRooms[0]?.id ?? null;
+          });
+        }
+      } catch (loadError) {
+        console.error('[messages] loadDashboard failed:', loadError);
+        if (!cancelled) {
+          setError('Impossible de charger la messagerie pour le moment.');
           setRooms([]);
           setActiveRoomId(null);
-          setLoading(false);
-          setRoomsLoading(false);
         }
-        return;
-      }
-
-      const baseRooms = (roomData as unknown as ChatRoom[] | null) ?? [];
-
-      if (!cancelled) {
-        setRooms(baseRooms);
-        setConversationList([]);
-        setActiveRoomId((current) => {
-          if (roomFromUrl && baseRooms.some((r) => r.id === roomFromUrl)) return roomFromUrl;
-          return current ?? baseRooms[0]?.id ?? null;
-        });
-        setRoomsLoading(false);
-        setLoading(false);
+      } finally {
+        if (!cancelled) {
+          setRoomsLoading(false);
+          setLoading(false);
+        }
       }
     };
 
@@ -317,7 +371,6 @@ function MessagesPageInner() {
     () => rooms.find((r) => r.id === resolvedActiveRoomId) ?? null,
     [resolvedActiveRoomId, rooms],
   );
-  const activeClient = useMemo(() => normalizeProfile(activeRoom?.profiles), [activeRoom]);
   const roomIds = useMemo(() => rooms.map((r) => r.id), [rooms]);
 
   useEffect(() => {
@@ -338,13 +391,64 @@ function MessagesPageInner() {
         return;
       }
 
+      const { data: latestSendersData, error: latestSendersError } = await supabase
+        .from('chat_messages')
+        .select('room_id, sender_id, created_at')
+        .in('room_id', roomIds)
+        .order('created_at', { ascending: false });
+
+      if (latestSendersError) {
+        console.warn('[messages] latest sender lookup failed:', latestSendersError.message);
+      }
+
+      const latestSenderByRoom = new Map<string, string>();
+      for (const row of (latestSendersData as Array<{
+        room_id: string;
+        sender_id: string;
+        created_at: string;
+      }> | null) ?? []) {
+        if (!latestSenderByRoom.has(row.room_id)) {
+          latestSenderByRoom.set(row.room_id, row.sender_id);
+        }
+      }
+
+      const senderIds = [...new Set(Array.from(latestSenderByRoom.values()))].filter(
+        (id): id is string => Boolean(id) && id !== currentUserId,
+      );
+
+      const senderProfileById = new Map<string, ProfileRow>();
+      if (senderIds.length > 0) {
+        const { data: senderProfiles, error: senderProfilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, phone_number, city, bio_or_preferences')
+          .in('id', senderIds);
+
+        if (senderProfilesError) {
+          console.warn('[messages] sender profile lookup failed:', senderProfilesError.message);
+        } else {
+          for (const profile of (senderProfiles as ProfileRow[] | null) ?? []) {
+            senderProfileById.set(profile.id, profile);
+          }
+        }
+      }
+
       if (!cancelled) {
         const next = rooms
           .map((r) => {
             const latest = latestByRoom.get(r.id);
+            const baseClient = normalizeProfile(r.profiles);
+            const latestSenderId = latestSenderByRoom.get(r.id) ?? null;
+            const senderProfile = latestSenderId
+              ? (senderProfileById.get(latestSenderId) ?? null)
+              : null;
+            const resolvedClient =
+              baseClient.full_name === 'Client Woralink' && senderProfile
+                ? normalizeProfile(senderProfile)
+                : baseClient;
+
             return {
               room_id: r.id,
-              client: normalizeProfile(r.profiles),
+              client: resolvedClient,
               last_message: latest?.message ?? '',
               last_at: latest?.created_at ?? r.created_at,
             };
@@ -359,7 +463,19 @@ function MessagesPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [roomIds, rooms]);
+  }, [currentUserId, roomIds, rooms]);
+
+  const activeConversation = useMemo(
+    () =>
+      conversationList.find((conversation) => conversation.room_id === resolvedActiveRoomId) ??
+      null,
+    [conversationList, resolvedActiveRoomId],
+  );
+
+  const activeClient = useMemo(
+    () => activeConversation?.client ?? normalizeProfile(activeRoom?.profiles),
+    [activeConversation, activeRoom],
+  );
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

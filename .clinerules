@@ -1,0 +1,25 @@
+# ==========================================
+# WORALINK - RÈGLES DE DÉVELOPPEMENT GLOBALES
+# ==========================================
+
+## 1. Langue et Communication
+- Cline DOIT communiquer, expliquer et documenter ses modifications EXCLUSIVEMENT en français.
+- Les commentaires de code complexes ou la documentation technique générée doivent également être rédigés en français.
+
+## 2. Architecture & Vision Globale du Projet
+Woralink est une plateforme Next.js (App Router) connectée à Supabase. Le projet est divisé en trois grands espaces qui doivent rester isolés mais cohérents :
+
+1. **Espace Public (`app/(public)/`) :** Recherche d'entreprises, profils publics et formulaires de contact initiaux.
+2. **Espace Client (`app/dashboard/client/`) :** Tableau de bord pour les utilisateurs finaux (suivi des Bravos, messages envoyés, messagerie directe avec les PME).
+3. **Espace Entreprise (`app/dashboard/company/`) :** Tableau de bord pour les PME (gestion du profil, réception des leads de contact, réponses aux messages des clients).
+
+---
+
+## 3. Règle d'Or Supabase : Éviter les erreurs de jointures (PGRST200)
+PostgREST lève des erreurs de cache de schéma (`PGRST200`) dès qu'une jointure implicite complexe est tentée via `.select('..., table(*)')` si les contraintes de clés étrangères sont renommées, absentes ou ambiguës dans la base de données.
+
+### ⛔ À BANNIR :
+Ne jamais faire de jointures à l'aveugle sur des tables de liaison (comme `votes` ou `contact_messages`) vers `companies` ou `profiles`.
+```typescript
+// INTERDIT : Risque élevé de crash PGRST200
+const { data } = await supabase.from('votes').select('company_id, companies(*)');
